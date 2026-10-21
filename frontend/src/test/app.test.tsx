@@ -26,11 +26,11 @@ describe('App Root and Role Switching Verification', () => {
     expect(screen.getByText('Community Voice')).toBeDefined();
     expect(screen.getByText(/Share local stories/i)).toBeDefined();
 
-    // Switch to Authority role
-    const authorityBtn = screen.getByTitle(/Login as demo Tourism Officer/i);
-    fireEvent.click(authorityBtn);
-    expect(screen.getByText('Authority Dashboard')).toBeDefined();
-    expect(screen.getByText(/Verify businesses, publish advisories/i)).toBeDefined();
+    // Switch to Admin role
+    const adminBtn = screen.getByTitle(/Login as demo Antigravity Super Admin/i);
+    fireEvent.click(adminBtn);
+    expect(screen.getByText('Super Admin Master')).toBeDefined();
+    expect(screen.getByText(/Platform oversight/i)).toBeDefined();
 
     // Switch back to Tourist
     const touristBtn = screen.getByTitle(/Login as demo Sara Ahmed/i);

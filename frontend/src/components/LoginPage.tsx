@@ -778,11 +778,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   desc: 'Community Portal only',
                 },
                 {
-                  role: 'authority',
-                  title: 'Tourism Officer',
-                  name: 'Authority Inspector',
+                  role: 'admin',
+                  title: 'Admin Master',
+                  name: 'Antigravity Super Admin',
                   icon: <ShieldCheck size={14} color="#60a5fa" />,
-                  desc: 'Authority Portal only',
+                  desc: 'Admin Portal only',
                 },
               ].map((p) => (
                 <button

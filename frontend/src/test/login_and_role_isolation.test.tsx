@@ -46,7 +46,7 @@ describe('Login Screen and Role Isolation Verification', () => {
     expect(screen.getByText('Transport Fleet')).toBeDefined();
     expect(screen.getByText('Restaurant Owner')).toBeDefined();
     expect(screen.getByText('Community Member')).toBeDefined();
-    expect(screen.getByText('Tourism Officer')).toBeDefined();
+    expect(screen.getByText('Admin Master')).toBeDefined();
   });
 
   it('invokes onLoginSuccess when Demo User is selected with isDemo=true', async () => {

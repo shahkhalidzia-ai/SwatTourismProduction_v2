@@ -51,7 +51,6 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
     { key: 'transport', role: 'transport', label: 'Transport', name: 'Swat 4x4 Mountain Rides', tag: '4x4 Rides', targetRole: 'business' },
     { key: 'restaurant', role: 'restaurant', label: 'Restaurant', name: 'The Hujra Cafe', tag: 'Hujra Cafe', targetRole: 'business' },
     { key: 'community', role: 'community', label: 'Community', name: 'Gul Zaman', tag: 'Gul Zaman', targetRole: 'community' },
-    { key: 'authority', role: 'authority', label: 'Authority', name: 'Tourism Officer', tag: 'Officer', targetRole: 'authority' },
     { key: 'admin', role: 'admin', label: 'Admin', name: 'Antigravity Super Admin', tag: 'Master', targetRole: 'admin' },
     { key: 'demo', role: 'demo', label: '★ Demo Walker', name: 'Universal Demo Walker', tag: 'All Portals', targetRole: 'admin' },
   ];

@@ -10,17 +10,17 @@ describe('Step 8: End-to-End Demo Flow & Guided Stepper Verification', () => {
 
     const rolesCovered = new Set(DEMO_STEPS.map((s) => s.role));
     expect(rolesCovered.has('business')).toBe(true);
-    expect(rolesCovered.has('authority')).toBe(true);
+    expect(rolesCovered.has('admin')).toBe(true);
     expect(rolesCovered.has('tourist')).toBe(true);
     expect(rolesCovered.has('community')).toBe(true);
 
     // Verify key steps mentioned in docs/build_prompt.md
     expect(DEMO_STEPS[0].title).toContain('Business Registration');
-    expect(DEMO_STEPS[1].title).toContain('Authority Review');
+    expect(DEMO_STEPS[1].title).toContain('Admin Review');
     expect(DEMO_STEPS[4].title).toContain('Tourist Explores');
     expect(DEMO_STEPS[5].title).toContain('Trip Creation');
     expect(DEMO_STEPS[6].title).toContain('Business Today Screen');
-    expect(DEMO_STEPS[7].title).toContain('Authority Broadcasts');
+    expect(DEMO_STEPS[7].title).toContain('Admin Broadcasts');
     expect(DEMO_STEPS[9].title).toContain('Emergency SOS');
     expect(DEMO_STEPS[10].title).toContain('Rescue 1122');
     expect(DEMO_STEPS[11].title).toContain('Community Issue Report');
@@ -49,7 +49,7 @@ describe('Step 8: End-to-End Demo Flow & Guided Stepper Verification', () => {
       fireEvent.click(nextBtn);
     });
 
-    expect(screen.getByText('Authority Review & Business Verification')).toBeDefined();
+    expect(screen.getByText('Admin Review & Business Verification')).toBeDefined();
 
     // Jump to Step 10 (Emergency SOS)
     const step10Dot = screen.getByTestId('stepper-dot-10');
@@ -100,8 +100,8 @@ describe('Step 8: End-to-End Demo Flow & Guided Stepper Verification', () => {
       fireEvent.click(nextBtn);
     });
 
-    // Page switched to Step 2: Authority
-    expect(screen.getByText('Authority Dashboard')).toBeDefined();
+    // Page switched to Step 2: Admin
+    expect(screen.getByText('Super Admin Master')).toBeDefined();
 
     // Expand back
     const expandBtn = screen.getByLabelText('Expand Walkthrough Details');
@@ -109,7 +109,7 @@ describe('Step 8: End-to-End Demo Flow & Guided Stepper Verification', () => {
       fireEvent.click(expandBtn);
     });
 
-    expect(screen.getByText('Authority Review & Business Verification')).toBeDefined();
+    expect(screen.getByText('Admin Review & Business Verification')).toBeDefined();
     expect(screen.getByText(/End-to-End 15-Step Platform Walkthrough/i)).toBeDefined();
 
     // Close

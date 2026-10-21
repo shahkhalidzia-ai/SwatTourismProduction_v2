@@ -56,27 +56,31 @@ const MainAppContent: React.FC = () => {
     const qRole = params.get('role') as UserRole | null;
     const qTab = params.get('tab');
     if (qRole && ['tourist', 'business', 'community', 'authority', 'admin'].includes(qRole)) {
-      setRole(qRole);
+      const effectiveRole = qRole === 'authority' ? 'admin' : qRole;
+      setRole(effectiveRole);
       if (qTab) {
         setActiveTab(qTab);
       } else {
-        const defaultTab = ROLE_NAV_ITEMS[qRole][0]?.id || 'home';
+        const defaultTab = ROLE_NAV_ITEMS[effectiveRole][0]?.id || 'home';
         setActiveTab(defaultTab);
       }
-      demoLogin(qRole).catch(() => {});
+      demoLogin(effectiveRole).catch(() => {});
     }
   }, []);
 
   // When auth state changes, sync active role
   useEffect(() => {
-    if (!isTourOpen && user && user.role && user.role !== role) {
-      setRole(user.role);
-      let defaultTab = ROLE_NAV_ITEMS[user.role][0]?.id || 'home';
-      if (user.role === 'business') {
-        const nav = getBusinessNavItems(user.business_profile?.primary_type);
-        defaultTab = nav[0]?.id || 'listings';
+    if (!isTourOpen && user && user.role) {
+      const targetRole = (user.role === 'authority' ? 'admin' : user.role) as UserRole;
+      if (targetRole !== role) {
+        setRole(targetRole);
+        let defaultTab = ROLE_NAV_ITEMS[targetRole][0]?.id || 'home';
+        if (targetRole === 'business') {
+          const nav = getBusinessNavItems(user.business_profile?.primary_type);
+          defaultTab = nav[0]?.id || 'listings';
+        }
+        setActiveTab(defaultTab);
       }
-      setActiveTab(defaultTab);
     }
   }, [user, isTourOpen]);
 
@@ -93,7 +97,7 @@ const MainAppContent: React.FC = () => {
     if (window.location.search) {
       window.history.replaceState({}, '', window.location.pathname);
     }
-    const targetRole = authUser.role as UserRole;
+    const targetRole = (authUser.role === 'authority' ? 'admin' : authUser.role) as UserRole;
     setRole(targetRole);
     let defaultTab = ROLE_NAV_ITEMS[targetRole]?.[0]?.id || 'home';
     if (targetRole === 'business') {
@@ -103,7 +107,7 @@ const MainAppContent: React.FC = () => {
       defaultTab = 'home';
     } else if (targetRole === 'community') {
       defaultTab = 'feed';
-    } else if (targetRole === 'authority' || targetRole === 'admin') {
+    } else if (targetRole === 'admin') {
       defaultTab = 'overview';
     }
     setActiveTab(defaultTab);
@@ -124,9 +128,10 @@ const MainAppContent: React.FC = () => {
 
   // Sync activeTab when role changes manually
   const handleRoleChange = (newRole: UserRole) => {
-    setRole(newRole);
-    let defaultTab = ROLE_NAV_ITEMS[newRole][0].id;
-    if (newRole === 'business') {
+    const effectiveRole = newRole === 'authority' ? 'admin' : newRole;
+    setRole(effectiveRole);
+    let defaultTab = ROLE_NAV_ITEMS[effectiveRole][0].id;
+    if (effectiveRole === 'business') {
       const nav = getBusinessNavItems(user?.business_profile?.primary_type);
       defaultTab = nav[0]?.id || 'listings';
     }
@@ -153,7 +158,6 @@ const MainAppContent: React.FC = () => {
       case 'community':
         return 'Community Voice';
       case 'authority':
-        return 'Authority Dashboard';
       case 'admin':
         return 'Super Admin Master';
     }
@@ -173,7 +177,6 @@ const MainAppContent: React.FC = () => {
       case 'community':
         return 'Share local stories, crafts, and road updates';
       case 'authority':
-        return 'Verify businesses, publish advisories, and manage cases';
       case 'admin':
         return 'Platform oversight, system approvals, and user management';
     }
