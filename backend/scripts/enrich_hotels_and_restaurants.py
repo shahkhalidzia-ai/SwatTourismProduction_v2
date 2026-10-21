@@ -200,45 +200,81 @@ async def enrich():
         restaurants = res_rest.scalars().all()
 
         for r in restaurants:
-            r.phone = "+92-946-812888"
-            r.whatsapp_number = "+92-345-8128880"
-            r.address_text = "Main River Road, Upper Bazaar, Kalam Valley, Swat"
-            r.opening_time = time(8, 0)
-            r.closing_time = time(23, 0)
+            if "Adnan" in r.title:
+                r.phone = "+92-344-4138685"
+                r.whatsapp_number = "+92-344-4138685"
+                r.address_text = "Main GT Road, Opposite Green Chowk, Mingora, Swat"
+                r.opening_time = time(11, 0)
+                r.closing_time = time(23, 30)
 
-            # Details
-            stmt_ld = select(ListingDetail).where(ListingDetail.listing_id == r.id)
-            ld = (await session.execute(stmt_ld)).scalar_one_or_none()
-            if not ld:
-                ld = ListingDetail(listing_id=r.id, details={})
-                session.add(ld)
+                stmt_ld = select(ListingDetail).where(ListingDetail.listing_id == r.id)
+                ld = (await session.execute(stmt_ld)).scalar_one_or_none()
+                if not ld:
+                    ld = ListingDetail(listing_id=r.id, details={})
+                    session.add(ld)
 
-            ld.details = {
-                "cuisine": "Authentic Swati BBQ, Fresh River Trout & Karahi",
-                "seating_capacity": 85,
-                "takes_reservations": True,
-                "has_delivery": False,
-                "halal": True,
-                "highlights": ["Riverside Terrace", "Live Catch Fresh Trout", "Traditional Clay Tandoor", "Heated Family Seating"],
-                "opening_hours": "08:00 AM - 11:00 PM (Daily)",
-                "specialties": ["Fresh Swat River Trout", "Traditional Beef Chapli Kebab", "Special Desi Mutton Karahi"],
-            }
+                ld.details = {
+                    "cuisine": "Authentic Swati Shinwari BBQ, Dumpukht & Mixed Platters",
+                    "seating_capacity": 120,
+                    "takes_reservations": True,
+                    "has_delivery": True,
+                    "halal": True,
+                    "highlights": ["Family Hall", "Outdoor Garden Seating", "Live Shinwari Karahi", "AC Hall"],
+                    "opening_hours": "11:00 AM - 11:30 PM (Daily)",
+                    "specialties": ["Adnan Special BBQ Platter", "Shinwari Mutton Karahi", "Kabuli Pulao"],
+                }
 
-            # Enrich Price Items / Menu
-            stmt_pi = select(PriceItem).where(PriceItem.listing_id == r.id)
-            existing_pis = (await session.execute(stmt_pi)).scalars().all()
-            existing_names = {p.name for p in existing_pis}
+                stmt_pi = select(PriceItem).where(PriceItem.listing_id == r.id)
+                existing_pis = (await session.execute(stmt_pi)).scalars().all()
+                existing_names = {p.name for p in existing_pis}
 
-            menu_items_to_add = [
-                {"name": "Traditional Chapli Kebab (2 pcs)", "cat": "BBQ & Kebabs", "price": 600.0, "desc": "Authentic spiced beef patties pan-fried with tomatoes and pomegranate seeds."},
-                {"name": "Pan-Fried Swat River Trout", "cat": "Fresh River Trout", "price": 1400.0, "desc": "Fresh caught river trout with lemon, green herbs, served with mint chutney and naan."},
-                {"name": "Special Mutton Karahi (1kg)", "cat": "Karahi & Curries", "price": 2200.0, "desc": "Tender mountain mutton cooked in traditional iron karahi with garlic, ginger and tomatoes."},
-                {"name": "Chicken Shinwari Tikka (Half)", "cat": "BBQ & Kebabs", "price": 850.0, "desc": "Charcoal grilled tender chicken seasoned with salt and black pepper."},
-                {"name": "Swati Kabuli Pulao", "cat": "Rice & Breads", "price": 650.0, "desc": "Fragrant rice with slow-cooked meat, raisins, and sweet glazed carrots."},
-                {"name": "Kandahari Sesame Naan", "cat": "Rice & Breads", "price": 70.0, "desc": "Hot clay tandoor baked bread sprinkled with sesame seeds."},
-                {"name": "Peshawari Cardamom Qahwa", "cat": "Beverages", "price": 120.0, "desc": "Traditional digestive green tea brewed with cardamom and saffron."},
-                {"name": "Kalam Walnut & Desi Ghee Halwa", "cat": "Desserts", "price": 350.0, "desc": "Traditional winter sweet cooked with fresh Kalam walnuts and pure butter."},
-            ]
+                menu_items_to_add = [
+                    {"name": "Adnan Special Mixed BBQ Platter (Family)", "cat": "Platters & Combos", "price": 2800.0, "desc": "Grand assortment of malai boti, seekh kebab, mutton chops, served with kabuli rice, dips, and naan."},
+                    {"name": "Shinwari Mutton Karahi (1kg)", "cat": "Karahi & Curries", "price": 2400.0, "desc": "Fresh mountain mutton cooked purely in animal fat and salt with fresh tomatoes and green chilies."},
+                    {"name": "Authentic Swati Chapli Kebab (2 pcs)", "cat": "BBQ & Kebabs", "price": 650.0, "desc": "Crispy spiced beef patties with crushed pomegranate and garden herbs."},
+                    {"name": "Special Kabuli Pulao with Mutton", "cat": "Rice & Breads", "price": 750.0, "desc": "Long grain basmati rice infused with tender mutton, caramelised carrots, and golden raisins."},
+                    {"name": "Crispy Fried Finger Fish", "cat": "Seafood", "price": 1100.0, "desc": "Crisp battered Swat freshwater fish strips served with tartare dip and lemon."},
+                    {"name": "Fresh Roghani Sesame Naan", "cat": "Rice & Breads", "price": 80.0, "desc": "Tandoor baked fluffy flatbread with sesame seeds and butter glaze."},
+                    {"name": "Peshawari Cardamom Qahwa", "cat": "Beverages", "price": 120.0, "desc": "Digestive green tea brewed with green cardamom, cinnamon, and saffron."},
+                ]
+            else:
+                r.phone = "+92-946-812888"
+                r.whatsapp_number = "+92-345-8128880"
+                r.address_text = "Main River Road, Upper Bazaar, Kalam Valley, Swat"
+                r.opening_time = time(8, 0)
+                r.closing_time = time(23, 0)
+
+                stmt_ld = select(ListingDetail).where(ListingDetail.listing_id == r.id)
+                ld = (await session.execute(stmt_ld)).scalar_one_or_none()
+                if not ld:
+                    ld = ListingDetail(listing_id=r.id, details={})
+                    session.add(ld)
+
+                ld.details = {
+                    "cuisine": "Authentic Swati BBQ, Fresh River Trout & Karahi",
+                    "seating_capacity": 85,
+                    "takes_reservations": True,
+                    "has_delivery": False,
+                    "halal": True,
+                    "highlights": ["Riverside Terrace", "Live Catch Fresh Trout", "Traditional Clay Tandoor", "Heated Family Seating"],
+                    "opening_hours": "08:00 AM - 11:00 PM (Daily)",
+                    "specialties": ["Fresh Swat River Trout", "Traditional Beef Chapli Kebab", "Special Desi Mutton Karahi"],
+                }
+
+                stmt_pi = select(PriceItem).where(PriceItem.listing_id == r.id)
+                existing_pis = (await session.execute(stmt_pi)).scalars().all()
+                existing_names = {p.name for p in existing_pis}
+
+                menu_items_to_add = [
+                    {"name": "Traditional Chapli Kebab (2 pcs)", "cat": "BBQ & Kebabs", "price": 600.0, "desc": "Authentic spiced beef patties pan-fried with tomatoes and pomegranate seeds."},
+                    {"name": "Pan-Fried Swat River Trout", "cat": "Fresh River Trout", "price": 1400.0, "desc": "Fresh caught river trout with lemon, green herbs, served with mint chutney and naan."},
+                    {"name": "Special Mutton Karahi (1kg)", "cat": "Karahi & Curries", "price": 2200.0, "desc": "Tender mountain mutton cooked in traditional iron karahi with garlic, ginger and tomatoes."},
+                    {"name": "Chicken Shinwari Tikka (Half)", "cat": "BBQ & Kebabs", "price": 850.0, "desc": "Charcoal grilled tender chicken seasoned with salt and black pepper."},
+                    {"name": "Swati Kabuli Pulao", "cat": "Rice & Breads", "price": 650.0, "desc": "Fragrant rice with slow-cooked meat, raisins, and sweet glazed carrots."},
+                    {"name": "Kandahari Sesame Naan", "cat": "Rice & Breads", "price": 70.0, "desc": "Hot clay tandoor baked bread sprinkled with sesame seeds."},
+                    {"name": "Peshawari Cardamom Qahwa", "cat": "Beverages", "price": 120.0, "desc": "Traditional digestive green tea brewed with cardamom and saffron."},
+                    {"name": "Kalam Walnut & Desi Ghee Halwa", "cat": "Desserts", "price": 350.0, "desc": "Traditional winter sweet cooked with fresh Kalam walnuts and pure butter."},
+                ]
 
             for m in menu_items_to_add:
                 if m["name"] not in existing_names:

@@ -192,7 +192,7 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
     type_code: 'restaurant',
     type_label: 'Restaurants & Cafes',
     area_name: 'Kalam',
-    title: 'Mountain Grill',
+    title: 'Mountain Grill, Kalam',
     description: 'Authentic Swat trout fish, fresh chapli kebabs, and traditional dining with panoramic mountain views.',
     address_text: 'Main River Road, Upper Bazaar, Kalam Valley, Swat',
     phone: '+92-946-812888',
@@ -297,6 +297,109 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
     },
     opening_time: '08:00',
     closing_time: '23:00',
+    media: [],
+    rating_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-adnan-platter',
+    business_id: 'a6245b257b654c05bec9b653bc3a08f9',
+    business_name: 'Adnan Platter house',
+    type_id: 'type-restaurant',
+    type_code: 'restaurant',
+    type_label: 'Restaurants & Cafes',
+    area_name: 'Mingora',
+    title: 'Adnan Platter House & Shinwari BBQ',
+    description: 'Famous for authentic Swati Shinwari platters, mutton dumpukht, succulent seekh kebabs, and family dining in Mingora.',
+    address_text: 'Main GT Road, Opposite Green Chowk, Mingora, Swat',
+    phone: '+92-344-4138685',
+    whatsapp_number: '+92-344-4138685',
+    latitude: 34.7717,
+    longitude: 72.3602,
+    is_verified: true,
+    status: 'published',
+    tags: [
+      { id: 't-adnan-1', tag_group: 'feature', label: 'Shinwari BBQ' },
+      { id: 't-adnan-2', tag_group: 'feature', label: 'Mixed Platters' },
+      { id: 't-adnan-3', tag_group: 'feature', label: 'Halal' },
+      { id: 't-adnan-4', tag_group: 'feature', label: 'Family Seating' },
+    ],
+    price_items: [
+      {
+        id: 'pi-adnan-1',
+        name: 'Adnan Special Mixed BBQ Platter (Family)',
+        category: 'Platters & Combos',
+        price: 2800,
+        unit: 'per_item',
+        description: 'Grand assortment of malai boti, seekh kebab, mutton chops, served with kabuli rice, dips, and naan.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-2',
+        name: 'Shinwari Mutton Karahi (1kg)',
+        category: 'Karahi & Curries',
+        price: 2400,
+        unit: 'per_item',
+        description: 'Fresh mountain mutton cooked purely in animal fat and salt with fresh tomatoes and green chilies.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-3',
+        name: 'Authentic Swati Chapli Kebab (2 pcs)',
+        category: 'BBQ & Kebabs',
+        price: 650,
+        unit: 'per_item',
+        description: 'Crispy spiced beef patties with crushed pomegranate and garden herbs.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-4',
+        name: 'Special Kabuli Pulao with Mutton',
+        category: 'Rice & Breads',
+        price: 750,
+        unit: 'per_item',
+        description: 'Long grain basmati rice infused with tender mutton, caramelised carrots, and golden raisins.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-5',
+        name: 'Crispy Fried Finger Fish',
+        category: 'Seafood',
+        price: 1100,
+        unit: 'per_item',
+        description: 'Crisp battered Swat freshwater fish strips served with tartare dip and lemon.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-6',
+        name: 'Fresh Roghani Sesame Naan',
+        category: 'Rice & Breads',
+        price: 80,
+        unit: 'per_item',
+        description: 'Tandoor baked fluffy flatbread with sesame seeds and butter glaze.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-7',
+        name: 'Peshawari Cardamom Qahwa',
+        category: 'Beverages',
+        price: 120,
+        unit: 'per_item',
+        description: 'Digestive green tea brewed with green cardamom, cinnamon, and saffron.',
+        is_bookable: false,
+      },
+    ],
+    details: {
+      cuisine: 'Swati Shinwari BBQ, Dumpukht & Mixed Platters',
+      seating_capacity: 120,
+      opening_hours: '11:00 AM - 11:30 PM (Daily)',
+      halal: true,
+      has_delivery: true,
+      takes_reservations: true,
+    },
+    opening_time: '11:00',
+    closing_time: '23:30',
     media: [],
     rating_count: 0,
     created_at: new Date().toISOString(),
@@ -1154,7 +1257,21 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         });
         const publishedTransport = getPublishedTransportListingItems();
 
-        let baseListings = items && items.length > 0 ? items : (isCleanSlate ? [] : (!selectedAreaId && selectedType === 'all' && !searchQuery ? DEFAULT_VERIFIED_LISTINGS : (items || [])));
+        let baseListings = items && items.length > 0 ? [...items] : [];
+
+        if (!isCleanSlate && baseListings.length === 0) {
+          let fallbackList = [...DEFAULT_VERIFIED_LISTINGS];
+          if (selectedType !== 'all') {
+            fallbackList = fallbackList.filter((l) => l.type_code === selectedType);
+          }
+          if (selectedAreaId) {
+            const areaObj = areas.find((a) => a.id === selectedAreaId);
+            fallbackList = fallbackList.filter(
+              (l) => l.area_id === selectedAreaId || (areaObj && l.area_name?.toLowerCase() === areaObj.name.toLowerCase())
+            );
+          }
+          baseListings = fallbackList;
+        }
 
         // Fetch approved community services (4x4 rides, guides, adventure activities, crafts, homestays)
         let approvedApps = await fetchApprovedHostServices().catch(() => []);
@@ -1197,7 +1314,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               l.title.toLowerCase().includes(q) ||
               (l.description || '').toLowerCase().includes(q) ||
               (l.area_name || '').toLowerCase().includes(q) ||
-              (l.business_name || '').toLowerCase().includes(q)
+              (l.business_name || '').toLowerCase().includes(q) ||
+              l.price_items?.some((p) => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
           );
         }
 
@@ -1205,7 +1323,13 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
       } catch (err) {
         console.error('Error fetching explore listings:', err);
         const publishedTransport = getPublishedTransportListingItems();
-        let fallbackList = isCleanSlate ? [] : ((!selectedAreaId && selectedType === 'all' && !searchQuery) ? DEFAULT_VERIFIED_LISTINGS : []);
+        let fallbackList = isCleanSlate ? [] : [...DEFAULT_VERIFIED_LISTINGS];
+        if (selectedAreaId) {
+          const areaObj = areas.find((a) => a.id === selectedAreaId);
+          fallbackList = fallbackList.filter(
+            (l) => l.area_id === selectedAreaId || (areaObj && l.area_name?.toLowerCase() === areaObj.name.toLowerCase())
+          );
+        }
         const approvedApps = getStoredHostApplications().filter((a) => a.status === 'approved');
         const communityListings = (approvedApps || []).map(hostApplicationToListing);
 
@@ -1222,6 +1346,17 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         }
         if (selectedType !== 'all') {
           merged = merged.filter((l) => l.type_code === selectedType);
+        }
+        if (searchQuery && searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          merged = merged.filter(
+            (l) =>
+              l.title.toLowerCase().includes(q) ||
+              (l.description || '').toLowerCase().includes(q) ||
+              (l.area_name || '').toLowerCase().includes(q) ||
+              (l.business_name || '').toLowerCase().includes(q) ||
+              l.price_items?.some((p) => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
+          );
         }
         setListings(merged);
       } finally {

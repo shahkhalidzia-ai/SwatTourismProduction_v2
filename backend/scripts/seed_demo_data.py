@@ -249,6 +249,12 @@ async def seed_data():
                 "role": "authority",
                 "full_name": "District Tourism Officer",
             },
+            {
+                "email": "adnan@swat.pk",
+                "phone": "+923444138685",
+                "role": "business",
+                "full_name": "Adnan",
+            },
         ]
         user_map = {}
         standard_pw_hash = get_password_hash("password123")
@@ -348,6 +354,15 @@ async def seed_data():
                 "area": "Kalam",
                 "status": "pending",
             },
+            {
+                "owner_email": "adnan@swat.pk",
+                "name": "Adnan Platter house",
+                "primary_type": "restaurant",
+                "reg_no": "KP-REST-2024-088",
+                "phone": "+923444138685",
+                "area": "Mingora",
+                "status": "verified",
+            },
         ]
         business_map = {}
         for b in businesses_data:
@@ -415,6 +430,21 @@ async def seed_data():
                     {"name": "Traditional Chapli Kebab", "price": 600, "unit": "per_item", "default_units": 50},
                     {"name": "Pan-Fried River Trout", "price": 1400, "unit": "per_item", "default_units": 30},
                     {"name": "Special Mutton Karahi (1kg)", "price": 2200, "unit": "per_item", "default_units": 20},
+                ],
+            },
+            {
+                "title": "Adnan Platter House & Shinwari BBQ",
+                "business": "Adnan Platter house",
+                "type": "restaurant",
+                "area": "Mingora",
+                "lat": 34.7717,
+                "lng": 72.3602,
+                "desc": "Famous for authentic Swati Shinwari platters, mutton dumpukht, succulent seekh kebabs, and family dining in Mingora.",
+                "price_items": [
+                    {"name": "Adnan Special Mixed BBQ Platter (Family)", "price": 2800, "unit": "per_item", "default_units": 20},
+                    {"name": "Shinwari Mutton Karahi (1kg)", "price": 2400, "unit": "per_item", "default_units": 25},
+                    {"name": "Authentic Swati Chapli Kebab (2 pcs)", "price": 650, "unit": "per_item", "default_units": 40},
+                    {"name": "Special Kabuli Pulao with Mutton", "price": 750, "unit": "per_item", "default_units": 30},
                 ],
             },
             {
