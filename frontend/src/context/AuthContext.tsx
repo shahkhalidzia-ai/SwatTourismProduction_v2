@@ -11,7 +11,7 @@ export interface UserProfile {
   language: string;
   avatar_url?: string;
   status: string;
-  theme?: 'lake' | 'glass';
+  theme?: 'lake';
   reduce_effects?: boolean;
   created_at: string;
   tourist_profile?: {
@@ -86,14 +86,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     try {
       const data = await apiRequest<UserProfile>('/auth/me');
-      const localTheme = localStorage.getItem('swat_theme');
-      const effectiveTheme = (localTheme === 'glass' || localTheme === 'lake')
-        ? localTheme
-        : (data.theme || 'lake');
-
-      localStorage.setItem('swat_theme', effectiveTheme);
-      document.documentElement.setAttribute('data-theme', effectiveTheme);
-      window.dispatchEvent(new CustomEvent('swat_theme_change', { detail: { theme: effectiveTheme } }));
+      setUser(data);
+      localStorage.setItem('swat_theme', 'lake');
+      document.documentElement.setAttribute('data-theme', 'lake');
+      window.dispatchEvent(new CustomEvent('swat_theme_change', { detail: { theme: 'lake' } }));
 
       if (data.reduce_effects !== undefined) {
         localStorage.setItem('swat_reduce_effects', String(data.reduce_effects));
@@ -124,22 +120,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(data.access_token);
     setUser(data.user);
 
-    const localTheme = localStorage.getItem('swat_theme');
-    const effectiveTheme = (localTheme === 'glass' || localTheme === 'lake')
-      ? localTheme
-      : (data.user?.theme || 'lake');
-
-    localStorage.setItem('swat_theme', effectiveTheme);
-    document.documentElement.setAttribute('data-theme', effectiveTheme);
-    window.dispatchEvent(new CustomEvent('swat_theme_change', { detail: { theme: effectiveTheme } }));
-
-    // If local theme differs from server user theme, sync to server profile
-    if (data.user && data.user.theme !== effectiveTheme) {
-      apiRequest('/auth/profile', {
-        method: 'PATCH',
-        body: JSON.stringify({ theme: effectiveTheme }),
-      }).catch(() => {});
-    }
+    localStorage.setItem('swat_theme', 'lake');
+    document.documentElement.setAttribute('data-theme', 'lake');
+    window.dispatchEvent(new CustomEvent('swat_theme_change', { detail: { theme: 'lake' } }));
 
     if (data.user?.reduce_effects !== undefined) {
       localStorage.setItem('swat_reduce_effects', String(data.user.reduce_effects));

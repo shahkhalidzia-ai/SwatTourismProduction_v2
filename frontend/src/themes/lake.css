@@ -2,8 +2,8 @@
    Theme 1: Swat Lake (Existing Look, Baseline Default)
    ========================================================================== */
 
-html[data-theme="lake"],
-:root:not([data-theme="glass"]) {
+:root,
+html[data-theme="lake"] {
   /* Colors - Light Mode */
   --bg: #E8F1FA;
   --page-bg: #E8F1FA;
@@ -70,6 +70,8 @@ html[data-theme="lake"],
 }
 
 /* Dark Mode for Theme 1 */
+html[data-mode="dark"],
+[data-mode="dark"],
 html[data-theme="lake"][data-mode="dark"],
 html[data-theme="lake"] [data-mode="dark"] {
   --bg: #0F1E2B;
@@ -119,8 +121,9 @@ html[data-theme="lake"] [data-mode="dark"] {
 }
 
 @media (prefers-color-scheme: dark) {
-  html[data-theme="lake"]:not([data-mode="light"]),
-  :root:not([data-theme="glass"]):not([data-mode="light"]) {
+  html:not([data-mode="light"]),
+  :root:not([data-mode="light"]),
+  html[data-theme="lake"]:not([data-mode="light"]) {
     --bg: #0F1E2B;
     --page-bg: #0F1E2B;
     --card: #172C3D;

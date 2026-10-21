@@ -16,7 +16,7 @@ import { Card } from '../../design/Card';
 import { Button } from '../../design/Button';
 import { Tag } from '../../design/Tag';
 import { fetchAvailability, setAvailability, type PriceItem } from '../../api/listings';
-import { getCurrentWeekDays, type WeekDayColumn } from '../../utils/currentWeek';
+import { getCurrentWeekDays } from '../../utils/currentWeek';
 import {
   getPhysicalRoomsForHotel,
   calculateAvailableUnitsForDate,

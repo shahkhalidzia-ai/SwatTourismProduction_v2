@@ -12,9 +12,6 @@ const ThemeConsumer = () => {
     <div>
       <span data-testid="current-theme">{theme}</span>
       <span data-testid="reduce-effects">{String(reduceEffects)}</span>
-      <button onClick={() => setTheme('glass')} data-testid="btn-to-glass">
-        Switch to Glass
-      </button>
       <button onClick={() => setTheme('lake')} data-testid="btn-to-lake">
         Switch to Lake
       </button>
@@ -40,7 +37,7 @@ const AuthThemeTester = () => {
   );
 };
 
-describe('Theme System and Switcher Verification', () => {
+describe('Theme System (Swat Lake Unified Design)', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
@@ -59,19 +56,19 @@ describe('Theme System and Switcher Verification', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('lake');
   });
 
-  it('switches to Glass Alpine and updates data-theme attribute and localStorage', async () => {
+  it('locks application strictly to Swat Lake theme', async () => {
     render(
       <ThemeProvider>
         <ThemeConsumer />
       </ThemeProvider>
     );
 
-    fireEvent.click(screen.getByTestId('btn-to-glass'));
+    fireEvent.click(screen.getByTestId('btn-to-lake'));
 
     await waitFor(() => {
-      expect(screen.getByTestId('current-theme').textContent).toBe('glass');
-      expect(document.documentElement.getAttribute('data-theme')).toBe('glass');
-      expect(localStorage.getItem('swat_theme')).toBe('glass');
+      expect(screen.getByTestId('current-theme').textContent).toBe('lake');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('lake');
+      expect(localStorage.getItem('swat_theme')).toBe('lake');
     });
   });
 
@@ -91,7 +88,7 @@ describe('Theme System and Switcher Verification', () => {
     });
   });
 
-  it('renders ThemeAppearanceSection with both theme preview cards and toggles theme', async () => {
+  it('renders ThemeAppearanceSection with Swat Lake active theme card and without Theme 2', async () => {
     render(
       <ThemeProvider>
         <ThemeAppearanceSection />
@@ -99,18 +96,12 @@ describe('Theme System and Switcher Verification', () => {
     );
 
     expect(screen.getByText('Swat Lake')).toBeDefined();
-    expect(screen.getByText('Glass Alpine')).toBeDefined();
-
-    const glassOption = screen.getByTestId('theme-option-glass');
-    fireEvent.click(glassOption);
-
-    await waitFor(() => {
-      expect(document.documentElement.getAttribute('data-theme')).toBe('glass');
-      expect(localStorage.getItem('swat_theme')).toBe('glass');
-    });
+    expect(screen.queryByText('Glass Alpine')).toBeNull();
+    expect(screen.queryByTestId('theme-option-glass')).toBeNull();
+    expect(screen.getByTestId('theme-option-lake')).toBeDefined();
   });
 
-  it('renders elegant ThemeSwitchButton with Swat Lake and Glass Alpine buttons and allows toggling', async () => {
+  it('renders ThemeSwitchButton with active Swat Lake indicator', async () => {
     render(
       <ThemeProvider>
         <ThemeSwitchButton />
@@ -118,31 +109,11 @@ describe('Theme System and Switcher Verification', () => {
     );
 
     const lakeBtn = screen.getByTestId('theme-btn-lake');
-    const glassBtn = screen.getByTestId('theme-btn-glass');
-
     expect(lakeBtn).toBeDefined();
-    expect(glassBtn).toBeDefined();
-
-    // Click Glass Alpine button
-    fireEvent.click(glassBtn);
-    await waitFor(() => {
-      expect(document.documentElement.getAttribute('data-theme')).toBe('glass');
-      expect(localStorage.getItem('swat_theme')).toBe('glass');
-    });
-
-    // Click Swat Lake button
-    fireEvent.click(lakeBtn);
-    await waitFor(() => {
-      expect(document.documentElement.getAttribute('data-theme')).toBe('lake');
-      expect(localStorage.getItem('swat_theme')).toBe('lake');
-    });
+    expect(screen.queryByTestId('theme-btn-glass')).toBeNull();
   });
 
-  it('preserves Glass Alpine theme across Auth login and does not revert to lake', async () => {
-    // User selected glass prior to login
-    localStorage.setItem('swat_theme', 'glass');
-    document.documentElement.setAttribute('data-theme', 'glass');
-
+  it('preserves Swat Lake theme across Auth login', async () => {
     render(
       <ThemeProvider>
         <AuthProvider>
@@ -151,8 +122,7 @@ describe('Theme System and Switcher Verification', () => {
       </ThemeProvider>
     );
 
-    // After AuthProvider mounts, theme must remain glass
-    expect(localStorage.getItem('swat_theme')).toBe('glass');
-    expect(document.documentElement.getAttribute('data-theme')).toBe('glass');
+    expect(localStorage.getItem('swat_theme')).toBe('lake');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('lake');
   });
 });

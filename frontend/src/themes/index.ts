@@ -1,8 +1,9 @@
 /**
  * Theme configuration and typed definitions for Swat Tourism Production.
+ * Unified platform theme: Swat Lake.
  */
 
-export type ThemeId = 'lake' | 'glass';
+export type ThemeId = 'lake';
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -24,15 +25,6 @@ export const THEMES: Record<ThemeId, ThemeMeta> = {
     defaultRadiusCard: 16,
     defaultRadiusButton: 11,
   },
-  glass: {
-    id: 'glass',
-    name: 'Glass Alpine',
-    description: 'Frosted glass navigation with mountain scenery, snow animation, and alpine gradients.',
-    hasScenery: true,
-    glassHeader: true,
-    defaultRadiusCard: 18,
-    defaultRadiusButton: 11,
-  },
 };
 
-export const DEFAULT_THEME: ThemeId = (import.meta.env?.VITE_DEFAULT_THEME as ThemeId) || 'lake';
+export const DEFAULT_THEME: ThemeId = 'lake';

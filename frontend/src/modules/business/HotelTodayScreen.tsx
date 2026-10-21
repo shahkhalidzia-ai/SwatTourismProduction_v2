@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { AssignRoomModal } from './AssignRoomModal';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
-import { getCurrentWeekDays, type WeekDayColumn } from '../../utils/currentWeek';
+import { getCurrentWeekDays } from '../../utils/currentWeek';
 import {
   getPhysicalRoomsForHotel,
   updatePhysicalRoomStatus,

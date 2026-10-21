@@ -15,10 +15,10 @@
     <!-- Prevent Theme Flash -->
     <script>
       (function() {
-        try {
-          var savedTheme = localStorage.getItem('swat_theme') || 'lake';
+          var savedTheme = 'lake';
+          localStorage.setItem('swat_theme', 'lake');
           var reduceEffects = localStorage.getItem('swat_reduce_effects') === 'true';
-          document.documentElement.setAttribute('data-theme', savedTheme);
+          document.documentElement.setAttribute('data-theme', 'lake');
           if (reduceEffects) {
             document.documentElement.setAttribute('data-reduce-effects', 'true');
           }
