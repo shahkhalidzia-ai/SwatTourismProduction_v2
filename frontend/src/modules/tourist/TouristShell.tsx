@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { EasypaisaPaymentModal } from '../../components/EasypaisaPaymentModal';
+import { SwatPayModal } from '../../components/SwatPayModal';
 import { Card } from '../../design/Card';
 import { Button } from '../../design/Button';
 import { Tag } from '../../design/Tag';
@@ -67,7 +68,6 @@ import {
   cancelBooking,
   withdrawBooking,
   removeBookingFromTrip,
-  payEntireTrip,
   getCancellationPreview,
   completeBooking,
   type Booking,
@@ -1059,6 +1059,11 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
   const [paymentBooking, setPaymentBooking] = useState<Booking | null>(null);
+  const [swatPayModal, setSwatPayModal] = useState<{
+    isOpen: boolean;
+    trip?: Trip | null;
+    booking?: Booking | null;
+  }>({ isOpen: false });
 
   // Safety state
   const [advisories, setAdvisories] = useState<Advisory[]>([]);
@@ -1752,31 +1757,29 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
     }
   };
 
-  // Handle paying a single booking with Easypaisa
+  // Handle paying a single booking with SwatPay
   const handlePaySingleBooking = async (bookingId: string) => {
     const target = myBookings.find((b) => b.id === bookingId);
     if (target) {
-      setPaymentBooking(target);
+      setSwatPayModal({ isOpen: true, booking: target });
     } else {
       showToast('Booking details not found');
     }
   };
 
-  // Handle mock payment confirmation for entire trip (Rule 5 & Mock payment)
-  const handleMockPayment = async () => {
-    if (!trip) return;
-    try {
-      const confirmed = await payEntireTrip(trip.id, 'card');
-      setMyBookings(confirmed);
-      const updated = await updateMyTrip({ status: 'confirmed' });
-      setTrip(updated);
-      showToast('Payment verified! Your Swat trip and all bookings are confirmed.');
-    } catch {
-      // Local fallback for smooth prototype demo
-      const updated = await updateMyTrip({ status: 'confirmed' });
-      setTrip(updated);
-      showToast('Payment simulated successfully! (Demo mode)');
+  // Handle SwatPay payment for entire trip (Rule 5 & SwatPay modal)
+  const handleOpenTripPayment = async () => {
+    const targetTrip = currentViewedTrip || trip;
+    if (targetTrip) {
+      setSwatPayModal({ isOpen: true, trip: targetTrip });
+    } else {
+      showToast('No active trip to pay for.');
     }
+  };
+
+  // Backward compatible payment confirmation
+  const handleMockPayment = async () => {
+    await handleOpenTripPayment();
   };
 
   const isSaved = (type: 'listing' | 'destination', id: string) => {
@@ -4833,6 +4836,57 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         }}
       />
     
+      {/* SwatPay Multi-Provider Checkout Modal */}
+      <SwatPayModal
+        isOpen={swatPayModal.isOpen}
+        onClose={() => setSwatPayModal({ isOpen: false })}
+        trip={swatPayModal.trip}
+        booking={swatPayModal.booking}
+        bookings={myBookings}
+        onPaymentSuccess={async (result) => {
+          if (result.bookingId) {
+            setMyBookings((prev) =>
+              prev.map((b) =>
+                b.id === result.bookingId
+                  ? {
+                      ...b,
+                      payment_status: result.paymentStatus,
+                      deposit_amount: result.depositAmount,
+                      status: 'confirmed',
+                    }
+                  : b
+              )
+            );
+          } else if (result.tripId) {
+            setMyBookings((prev) =>
+              prev.map((b) =>
+                b.trip_id === result.tripId || !b.trip_id
+                  ? {
+                      ...b,
+                      payment_status: result.paymentStatus,
+                      deposit_amount: result.depositAmount ? Math.round(result.depositAmount / (prev.length || 1)) : undefined,
+                      status: 'confirmed',
+                    }
+                  : b
+              )
+            );
+            const updated = await updateMyTrip({ status: 'confirmed' }).catch(() => null);
+            if (updated) {
+              setTrip(updated);
+              if (currentViewedTrip && currentViewedTrip.id === updated.id) {
+                setCurrentViewedTrip(updated);
+              }
+            }
+          }
+          try {
+            const allB = await fetchMyBookings().catch(() => []);
+            if (allB && allB.length > 0) setMyBookings(allB);
+          } catch {}
+          setSwatPayModal({ isOpen: false });
+        }}
+        showToast={showToast}
+      />
+
       {/* Easypaisa Payment Modal */}
       <EasypaisaPaymentModal
         isOpen={!!paymentBooking}

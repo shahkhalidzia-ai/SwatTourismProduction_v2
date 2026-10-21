@@ -16,6 +16,9 @@ import {
   getPhysicalRoomsForHotel,
   updatePhysicalRoomStatus,
   calculateAvailableUnitsForDate,
+  checkInBooking,
+  checkOutBooking,
+  markRoomCleaned,
   type PhysicalRoom,
 } from './physicalRooms';
 
@@ -111,6 +114,56 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
       ...(key ? { [key]: 'declined' } : {}),
     }));
     onDeclineBooking(booking.id || booking.reference, booking.reference);
+  };
+
+  // Track guest in-house stay states (reserved -> checked_in -> checked_out)
+  const [stayStateMap, setStayStateMap] = useState<Record<string, 'reserved' | 'checked_in' | 'checked_out'>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('swat_hotel_stay_states') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  const [collectedBalanceMap, setCollectedBalanceMap] = useState<Record<string, boolean>>({});
+
+  const handleCheckInGuest = (booking: BookingRow) => {
+    const key = booking.id || booking.reference;
+    checkInBooking(effectiveListingId, key);
+    const updated = { ...stayStateMap, [key]: 'checked_in' as const };
+    setStayStateMap(updated);
+    try {
+      localStorage.setItem('swat_hotel_stay_states', JSON.stringify(updated));
+    } catch {}
+    const refreshed = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
+    setPhysicalRooms(refreshed);
+    window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated'));
+  };
+
+  const handleCheckOutGuest = (booking: BookingRow) => {
+    const key = booking.id || booking.reference;
+    checkOutBooking(effectiveListingId, key);
+    const updated = { ...stayStateMap, [key]: 'checked_out' as const };
+    setStayStateMap(updated);
+    setLocalStatusMap((prev) => ({
+      ...prev,
+      [booking.id]: 'completed',
+      [booking.reference]: 'completed',
+      ...(key ? { [key]: 'completed' } : {}),
+    }));
+    try {
+      localStorage.setItem('swat_hotel_stay_states', JSON.stringify(updated));
+    } catch {}
+    const refreshed = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
+    setPhysicalRooms(refreshed);
+    window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated'));
+  };
+
+  const handleMarkCleanedRoom = (roomId: string) => {
+    markRoomCleaned(effectiveListingId, roomId);
+    const refreshed = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
+    setPhysicalRooms(refreshed);
+    window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated'));
   };
 
   const [weekOffset, setWeekOffset] = useState<number>(0);
@@ -297,7 +350,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
               lineHeight: 1,
             }}
           >
-            Rs {businessStats.earnings_week.toLocaleString()}
+            Rs {((businessStats.earnings_week ?? (businessStats as any).revenue_pkr) || 0).toLocaleString()}
           </div>
         </div>
 
@@ -801,6 +854,27 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       <option value="cleaning">Mark Cleaning</option>
                       <option value="maintenance">Mark Maintenance</option>
                     </select>
+
+                    {room.status === 'cleaning' && (
+                      <button
+                        type="button"
+                        onClick={() => handleMarkCleanedRoom(room.id)}
+                        style={{
+                          width: '100%',
+                          marginTop: '4px',
+                          background: '#059669',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '3px 6px',
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ✓ Mark Cleaned
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -882,14 +956,19 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             }}
           >
             {displayedRequests.slice(0, 4).map((booking) => {
-              const isPendingOrRequested = booking.status === 'requested' || booking.status === 'pending';
-              const isAccepted = booking.status === 'accepted';
-              const isConfirmed = booking.status === 'confirmed';
+              const bKey = booking.id || booking.reference;
+              const effectiveStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
+              const isPendingOrRequested = effectiveStatus === 'requested' || effectiveStatus === 'pending';
+              const isAccepted = effectiveStatus === 'accepted';
+              const isCompleted = effectiveStatus === 'completed';
+              const isConfirmed = effectiveStatus === 'confirmed' || isCompleted;
 
               const badgeBg = isPendingOrRequested
                 ? '#FFE7BD'
                 : isAccepted
                 ? '#D3E6F7'
+                : isCompleted
+                ? '#D1FAE5'
                 : isConfirmed
                 ? '#D5F0E3'
                 : '#FADAD6';
@@ -898,6 +977,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 ? '#7A4A00'
                 : isAccepted
                 ? '#0C447C'
+                : isCompleted
+                ? '#065F46'
                 : isConfirmed
                 ? '#17694A'
                 : '#8E2A21';
@@ -906,6 +987,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 ? 'Waiting for you'
                 : isAccepted
                 ? 'Waiting for payment'
+                : isCompleted
+                ? 'Completed'
                 : isConfirmed
                 ? 'Confirmed'
                 : 'Declined';
@@ -1107,12 +1190,112 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       </div>
                     )}
 
-                    {isConfirmed && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#17694A', fontWeight: 600 }}>
-                        <CheckCircle size={14} />
-                        <span>Ready for check-in</span>
-                      </div>
-                    )}
+                    {isConfirmed && (() => {
+                      const bKey = booking.id || booking.reference;
+                      const stayState = stayStateMap[bKey] || 'reserved';
+                      const rawAmt = Number(booking.rawAmount) || 12000;
+                      const isDeposit = (booking as any).payment_status === 'deposit_paid' || Boolean((booking as any).deposit_amount);
+                      const depositAmt = (booking as any).deposit_amount || Math.round(rawAmt * 0.25);
+                      const balanceDue = isDeposit ? Math.max(0, rawAmt - depositAmt) : 0;
+                      const isBalanceCollected = collectedBalanceMap[bKey];
+
+                      if (stayState === 'checked_in') {
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(23, 105, 74, 0.08)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(23, 105, 74, 0.2)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#17694A', fontWeight: 700 }}>
+                                <CheckCircle size={15} color="#17694A" />
+                                <span>Guest In-House {assignedRoom ? `• Room ${assignedRoom.room_number}` : ''}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleCheckOutGuest(booking)}
+                                data-testid="btn-checkout-guest"
+                                style={{
+                                  background: '#B91C1C',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '6px 12px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Check Out &amp; Settle
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (stayState === 'checked_out') {
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#059669', fontWeight: 600 }}>
+                            <CheckCircle size={14} />
+                            <span>Stay Completed • Room Moved to Cleaning</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#17694A', fontWeight: 600 }}>
+                              <CheckCircle size={14} />
+                              <span>Ready for check-in</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleCheckInGuest(booking)}
+                              data-testid="btn-checkin-guest"
+                              style={{
+                                background: '#088395',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '6px 14px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 6px rgba(8, 131, 149, 0.25)',
+                              }}
+                            >
+                              Check In Guest
+                            </button>
+                          </div>
+
+                          {/* Deposit & Balance Due display */}
+                          {isDeposit && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#FEF3C7', padding: '6px 10px', borderRadius: '6px', fontSize: '11.5px', color: '#92400E' }}>
+                              <span>
+                                Deposit Paid: <strong>PKR {depositAmt.toLocaleString()}</strong> • Balance Due: <strong>PKR {balanceDue.toLocaleString()}</strong>
+                              </span>
+                              {!isBalanceCollected ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setCollectedBalanceMap((prev) => ({ ...prev, [bKey]: true }))}
+                                  style={{
+                                    background: '#D97706',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    padding: '2px 8px',
+                                    fontSize: '10.5px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Mark Collected
+                                </button>
+                              ) : (
+                                <span style={{ color: '#059669', fontWeight: 700 }}>✓ Balance Settled</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               );

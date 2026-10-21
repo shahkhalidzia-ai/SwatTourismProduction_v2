@@ -1,0 +1,157 @@
+import { describe, it, expect, vi } from 'vitest';
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { SwatPayModal } from '../components/SwatPayModal';
+import { HotelTodayScreen } from '../modules/business/HotelTodayScreen';
+import type { BookingRow, BusinessBookingSummary } from '../modules/business/BusinessShell';
+
+describe('SwatPay Checkout Modal & Hotel Stay Operations', () => {
+  const mockTrip: any = {
+    id: 'trip-swat-1',
+    title: 'Kalam Alpine Retreat',
+    estimated_total: 28000,
+    status: 'draft',
+    stops: [],
+  };
+
+  const mockBooking: any = {
+    id: 'b-serena-1',
+    reference: 'SWT-BK-771',
+    tourist_id: 'user-tourist',
+    business_id: 'biz-hotel-1',
+    listing_id: 'serena-hotel-swat',
+    status: 'accepted',
+    start_date: '2026-10-25',
+    travellers: 2,
+    total_amount: 24000,
+    payment_status: 'unpaid',
+    items: [],
+  };
+
+  it('renders SwatPayModal with 3 advance payment models and calculates deposit', () => {
+    const onPaymentSuccess = vi.fn();
+    render(
+      <SwatPayModal
+        isOpen={true}
+        onClose={vi.fn()}
+        trip={mockTrip}
+        onPaymentSuccess={onPaymentSuccess}
+      />
+    );
+
+    expect(screen.getByText(/SwatPay Checkout/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/28,000/i).length).toBeGreaterThan(0);
+
+    // Check advance options
+    expect(screen.getByTestId('btn-advance-full')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-advance-deposit')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-advance-arrival')).toBeInTheDocument();
+
+    // Click 25% Deposit
+    fireEvent.click(screen.getByTestId('btn-advance-deposit'));
+    expect(screen.getAllByText(/7,000/i).length).toBeGreaterThan(0); // 25% of 28,000
+
+    // Click Pay on Arrival
+    fireEvent.click(screen.getByTestId('btn-advance-arrival'));
+    expect(screen.getByText(/Pay on Arrival \/ Valley Continuity Guarantee/i)).toBeInTheDocument();
+  });
+
+  it('switches payment channels and completes payment with demo credentials', async () => {
+    const onPaymentSuccess = vi.fn();
+    render(
+      <SwatPayModal
+        isOpen={true}
+        onClose={vi.fn()}
+        booking={mockBooking}
+        onPaymentSuccess={onPaymentSuccess}
+      />
+    );
+
+    // Switch to Card tab
+    const cardTab = screen.getByTestId('btn-channel-card');
+    fireEvent.click(cardTab);
+    expect(screen.getByText(/Credit \/ Debit Card/i)).toBeInTheDocument();
+
+    // Switch to Raast QR tab
+    const raastTab = screen.getByTestId('btn-channel-raast');
+    fireEvent.click(raastTab);
+    expect(screen.getByText(/swat-tourism@raast/i)).toBeInTheDocument();
+
+    // Switch to JazzCash tab
+    const jazzTab = screen.getByTestId('btn-channel-jazzcash');
+    fireEvent.click(jazzTab);
+    expect(screen.getByText(/Last 6 Digits of CNIC/i)).toBeInTheDocument();
+
+    // Click confirm payment
+    const confirmBtn = screen.getByTestId('btn-confirm-swatpay');
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(onPaymentSuccess).toHaveBeenCalled();
+      expect(screen.getByText(/Payment Authorized!/i)).toBeInTheDocument();
+    });
+  });
+
+  it('renders Check In Guest, Deposit Balance Due, and Check Out on HotelTodayScreen', async () => {
+    const mockBookings: BookingRow[] = [
+      {
+        id: 'b-today-1',
+        reference: 'SWT-CHK-01',
+        tourist: 'Ahmad Khan',
+        touristEmail: 'ahmad@gmail.com',
+        item: 'Executive Deluxe Room (2 nights)',
+        dates: '2026-10-21 – 2026-10-23',
+        amount: 'Rs 24,000',
+        rawAmount: 24000,
+        status: 'confirmed',
+        payment_status: 'deposit_paid',
+        deposit_amount: 6000,
+      },
+    ];
+
+    const mockStats: BusinessBookingSummary = {
+      bookings_today: 1,
+      total_bookings_this_week: 1,
+      pending_requests: 0,
+      confirmed_bookings: 1,
+      revenue_pkr: 24000,
+      earnings_week: 24000,
+    };
+
+    render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessStats={mockStats}
+        bookings={mockBookings}
+        onAcceptBooking={vi.fn()}
+        onDeclineBooking={vi.fn()}
+      />
+    );
+
+    // Verify Deposit and Balance Due banner is rendered
+    expect(screen.getByText(/Deposit Paid:/i)).toBeInTheDocument();
+    expect(screen.getByText(/PKR 6,000/i)).toBeInTheDocument();
+    expect(screen.getByText(/Balance Due:/i)).toBeInTheDocument();
+    expect(screen.getByText(/PKR 18,000/i)).toBeInTheDocument();
+
+    // Verify Check In Guest button exists
+    const checkInBtn = screen.getByTestId('btn-checkin-guest');
+    expect(checkInBtn).toBeInTheDocument();
+
+    // Click Check In Guest
+    fireEvent.click(checkInBtn);
+
+    // Now it should transition into Guest In-House with Check Out button
+    await waitFor(() => {
+      expect(screen.getByText(/Guest In-House/i)).toBeInTheDocument();
+      expect(screen.getByTestId('btn-checkout-guest')).toBeInTheDocument();
+    });
+
+    // Click Check Out & Settle
+    fireEvent.click(screen.getByTestId('btn-checkout-guest'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Stay Completed • Room Moved to Cleaning/i)).toBeInTheDocument();
+    });
+  });
+});

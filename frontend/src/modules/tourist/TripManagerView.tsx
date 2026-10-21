@@ -39,7 +39,7 @@ import * as bookingsApi from '../../api/bookings';
 import { getPublishedTransportListingItems } from '../business/TransportFleetManager';
 import { getStoredHostApplications, hostApplicationToListing } from '../../api/community';
 import { analyzeAndOptimizeRoute } from '../../services/touristAIService';
-import { getAllPhysicalRooms } from '../business/physicalRooms';
+import { getAllPhysicalRooms, getAssignedRoomForBooking } from '../business/physicalRooms';
 
 export interface TripManagerViewProps {
   trip: Trip | null;
@@ -3526,6 +3526,40 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
                   <strong>Contact:</strong> {voucherBooking.driver_phone}
                 </div>
               )}
+
+              {/* Physical Room Assignment on Voucher */}
+              {(() => {
+                const assigned = getAssignedRoomForBooking(voucherBooking.id) || (voucherBooking as any).assigned_room_number;
+                if (!assigned) return null;
+                const roomNum = typeof assigned === 'string' ? assigned : assigned.roomNumber;
+                const cat = typeof assigned === 'object' ? assigned.category : undefined;
+                return (
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      backgroundColor: '#EFF6FF',
+                      borderRadius: '8px',
+                      border: '1px solid #BFDBFE',
+                      fontSize: 'var(--font-xs)',
+                      color: '#1E40AF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: '6px',
+                    }}
+                  >
+                    <div>
+                      <strong>🛏️ Assigned Room:</strong> {roomNum} {cat ? `(${cat})` : ''}
+                      <div style={{ fontSize: '11px', color: '#3B82F6', marginTop: '2px' }}>
+                        Keycard issued at hotel reception • Complimentary Mountain WiFi
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: 800, background: '#1E40AF', color: '#ffffff', padding: '2px 8px', borderRadius: '12px' }}>
+                      KEY READY
+                    </span>
+                  </div>
+                );
+              })()}
 
               {/* Itemized pricing lines */}
               <div style={{ borderTop: '1px solid var(--line)', paddingTop: '10px' }}>

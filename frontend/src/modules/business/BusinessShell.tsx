@@ -89,6 +89,8 @@ export interface BookingRow {
   amount: string;
   rawAmount: number;
   status: string;
+  payment_status?: string;
+  deposit_amount?: number;
   declineReason?: string;
   rawBooking?: Booking;
   assigned_room_number?: string;
@@ -968,6 +970,8 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               amount: `Rs ${Number(b.total_amount).toLocaleString()}`,
               rawAmount: Number(b.total_amount),
               status: b.status,
+              payment_status: b.payment_status,
+              deposit_amount: b.deposit_amount,
               declineReason: b.decline_reason,
               rawBooking: b,
             }));

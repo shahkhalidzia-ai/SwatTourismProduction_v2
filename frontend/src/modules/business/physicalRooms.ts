@@ -227,6 +227,18 @@ export function assignRoomToBooking(
   if (assignedRoom) {
     all[listingId] = finalRooms;
     saveAllPhysicalRooms(all);
+    try {
+      const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+      storedMap[bookingId] = {
+        roomId: assignedRoom.id,
+        roomNumber: assignedRoom.room_number,
+        category: assignedRoom.category_name,
+        floor: assignedRoom.floor,
+        wing: assignedRoom.wing,
+        status: assignedRoom.status,
+      };
+      localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
+    } catch {}
     return { success: true, room: assignedRoom };
   }
   return { success: false };
@@ -258,8 +270,130 @@ export function releaseRoomFromBooking(listingId: string, bookingId: string): bo
   if (found) {
     all[listingId] = updatedRooms;
     saveAllPhysicalRooms(all);
+    try {
+      const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+      delete storedMap[bookingId];
+      localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
+    } catch {}
   }
   return found;
+}
+
+/**
+ * Gets the assigned physical room details for a given booking ID
+ */
+export function getAssignedRoomForBooking(bookingId?: string): {
+  roomNumber: string;
+  category?: string;
+  floor?: number | string;
+  wing?: string;
+  status?: string;
+} | null {
+  if (!bookingId) return null;
+  try {
+    const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+    if (storedMap[bookingId]) {
+      return storedMap[bookingId];
+    }
+  } catch {}
+
+  // Fallback: search all physical rooms
+  const all = getAllPhysicalRooms();
+  for (const listId of Object.keys(all)) {
+    const matched = all[listId].find((r) => r.current_booking_id === bookingId);
+    if (matched) {
+      return {
+        roomNumber: matched.room_number,
+        category: matched.category_name,
+        floor: matched.floor,
+        wing: matched.wing,
+        status: matched.status,
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Checks in a guest for a booking, transitioning their physical room to 'occupied'
+ */
+export function checkInBooking(listingId: string, bookingId: string): { success: boolean; room?: PhysicalRoom } {
+  const all = getAllPhysicalRooms();
+  const rooms = all[listingId] || [];
+  let assignedRoom: PhysicalRoom | undefined;
+
+  const updatedRooms = rooms.map((r) => {
+    if (r.current_booking_id === bookingId) {
+      assignedRoom = {
+        ...r,
+        status: 'occupied' as const,
+        notes: `Checked in on ${new Date().toLocaleDateString()}`,
+        updated_at: new Date().toISOString(),
+      };
+      return assignedRoom;
+    }
+    return r;
+  });
+
+  if (assignedRoom) {
+    all[listingId] = updatedRooms;
+    saveAllPhysicalRooms(all);
+    try {
+      const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+      if (storedMap[bookingId]) {
+        storedMap[bookingId].status = 'occupied';
+        localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
+      }
+    } catch {}
+    return { success: true, room: assignedRoom };
+  }
+  return { success: false };
+}
+
+/**
+ * Checks out a guest for a booking, transitioning their physical room to 'cleaning'
+ */
+export function checkOutBooking(listingId: string, bookingId: string): { success: boolean; room?: PhysicalRoom } {
+  const all = getAllPhysicalRooms();
+  const rooms = all[listingId] || [];
+  let vacatedRoom: PhysicalRoom | undefined;
+
+  const updatedRooms = rooms.map((r) => {
+    if (r.current_booking_id === bookingId) {
+      vacatedRoom = {
+        ...r,
+        status: 'cleaning' as const,
+        notes: `Vacated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Awaiting housekeeping`,
+        current_booking_id: undefined,
+        current_guest_name: undefined,
+        stay_dates: undefined,
+        updated_at: new Date().toISOString(),
+      };
+      return vacatedRoom;
+    }
+    return r;
+  });
+
+  if (vacatedRoom) {
+    all[listingId] = updatedRooms;
+    saveAllPhysicalRooms(all);
+    try {
+      const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+      if (storedMap[bookingId]) {
+        storedMap[bookingId].status = 'cleaning';
+        localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
+      }
+    } catch {}
+    return { success: true, room: vacatedRoom };
+  }
+  return { success: false };
+}
+
+/**
+ * Housekeeping action: Marks a room in 'cleaning' status as 'available'
+ */
+export function markRoomCleaned(listingId: string, roomId: string): boolean {
+  return updatePhysicalRoomStatus(listingId, roomId, 'available', 'Cleaned & sanitized by housekeeping');
 }
 
 /**
