@@ -107,7 +107,7 @@ def build_document():
         # Header / Footer
         header = section.header
         hp = header.paragraphs[0]
-        hp.text = "Swat Tourism Platform v2.0 | Architectural Gap Analysis"
+        hp.text = "Swat Tourism Platform v2.0 | Architectural Gap Analysis & Advance Payment Policy"
         hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         hp.runs[0].font.name = "Calibri"
         hp.runs[0].font.size = Pt(8.5)
@@ -134,7 +134,7 @@ def build_document():
     sub_p = doc.add_paragraph()
     sub_p.paragraph_format.space_before = Pt(0)
     sub_p.paragraph_format.space_after = Pt(12)
-    run_sub = sub_p.add_run("Comprehensive Architectural Gap Analysis & Technical Implementation Plan")
+    run_sub = sub_p.add_run("Architectural Gap Analysis, Advance Payment Rules & Production Roadmap")
     run_sub.font.name = "Calibri"
     run_sub.font.size = Pt(13)
     run_sub.font.italic = True
@@ -146,9 +146,9 @@ def build_document():
     meta_tbl.autofit = False
     meta_data = [
         ("Platform Version:", "Swat Tourism Platform (STP) Production v2.0"),
-        ("Target Domains:", "Tourist Checkout, Hotel Stay Management, Trip Lifecycle Completion"),
+        ("Target Domains:", "Advance Payment Models (Full/Partial), Hotel Front Desk, Trip Completion"),
         ("Prepared By:", "Lead Software Architect & AI Engineering Team"),
-        ("Date & Status:", "October 2026 | Production Readiness Assessment (Active)"),
+        ("Date & Status:", "October 2026 | Production Readiness Assessment (Updated)"),
     ]
     for r_idx, (k, v) in enumerate(meta_data):
         c0 = meta_tbl.cell(r_idx, 0)
@@ -194,10 +194,10 @@ def build_document():
     p_exec.paragraph_format.space_after = Pt(6)
     r_exec = p_exec.add_run(
         "The Swat Tourism Platform (STP) has achieved rich discovery, booking request pipelines, transport fleet management, "
-        "and physical room rack allocation. However, bridging the platform into a mission-critical commercial engine requires "
-        "closing foundational architectural gaps across three interconnected domains: (1) multi-channel digital payments and "
-        "checkout bundling, (2) the physical hotel stay operational lifecycle (from front-desk check-in through in-stay folios "
-        "and housekeeping turnover), and (3) automated trip completion triggers with verified multi-entity traveler feedback loops."
+        "and physical room rack allocation. However, transitioning the platform into a commercial hospitality standard requires "
+        "addressing key functional requirements: (1) multi-channel digital payments and flexible advance deposit options, "
+        "(2) the physical hotel stay operational lifecycle (from front-desk check-in through in-stay folios and room turnover), "
+        "and (3) automated trip completion triggers with verified multi-entity traveler feedback loops."
     )
     r_exec.font.name = "Calibri"
     r_exec.font.size = Pt(10)
@@ -206,14 +206,14 @@ def build_document():
     add_callout(
         doc,
         "Core Architectural Verdict:",
-        "The frontend prototype currently bypasses real checkout by executing a simulated toast callback on 'Pay Entire Trip', "
-        "while the hotel portal displays static check-in text without action buttons for staff to check guests into physical rooms "
-        "or turn rooms over. Implementing a unified 'SwatPay' checkout modal alongside an interactive Hotel Front-Desk workflow "
-        "will elevate STP into a production-grade digital hospitality standard."
+        "The backend database schema already defines 'deposit_amount' and supports payment_status values ('unpaid', 'deposit_paid', 'paid', 'refunded'). "
+        "However, the frontend UI currently lacks the interactive controls for tourists to select Full vs. Partial Deposit payment, and the "
+        "Hotel Today Screen does not show front-desk staff the outstanding balance due upon guest arrival. Integrating this into the SwatPay modal "
+        "and Hotel Check-In workflow is an essential deliverable."
     )
 
     # ---------------------------------------------------------
-    # 2. Payment Flow Gap Analysis
+    # 2. Payment Architecture & Gap Analysis
     # ---------------------------------------------------------
     h2 = doc.add_paragraph()
     h2.paragraph_format.space_before = Pt(14)
@@ -228,16 +228,13 @@ def build_document():
     p_pay.paragraph_format.line_spacing = 1.15
     p_pay.paragraph_format.space_after = Pt(6)
     r_pay = p_pay.add_run(
-        "Tourism dynamics across Swat Valley (encompassing Mingora, Bahrain, Madyan, Kalam, Mahodand Lake, Malam Jabba, and Ushu) "
-        "require a multi-tiered payment structure. Domestic travelers overwhelmingly rely on Easypaisa and JazzCash mobile wallets, "
-        "corporate and banking customers leverage SBP Raast instant QR codes, overseas diaspora utilize Visa/Mastercard, while remote "
-        "mountain outposts require a reservation guarantee safety net with Pay-on-Arrival."
+        "Tourism dynamics across Swat Valley require a resilient, multi-rail payment architecture accommodating Easypaisa and JazzCash mobile "
+        "wallets, SBP Raast instant QR codes, international credit/debit cards, and offline reservation guarantees for remote alpine areas."
     )
     r_pay.font.name = "Calibri"
     r_pay.font.size = Pt(10)
     r_pay.font.color.rgb = RGBColor(0x2D, 0x37, 0x48)
 
-    # Current vs Gap Table for Payments
     pay_tbl = doc.add_table(rows=1, cols=3)
     pay_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     pay_tbl.autofit = False
@@ -277,30 +274,114 @@ def build_document():
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
     # ---------------------------------------------------------
-    # 3. Hotel Stay Lifecycle Gap Analysis
+    # 3. ADVANCE PAYMENT POLICY & SPECIFICATION (NEW SECTION)
     # ---------------------------------------------------------
     h3 = doc.add_paragraph()
     h3.paragraph_format.space_before = Pt(14)
     h3.paragraph_format.space_after = Pt(4)
-    run_h3 = h3.add_run("3. Hotel Stay Operational Lifecycle & Room Operations")
+    run_h3 = h3.add_run("3. Advance Payment Policy: Full vs. Partial Deposit vs. Pay-on-Arrival")
     run_h3.font.name = "Calibri"
     run_h3.font.size = Pt(16)
     run_h3.font.bold = True
     run_h3.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
 
+    p_adv = doc.add_paragraph()
+    p_adv.paragraph_format.line_spacing = 1.15
+    p_adv.paragraph_format.space_after = Pt(6)
+    r_adv = p_adv.add_run(
+        "A critical question in hospitality platforms is whether booking confirmation requires full upfront payment, a partial deposit, "
+        "or zero advance payment. In the Swat Tourism Platform, the underlying database model already supports multiple commercial policies "
+        "via 'deposit_amount' (Numeric) and 'payment_status' ('unpaid', 'deposit_paid', 'paid', 'refunded'). The platform establishes "
+        "three distinct operational models:"
+    )
+    r_adv.font.name = "Calibri"
+    r_adv.font.size = Pt(10)
+    r_adv.font.color.rgb = RGBColor(0x2D, 0x37, 0x48)
+
+    # Table of Advance Payment Models
+    adv_tbl = doc.add_table(rows=1, cols=4)
+    adv_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    adv_tbl.autofit = False
+    adv_headers = ["Payment Model", "Advance Required", "Booking Status & Confirmation Rules", "Front-Desk Balance Due"]
+    adv_widths = [1.5, 1.4, 2.1, 1.5]
+    format_table_headers(adv_tbl, adv_headers, fill_hex="0E8388", col_widths=adv_widths)
+
+    adv_data = [
+        (
+            "1. Full Advance Payment\n(100% Upfront)",
+            "100% of booking total charged at checkout via Easypaisa, JazzCash, Card, or Raast.",
+            "• status: 'confirmed'\n• payment_status: 'paid'\n• Confirmed immediately upon gateway webhook confirmation.",
+            "Balance Due: PKR 0\nGuest checked in without financial collection."
+        ),
+        (
+            "2. Partial Advance Deposit\n(20% - 30% or 1st Night)",
+            "Partial amount charged upfront (e.g. PKR 5,000 on a PKR 20,000 reservation).",
+            "• status: 'confirmed'\n• payment_status: 'deposit_paid'\n• deposit_amount: recorded\n• Room is secured on hotel rack.",
+            "Balance Due: PKR 15,000\nFront desk collects remaining balance at check-in or checkout."
+        ),
+        (
+            "3. Pay on Arrival\n(0% Advance Guarantee)",
+            "PKR 0 charged upfront. Reservation held via verified mobile / CNIC or card guarantee.",
+            "• status: 'confirmed'\n• payment_status: 'unpaid'\n• Guaranteed voucher issued with check-in cancellation cut-off.",
+            "Balance Due: PKR 20,000\nFull payment collected at hotel reception desk."
+        ),
+    ]
+    format_table_rows(adv_tbl, adv_data, col_widths=adv_widths)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(6)
+
+    # Detailed Business & Technical Rules for Advance Payments
+    p_rules = doc.add_paragraph()
+    p_rules.paragraph_format.line_spacing = 1.15
+    p_rules.paragraph_format.space_after = Pt(4)
+    r_rules_t = p_rules.add_run("Business Rules & Operational Implementation Requirements:\n")
+    r_rules_t.bold = True
+    r_rules_t.font.name = "Calibri"
+    r_rules_t.font.size = Pt(11)
+    r_rules_t.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
+
+    r_rules_b = p_rules.add_run(
+        "1. Dynamic Tourist Selector in SwatPay Modal: The checkout modal must display clear payment choice options: "
+        "'[X] Pay Full Amount (PKR 24,000 - Guaranteed Best Rate)' vs. '[ ] Pay 25% Deposit (PKR 6,000 now, PKR 18,000 at Hotel)' "
+        "vs. '[ ] Pay on Arrival (PKR 0 now, PKR 24,000 at Venue)'.\n"
+        "2. Hotel Front-Desk Balance Calculation: When a tourist arrives with payment_status = 'deposit_paid', the Hotel Today Screen "
+        "must render a prominent badge: 'Deposit Paid: PKR 6,000 • Remaining Balance Due: PKR 18,000'. During check-in or check-out, "
+        "the front desk records collection of this balance.\n"
+        "3. High-Season Policy Enforcement: For high-demand luxury suites (e.g. Serena Heritage Suite or Malam Jabba Ski Resort in winter), "
+        "hotel managers can toggle 'Advance Deposit Mandatory' in listing configuration, requiring at least a 25% non-refundable deposit.\n"
+        "4. Cancellation & Refund Rules: If a tourist cancels a deposit-confirmed booking: cancellations made > 48 hours prior to check-in "
+        "receive a 100% refund of deposit; cancellations < 48 hours forfeit the deposit to compensate the hotel for held room inventory."
+    )
+    r_rules_b.font.name = "Calibri"
+    r_rules_b.font.size = Pt(9.5)
+    r_rules_b.font.color.rgb = RGBColor(0x2D, 0x37, 0x48)
+
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+
+    # ---------------------------------------------------------
+    # 4. Hotel Stay Lifecycle Gap Analysis
+    # ---------------------------------------------------------
+    h4 = doc.add_paragraph()
+    h4.paragraph_format.space_before = Pt(14)
+    h4.paragraph_format.space_after = Pt(4)
+    run_h4 = h4.add_run("4. Hotel Stay Operational Lifecycle & Room Operations")
+    run_h4.font.name = "Calibri"
+    run_h4.font.size = Pt(16)
+    run_h4.font.bold = True
+    run_h4.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
+
     p_hotel = doc.add_paragraph()
     p_hotel.paragraph_format.line_spacing = 1.15
     p_hotel.paragraph_format.space_after = Pt(6)
     r_hotel = p_hotel.add_run(
-        "A hotel reservation does not end with booking acceptance; it transitions through a physical on-property lifecycle: "
-        "Arrival Verification -> Room Key Handover -> In-House Stay -> Incidentals/Folio Charges -> Check-Out & Billing -> "
-        "Housekeeping Turnover. The current portal implements room allocation but lacks real-time operational execution."
+        "A hotel reservation transitions through a physical on-property lifecycle: Arrival Verification -> Room Key Handover -> "
+        "In-House Stay -> Incidentals/Folio Charges -> Check-Out & Billing -> Housekeeping Turnover. The current portal implements "
+        "room allocation but lacks real-time operational execution."
     )
     r_hotel.font.name = "Calibri"
     r_hotel.font.size = Pt(10)
     r_hotel.font.color.rgb = RGBColor(0x2D, 0x37, 0x48)
 
-    # Hotel Gaps Table
     hotel_tbl = doc.add_table(rows=1, cols=3)
     hotel_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     hotel_tbl.autofit = False
@@ -340,16 +421,16 @@ def build_document():
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
     # ---------------------------------------------------------
-    # 4. Trip Completion & Reviews Gap Analysis
+    # 5. Trip Completion & Reviews Gap Analysis
     # ---------------------------------------------------------
-    h4 = doc.add_paragraph()
-    h4.paragraph_format.space_before = Pt(14)
-    h4.paragraph_format.space_after = Pt(4)
-    run_h4 = h4.add_run("4. Trip Completion Lifecycle & Traveler Feedback Loop")
-    run_h4.font.name = "Calibri"
-    run_h4.font.size = Pt(16)
-    run_h4.font.bold = True
-    run_h4.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
+    h5 = doc.add_paragraph()
+    h5.paragraph_format.space_before = Pt(14)
+    h5.paragraph_format.space_after = Pt(4)
+    run_h5 = h5.add_run("5. Trip Completion Lifecycle & Traveler Feedback Loop")
+    run_h5.font.name = "Calibri"
+    run_h5.font.size = Pt(16)
+    run_h5.font.bold = True
+    run_h5.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
 
     p_trip = doc.add_paragraph()
     p_trip.paragraph_format.line_spacing = 1.15
@@ -363,7 +444,6 @@ def build_document():
     r_trip.font.size = Pt(10)
     r_trip.font.color.rgb = RGBColor(0x2D, 0x37, 0x48)
 
-    # Trip Gaps Table
     trip_tbl = doc.add_table(rows=1, cols=3)
     trip_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     trip_tbl.autofit = False
@@ -398,26 +478,16 @@ def build_document():
     doc.add_paragraph().paragraph_format.space_after = Pt(8)
 
     # ---------------------------------------------------------
-    # 5. Proposed Solution Architecture: SwatPay & Front-Desk Workflow
+    # 6. Target Solution Architecture
     # ---------------------------------------------------------
-    h5 = doc.add_paragraph()
-    h5.paragraph_format.space_before = Pt(14)
-    h5.paragraph_format.space_after = Pt(4)
-    run_h5 = h5.add_run("5. Proposed Target Solution Architecture")
-    run_h5.font.name = "Calibri"
-    run_h5.font.size = Pt(16)
-    run_h5.font.bold = True
-    run_h5.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
-
-    p_sol = doc.add_paragraph()
-    p_sol.paragraph_format.line_spacing = 1.15
-    p_sol.paragraph_format.space_after = Pt(6)
-    r_sol = p_sol.add_run(
-        "To resolve all identified gaps systematically, the engineering roadmap defines three core target modules:"
-    )
-    r_sol.font.name = "Calibri"
-    r_sol.font.size = Pt(10)
-    r_sol.font.color.rgb = RGBColor(0x2D, 0x37, 0x48)
+    h6 = doc.add_paragraph()
+    h6.paragraph_format.space_before = Pt(14)
+    h6.paragraph_format.space_after = Pt(4)
+    run_h6 = h6.add_run("6. Target Solution Architecture & Integration Plan")
+    run_h6.font.name = "Calibri"
+    run_h6.font.size = Pt(16)
+    run_h6.font.bold = True
+    run_h6.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
 
     # Sub-item 1
     p_s1 = doc.add_paragraph()
@@ -428,11 +498,11 @@ def build_document():
     r_s1_t.font.size = Pt(10.5)
     r_s1_t.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
     r_s1_d = p_s1.add_run(
-        "• Supports dual scope: Entire Trip Bundle (aggregated hotel + transport costs) and Single Booking.\n"
-        "• Features 5 tabbed payment rails: (1) Easypaisa Mobile Account, (2) JazzCash MWALLET, (3) Visa/Mastercard 3DS, "
-        "(4) SBP Raast Dynamic QR Code, and (5) Pay-on-Arrival Guarantee Voucher.\n"
+        "• Supports dual scope: Entire Trip Bundle (aggregated costs) and Single Booking.\n"
+        "• Advance Payment Selector: Toggle between (a) Pay in Full (100%), (b) Pay Deposit (25%), or (c) Pay on Arrival.\n"
+        "• Features 5 tabbed payment rails: Easypaisa, JazzCash, Visa/Mastercard 3DS, SBP Raast QR, and Pay-on-Arrival Guarantee.\n"
         "• Includes 1-Click 'Demo Auto-Fill' credentials for instant stakeholder demonstrations.\n"
-        "• On confirmation, issues a digital QR-coded invoice and transitions booking statuses to 'confirmed' and 'paid'."
+        "• On confirmation, issues a digital QR-coded invoice and updates booking status to 'confirmed' with appropriate payment_status."
     )
     r_s1_d.font.name = "Calibri"
     r_s1_d.font.size = Pt(9.5)
@@ -447,8 +517,9 @@ def build_document():
     r_s2_t.font.size = Pt(10.5)
     r_s2_t.font.color.rgb = RGBColor(0x08, 0x83, 0x95)
     r_s2_d = p_s2.add_run(
-        "• Direct 'Check In Guest' button: Verifies reservation, stamps actual_checkin_at, shifts room from 'reserved' to 'occupied', and outputs WiFi/Key slip.\n"
-        "• Direct 'Check Out Guest' button: Produces final billing summary, shifts room to 'cleaning' status, marks booking 'completed', and sends review trigger.\n"
+        "• Balance Due Calculation: Renders 'Deposit Paid: PKR 6,000 | Balance Due: PKR 18,000' for partial payments.\n"
+        "• Direct 'Check In Guest' button: Verifies reservation, stamps actual_checkin_at, shifts room from 'reserved' to 'occupied'.\n"
+        "• Direct 'Check Out Guest' button: Produces final billing summary, shifts room to 'cleaning' status, and marks booking 'completed'.\n"
         "• Housekeeping Quick-Release: Staff click 'Mark Cleaned' on room card to return room to 'available' inventory.\n"
         "• Booking Data Sync: Updates backend Booking model with assigned room number so it renders on tourist vouchers."
     )
@@ -476,16 +547,16 @@ def build_document():
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
     # ---------------------------------------------------------
-    # 6. Technical Implementation Roadmap
+    # 7. Technical Implementation Roadmap
     # ---------------------------------------------------------
-    h6 = doc.add_paragraph()
-    h6.paragraph_format.space_before = Pt(14)
-    h6.paragraph_format.space_after = Pt(4)
-    run_h6 = h6.add_run("6. Technical Implementation Roadmap & Verification Metrics")
-    run_h6.font.name = "Calibri"
-    run_h6.font.size = Pt(16)
-    run_h6.font.bold = True
-    run_h6.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
+    h7 = doc.add_paragraph()
+    h7.paragraph_format.space_before = Pt(14)
+    h7.paragraph_format.space_after = Pt(4)
+    run_h7 = h7.add_run("7. Technical Implementation Roadmap & Verification Metrics")
+    run_h7.font.name = "Calibri"
+    run_h7.font.size = Pt(16)
+    run_h7.font.bold = True
+    run_h7.font.color.rgb = RGBColor(0x0A, 0x4D, 0x68)
 
     plan_tbl = doc.add_table(rows=1, cols=4)
     plan_tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -497,7 +568,7 @@ def build_document():
     plan_data = [
         (
             "Phase 1",
-            "Develop unified SwatPayModal.tsx with 5 channels, order breakdown, and demo auto-fill.",
+            "Develop unified SwatPayModal.tsx with Full vs. Partial Deposit selector, 5 payment channels, and demo auto-fill.",
             "frontend/src/components/SwatPayModal.tsx",
             "100% responsive on Mobile (430px) & Desktop"
         ),
@@ -509,9 +580,9 @@ def build_document():
         ),
         (
             "Phase 3",
-            "Implement Check-In, Check-Out, and Room Turnover actions on HotelTodayScreen.",
+            "Implement Check-In, Check-Out, and Deposit Balance Due on HotelTodayScreen.",
             "HotelTodayScreen.tsx\nphysicalRooms.ts",
-            "Room statuses transition correctly in rack"
+            "Balance due and room status reflect in real-time"
         ),
         (
             "Phase 4",
@@ -547,7 +618,7 @@ def build_document():
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "swat-tourism-payment-hotel-trip-completion-gap-analysis.docx")
     doc.save(output_path)
-    print(f"Successfully generated Word Document at: {output_path}")
+    print(f"Successfully generated updated Word Document at: {output_path}")
 
 if __name__ == "__main__":
     build_document()
