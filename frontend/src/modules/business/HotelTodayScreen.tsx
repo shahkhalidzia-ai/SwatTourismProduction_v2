@@ -8,9 +8,17 @@ import {
   ChevronUp,
   Bed,
   Key,
+  Receipt,
+  FileText,
+  DollarSign,
+  CreditCard,
+  Sparkles,
+  QrCode,
+  Building2,
 } from 'lucide-react';
 import { AssignRoomModal } from './AssignRoomModal';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
+import { HotelFolioReceiptModal } from './HotelFolioReceiptModal';
 import { getCurrentWeekDays } from '../../utils/currentWeek';
 import {
   getPhysicalRoomsForHotel,
@@ -58,6 +66,20 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [assignModalBooking, setAssignModalBooking] = useState<BookingRow | null>(null);
   const [roomRackFilter, setRoomRackFilter] = useState<'all' | 'available' | 'reserved' | 'occupied' | 'cleaning'>('all');
+
+  // Front Desk Console Filter State
+  const [frontDeskFilter, setFrontDeskFilter] = useState<'all' | 'arrivals' | 'in_house' | 'departures' | 'ledger'>('all');
+
+  // Folio & Receipt Modal State
+  const [receiptModal, setReceiptModal] = useState<{
+    isOpen: boolean;
+    booking: BookingRow | null;
+    receiptType: 'arrival_pass' | 'checkout_receipt';
+  }>({
+    isOpen: false,
+    booking: null,
+    receiptType: 'checkout_receipt',
+  });
 
   const safeBusinessName = _businessName || 'Swat Serena Hotel';
   const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
@@ -244,6 +266,9 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
       amount: 'Rs 36,000',
       rawAmount: 36000,
       status: 'confirmed',
+      payment_status: 'deposit_paid',
+      deposit_amount: 9000,
+      assigned_room_number: '204',
     },
     {
       id: 'b-demo-4',
@@ -254,7 +279,10 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
       dates: '2026-10-19 – 2026-10-20',
       amount: 'Rs 18,500',
       rawAmount: 18500,
-      status: 'requested',
+      status: 'confirmed',
+      payment_status: 'full_paid',
+      deposit_amount: 18500,
+      assigned_room_number: '102',
     },
   ];
 
@@ -280,6 +308,79 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     if (roomRackFilter === 'all') return physicalRooms;
     return physicalRooms.filter((r) => r.status === roomRackFilter);
   }, [physicalRooms, roomRackFilter]);
+
+  // Financial Balance Ledger Aggregates
+  const totalFolioValue = displayedRequests.reduce((sum, b) => sum + (Number(b.rawAmount) || 0), 0);
+  const totalDepositsCollected = displayedRequests.reduce((sum, b) => {
+    const raw = Number(b.rawAmount) || 0;
+    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
+    const isPaid = (b as any).payment_status === 'full_paid' || (b as any).payment_status === 'paid' || b.status === 'completed';
+    if (isPaid) return sum + raw;
+    if (isDep) return sum + ((b as any).deposit_amount || Math.round(raw * 0.25));
+    return sum;
+  }, 0);
+  const totalPendingBalance = displayedRequests.reduce((sum, b) => {
+    const bKey = b.id || b.reference;
+    if (collectedBalanceMap[bKey]) return sum;
+    const raw = Number(b.rawAmount) || 0;
+    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
+    const isPaid = (b as any).payment_status === 'full_paid' || (b as any).payment_status === 'paid' || b.status === 'completed';
+    if (isPaid) return sum;
+    if (isDep) {
+      const dep = (b as any).deposit_amount || Math.round(raw * 0.25);
+      return sum + Math.max(0, raw - dep);
+    }
+    return sum;
+  }, 0);
+  const totalInHouseGuests = displayedRequests.filter((b) => {
+    const bKey = b.id || b.reference;
+    return stayStateMap[bKey] === 'checked_in';
+  }).length;
+
+  const arrivalsCount = displayedRequests.filter((b) => {
+    const bKey = b.id || b.reference;
+    const effStatus = localStatusMap[bKey] || b.status;
+    const isConf = effStatus === 'confirmed';
+    return isConf && stayStateMap[bKey] !== 'checked_in' && stayStateMap[bKey] !== 'checked_out';
+  }).length;
+
+  const inHouseCount = displayedRequests.filter((b) => {
+    const bKey = b.id || b.reference;
+    return stayStateMap[bKey] === 'checked_in';
+  }).length;
+
+  const departuresCount = displayedRequests.filter((b) => {
+    const bKey = b.id || b.reference;
+    return stayStateMap[bKey] === 'checked_in' || stayStateMap[bKey] === 'checked_out';
+  }).length;
+
+  const ledgerPendingCount = displayedRequests.filter((b) => {
+    const bKey = b.id || b.reference;
+    if (collectedBalanceMap[bKey]) return false;
+    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
+    return isDep;
+  }).length;
+
+  const frontDeskBookings = displayedRequests.filter((b) => {
+    const bKey = b.id || b.reference;
+    const st = stayStateMap[bKey] || 'reserved';
+    const effStatus = localStatusMap[bKey] || b.status;
+    const isConf = effStatus === 'confirmed' || effStatus === 'completed';
+    if (frontDeskFilter === 'arrivals') {
+      return isConf && st !== 'checked_in' && st !== 'checked_out';
+    }
+    if (frontDeskFilter === 'in_house') {
+      return st === 'checked_in';
+    }
+    if (frontDeskFilter === 'departures') {
+      return st === 'checked_in' || st === 'checked_out';
+    }
+    if (frontDeskFilter === 'ledger') {
+      const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
+      return isDep || !collectedBalanceMap[bKey];
+    }
+    return true;
+  });
 
   return (
     <div
@@ -382,7 +483,556 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. ROOMS FREE, NEXT 5 DAYS AVAILABILITY MATRIX CARD                       */}
+      {/* 2. HOTEL FRONT DESK OPERATIONS & BALANCE LEDGER CONSOLE                   */}
+      {/* ========================================================================= */}
+      <div
+        className="card-solid"
+        data-testid="front-desk-operations-console"
+        style={{
+          background: 'var(--card, #FFFFFF)',
+          borderRadius: '16px',
+          border: '1px solid var(--line, #E2E8F0)',
+          boxShadow: 'var(--shadow-card, 0 4px 16px -2px rgba(15, 23, 42, 0.05))',
+          padding: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+        }}
+      >
+        {/* Console Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '14px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#FFFFFF',
+                  boxShadow: '0 4px 12px rgba(8, 131, 149, 0.3)',
+                }}
+              >
+                <Building2 size={20} />
+              </div>
+              <div>
+                <h3
+                  style={{
+                    fontSize: '18px',
+                    fontWeight: 800,
+                    color: 'var(--ink, #12324A)',
+                    margin: 0,
+                    letterSpacing: '-0.2px',
+                  }}
+                >
+                  Front Desk Operations &amp; Balance Ledger
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--mute, #5E7A92)', margin: '3px 0 0 0' }}>
+                  Live Guest Check-In, Room Key Allocation, Stay Balance Ledger &amp; Official Receipts
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '9999px',
+                background: '#ECFDF5',
+                border: '1px solid #A7F3D0',
+                color: '#065F46',
+                fontSize: '12px',
+                fontWeight: 700,
+              }}
+            >
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+              Front Desk Online
+            </span>
+          </div>
+        </div>
+
+        {/* 4-KPI Balance Ledger Strip */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+            gap: '12px',
+          }}
+        >
+          {/* Tile 1: Total Active Folios */}
+          <div
+            style={{
+              background: '#F8FAFC',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              border: '1px solid #E2E8F0',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+              <DollarSign size={14} color="#088395" />
+              <span>Total Stay Folios</span>
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#1E293B', marginTop: '4px' }}>
+              Rs. {totalFolioValue.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+              Active bookings gross
+            </div>
+          </div>
+
+          {/* Tile 2: Advance Deposits Paid */}
+          <div
+            style={{
+              background: 'rgba(5, 150, 105, 0.05)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              border: '1px solid rgba(5, 150, 105, 0.2)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#065F46', fontWeight: 600 }}>
+              <CreditCard size={14} color="#059669" />
+              <span>Deposits Collected</span>
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#065F46', marginTop: '4px' }}>
+              Rs. {totalDepositsCollected.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '11px', color: '#047857', marginTop: '2px' }}>
+              SwatPay &amp; Online advance
+            </div>
+          </div>
+
+          {/* Tile 3: Outstanding Desk Balance */}
+          <div
+            style={{
+              background: 'rgba(217, 119, 6, 0.06)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              border: '1px solid rgba(217, 119, 6, 0.25)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#B45309', fontWeight: 600 }}>
+              <Receipt size={14} color="#D97706" />
+              <span>Desk Balance Due</span>
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#B45309', marginTop: '4px' }}>
+              Rs. {totalPendingBalance.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '11px', color: '#92400E', marginTop: '2px' }}>
+              Payable on arrival / checkout
+            </div>
+          </div>
+
+          {/* Tile 4: In-House Guests */}
+          <div
+            style={{
+              background: 'rgba(10, 77, 104, 0.05)',
+              borderRadius: '12px',
+              padding: '14px 16px',
+              border: '1px solid rgba(10, 77, 104, 0.18)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#0A4D68', fontWeight: 600 }}>
+              <Bed size={14} color="#0A4D68" />
+              <span>In-House Occupancy</span>
+            </div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#0A4D68', marginTop: '4px' }}>
+              {totalInHouseGuests} In-House Occupants
+            </div>
+            <div style={{ fontSize: '11px', color: '#5E7A92', marginTop: '2px' }}>
+              {occupiedCount} room keys active
+            </div>
+          </div>
+        </div>
+
+        {/* Operational Filter Tabs */}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px' }}>
+          {[
+            { id: 'all', label: `All Operations (${displayedRequests.length})`, icon: '🛎️' },
+            { id: 'arrivals', label: `Arrivals & Check-In (${arrivalsCount})`, icon: '📥' },
+            { id: 'in_house', label: `In-House Guests (${inHouseCount})`, icon: '🛏️' },
+            { id: 'departures', label: `Departures & Settle (${departuresCount})`, icon: '📤' },
+            { id: 'ledger', label: `Balance Ledger (${ledgerPendingCount})`, icon: '💳' },
+          ].map((tab) => {
+            const isActive = frontDeskFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setFrontDeskFilter(tab.id as any)}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: '10px',
+                  border: isActive ? '1px solid #088395' : '1px solid #CBD5E1',
+                  background: isActive ? '#088395' : '#FFFFFF',
+                  color: isActive ? '#FFFFFF' : '#334155',
+                  fontSize: '12.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease',
+                  boxShadow: isActive ? '0 2px 8px rgba(8, 131, 149, 0.25)' : 'none',
+                }}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Front Desk Folio Cards List */}
+        {frontDeskBookings.length === 0 ? (
+          <div style={{ padding: '28px 16px', textAlign: 'center', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
+            <p style={{ margin: 0, fontSize: '13.5px', color: '#64748B', fontWeight: 500 }}>
+              No bookings matching filter "{frontDeskFilter}". Switch to "All Operations" to see full guest roster.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {frontDeskBookings.map((booking) => {
+              const bKey = booking.id || booking.reference;
+              const effStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
+              const stayState = stayStateMap[bKey] || 'reserved';
+              const rawAmt = Number(booking.rawAmount) || 24000;
+              const isDeposit = (booking as any).payment_status === 'deposit_paid' || Boolean((booking as any).deposit_amount);
+              const isFullPaid = (booking as any).payment_status === 'full_paid' || (booking as any).payment_status === 'paid' || effStatus === 'completed';
+              const depositAmt = (booking as any).deposit_amount || (isFullPaid ? rawAmt : Math.round(rawAmt * 0.25));
+              const isBalanceCollected = collectedBalanceMap[bKey];
+              const balanceDue = isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
+
+              const assignedRoom = physicalRooms.find(
+                (r) =>
+                  r.current_booking_id === booking.id ||
+                  r.current_booking_id === booking.reference ||
+                  r.id === (booking as any).assigned_room_id ||
+                  r.room_number === (booking as any).assigned_room_number
+              );
+
+              return (
+                <div
+                  key={booking.id || booking.reference}
+                  style={{
+                    borderRadius: '14px',
+                    border: '1px solid #E2E8F0',
+                    background: '#FFFFFF',
+                    padding: '18px 20px',
+                    boxShadow: '0 2px 10px rgba(15, 23, 42, 0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '14px',
+                  }}
+                >
+                  {/* Folio Header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
+                          Guest: {booking.tourist}
+                        </span>
+                        <span style={{ color: '#94A3B8' }}>•</span>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#088395', background: '#EBF4F6', padding: '2px 8px', borderRadius: '6px' }}>
+                          Folio #{booking.reference}
+                        </span>
+                        {booking.touristEmail && (
+                          <span style={{ fontSize: '12px', color: '#64748B' }}>
+                            ({booking.touristEmail})
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '12.5px', color: '#475569', marginTop: '4px' }}>
+                        <strong>{booking.item}</strong> • {booking.dates}
+                      </div>
+                    </div>
+
+                    {/* Stay State Pill */}
+                    <div>
+                      {stayState === 'checked_in' ? (
+                        <span style={{ background: '#D1FAE5', color: '#065F46', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <CheckCircle size={13} color="#059669" />
+                          <span>In-House Resident • Room {assignedRoom?.room_number || '204'}</span>
+                        </span>
+                      ) : stayState === 'checked_out' ? (
+                        <span style={{ background: '#F1F5F9', color: '#475569', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <span>✓ Stay Completed &amp; Settled</span>
+                        </span>
+                      ) : (
+                        <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                          <Clock size={13} />
+                          <span>Confirmed • Ready for Check-In</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Room Key & Assigned Status Banner */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: '#F8FAFC',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: '1px solid #E2E8F0',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px' }}>
+                      <Key size={15} color="#0A4D68" />
+                      {assignedRoom ? (
+                        <span style={{ color: '#1E293B' }}>
+                          Physical Room Key: <strong style={{ color: '#0A4D68', fontSize: '13px' }}>Room {assignedRoom.room_number}</strong> ({assignedRoom.category_name})
+                        </span>
+                      ) : (
+                        <span style={{ color: '#64748B' }}>
+                          Physical Key: <em style={{ color: '#D97706' }}>Not assigned yet</em>
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAssignModalBooking(booking)}
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: '6px',
+                        padding: '4px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        color: '#088395',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {assignedRoom ? 'Change Key / Room' : '🔑 Assign Key'}
+                    </button>
+                  </div>
+
+                  {/* Financial Balance Ledger Box */}
+                  <div
+                    style={{
+                      background: '#FFFBEB',
+                      border: '1px solid #FDE68A',
+                      borderRadius: '10px',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#92400E', display: 'block' }}>Total Stay Folio</span>
+                        <strong style={{ fontSize: '14px', color: '#78350F' }}>Rs. {rawAmt.toLocaleString()}</strong>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#92400E', display: 'block' }}>Advance Paid</span>
+                        <strong style={{ fontSize: '14px', color: '#059669' }}>
+                          Rs. {depositAmt.toLocaleString()}
+                          <span style={{ fontSize: '11px', fontWeight: 'normal', color: '#047857', marginLeft: '4px' }}>
+                            ({isDeposit ? 'Deposit' : '100% Paid'})
+                          </span>
+                        </strong>
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#92400E', display: 'block' }}>Balance Due at Desk</span>
+                        <strong style={{ fontSize: '14px', color: balanceDue > 0 ? '#B45309' : '#059669' }}>
+                          {balanceDue > 0 ? `Rs. ${balanceDue.toLocaleString()}` : '✓ Fully Settled'}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* Quick Balance Collection Action */}
+                    <div>
+                      {balanceDue > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setCollectedBalanceMap((prev) => ({ ...prev, [bKey]: true }))}
+                          data-testid={`btn-collect-balance-${booking.reference}`}
+                          style={{
+                            background: '#D97706',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 14px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            boxShadow: '0 2px 6px rgba(217, 119, 6, 0.25)',
+                          }}
+                        >
+                          <CreditCard size={13} />
+                          <span>Collect Balance (Rs. {balanceDue.toLocaleString()})</span>
+                        </button>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontSize: '12px', fontWeight: 800 }}>
+                          <CheckCircle size={14} />
+                          <span>Zero Balance • Folio Settle Complete</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Reception Actions Toolbar */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
+                    {/* Primary Operations (Check in / Check out) */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {stayState === 'reserved' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCheckInGuest(booking)}
+                          data-testid={`btn-fd-checkin-${booking.reference}`}
+                          style={{
+                            background: '#088395',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px 16px',
+                            fontSize: '12.5px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 8px rgba(8, 131, 149, 0.3)',
+                          }}
+                        >
+                          <CheckCircle size={14} />
+                          <span>Check In Guest &amp; Issue Key</span>
+                        </button>
+                      )}
+
+                      {stayState === 'checked_in' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCheckOutGuest(booking)}
+                          data-testid={`btn-fd-checkout-${booking.reference}`}
+                          style={{
+                            background: '#B91C1C',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px 16px',
+                            fontSize: '12.5px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 8px rgba(185, 28, 28, 0.3)',
+                          }}
+                        >
+                          <Building2 size={14} />
+                          <span>Check Out &amp; Settle Folio</span>
+                        </button>
+                      )}
+
+                      {stayState === 'checked_out' && assignedRoom && assignedRoom.status === 'cleaning' && (
+                        <button
+                          type="button"
+                          onClick={() => handleMarkCleanedRoom(assignedRoom.id)}
+                          style={{
+                            background: '#059669',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px 14px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                        >
+                          <Sparkles size={13} />
+                          <span>Mark Room {assignedRoom.room_number} Cleaned</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Receipt & Pass Document Actions */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setReceiptModal({
+                            isOpen: true,
+                            booking,
+                            receiptType: 'arrival_pass',
+                          })
+                        }
+                        data-testid={`btn-fd-pass-${booking.reference}`}
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1px solid #CBD5E1',
+                          color: '#0A4D68',
+                          borderRadius: '8px',
+                          padding: '7px 12px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <QrCode size={14} color="#088395" />
+                        <span>Arrival Key Pass</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setReceiptModal({
+                            isOpen: true,
+                            booking,
+                            receiptType: 'checkout_receipt',
+                          })
+                        }
+                        data-testid={`btn-fd-receipt-${booking.reference}`}
+                        style={{
+                          background: '#0F172A',
+                          border: 'none',
+                          color: '#FFFFFF',
+                          borderRadius: '8px',
+                          padding: '7px 14px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <FileText size={14} color="#38BDF8" />
+                        <span>Tax Invoice &amp; Receipt</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. ROOMS FREE, NEXT 5 DAYS AVAILABILITY MATRIX CARD                       */}
       {/* ========================================================================= */}
       <div
         className="card-solid"
@@ -1202,28 +1852,51 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       if (stayState === 'checked_in') {
                         return (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(23, 105, 74, 0.08)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(23, 105, 74, 0.2)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(23, 105, 74, 0.08)', padding: '8px 12px', borderRadius: '8px', border: '1px solid rgba(23, 105, 74, 0.2)', flexWrap: 'wrap', gap: '8px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#17694A', fontWeight: 700 }}>
                                 <CheckCircle size={15} color="#17694A" />
                                 <span>Guest In-House {assignedRoom ? `• Room ${assignedRoom.room_number}` : ''}</span>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => handleCheckOutGuest(booking)}
-                                data-testid="btn-checkout-guest"
-                                style={{
-                                  background: '#B91C1C',
-                                  color: '#FFFFFF',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  padding: '6px 12px',
-                                  fontSize: '11.5px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Check Out &amp; Settle
-                              </button>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setReceiptModal({ isOpen: true, booking, receiptType: 'arrival_pass' })}
+                                  data-testid="btn-open-arrival-pass"
+                                  style={{
+                                    background: '#FFFFFF',
+                                    border: '1px solid #CBD5E1',
+                                    color: '#0A4D68',
+                                    borderRadius: '6px',
+                                    padding: '5px 10px',
+                                    fontSize: '11.5px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <QrCode size={13} color="#088395" />
+                                  <span>Arrival Pass</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCheckOutGuest(booking)}
+                                  data-testid="btn-checkout-guest"
+                                  style={{
+                                    background: '#B91C1C',
+                                    color: '#FFFFFF',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '6px 12px',
+                                    fontSize: '11.5px',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Check Out &amp; Settle
+                                </button>
+                              </div>
                             </div>
                           </div>
                         );
@@ -1231,38 +1904,84 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                       if (stayState === 'checked_out') {
                         return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#059669', fontWeight: 600 }}>
-                            <CheckCircle size={14} />
-                            <span>Stay Completed • Room Moved to Cleaning</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#059669', fontWeight: 600 }}>
+                              <CheckCircle size={14} />
+                              <span>Stay Completed • Room Moved to Cleaning</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setReceiptModal({ isOpen: true, booking, receiptType: 'checkout_receipt' })}
+                              data-testid="btn-open-checkout-receipt"
+                              style={{
+                                background: '#0F172A',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '5px 12px',
+                                fontSize: '11.5px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                              }}
+                            >
+                              <FileText size={13} color="#38BDF8" />
+                              <span>Tax Invoice / Receipt</span>
+                            </button>
                           </div>
                         );
                       }
 
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#17694A', fontWeight: 600 }}>
                               <CheckCircle size={14} />
                               <span>Ready for check-in</span>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => handleCheckInGuest(booking)}
-                              data-testid="btn-checkin-guest"
-                              style={{
-                                background: '#088395',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                borderRadius: '6px',
-                                padding: '6px 14px',
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                cursor: 'pointer',
-                                boxShadow: '0 2px 6px rgba(8, 131, 149, 0.25)',
-                              }}
-                            >
-                              Check In Guest
-                            </button>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => setReceiptModal({ isOpen: true, booking, receiptType: 'arrival_pass' })}
+                                data-testid="btn-open-arrival-pass"
+                                style={{
+                                  background: '#FFFFFF',
+                                  border: '1px solid #CBD5E1',
+                                  color: '#0A4D68',
+                                  borderRadius: '6px',
+                                  padding: '5px 10px',
+                                  fontSize: '11.5px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}
+                              >
+                                <QrCode size={13} color="#088395" />
+                                <span>Arrival Pass</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleCheckInGuest(booking)}
+                                data-testid="btn-checkin-guest"
+                                style={{
+                                  background: '#088395',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  padding: '6px 14px',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  boxShadow: '0 2px 6px rgba(8, 131, 149, 0.25)',
+                                }}
+                              >
+                                Check In Guest
+                              </button>
+                            </div>
                           </div>
 
                           {/* Deposit & Balance Due display */}
@@ -1331,6 +2050,37 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             const updated = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
             setPhysicalRooms(updated);
           }}
+        />
+      )}
+
+      {/* ========================================================================= */}
+      {/* 6. MODAL: HOTEL FOLIO & OFFICIAL TAX RECEIPT MODAL                         */}
+      {/* ========================================================================= */}
+      {receiptModal.isOpen && receiptModal.booking && (
+        <HotelFolioReceiptModal
+          isOpen={receiptModal.isOpen}
+          onClose={() => setReceiptModal({ isOpen: false, booking: null, receiptType: 'checkout_receipt' })}
+          booking={receiptModal.booking}
+          hotelName={safeBusinessName}
+          hotelAddress={_businessAddress}
+          roomNumber={
+            physicalRooms.find(
+              (r) =>
+                r.current_booking_id === receiptModal.booking?.id ||
+                r.current_booking_id === receiptModal.booking?.reference ||
+                r.id === (receiptModal.booking as any)?.assigned_room_id ||
+                r.room_number === (receiptModal.booking as any)?.assigned_room_number
+            )?.room_number || (receiptModal.booking as any)?.assigned_room_number || '204'
+          }
+          roomCategory={receiptModal.booking.item.split('(')[0].trim()}
+          depositAmount={(receiptModal.booking as any).deposit_amount || Math.round((Number(receiptModal.booking.rawAmount) || 24000) * 0.25)}
+          balanceDue={
+            collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference]
+              ? 0
+              : Math.max(0, (Number(receiptModal.booking.rawAmount) || 24000) - ((receiptModal.booking as any).deposit_amount || Math.round((Number(receiptModal.booking.rawAmount) || 24000) * 0.25)))
+          }
+          isBalanceSettled={Boolean(collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference])}
+          receiptType={receiptModal.receiptType}
         />
       )}
     </div>

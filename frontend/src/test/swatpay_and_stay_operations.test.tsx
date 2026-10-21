@@ -154,4 +154,87 @@ describe('SwatPay Checkout Modal & Hotel Stay Operations', () => {
       expect(screen.getByText(/Stay Completed • Room Moved to Cleaning/i)).toBeInTheDocument();
     });
   });
+
+  it('renders Front Desk Operations Console, Balance Ledger, and opens Arrival Key Pass and Checkout Receipt modals', async () => {
+    const mockBookings: BookingRow[] = [
+      {
+        id: 'b-fd-1',
+        reference: 'BK-FOLIO-99',
+        tourist: 'Engr. Junaid Ali',
+        touristEmail: 'junaid@swat.pk',
+        item: 'Executive Deluxe Room (2 nights)',
+        dates: '2026-10-22 – 2026-10-24',
+        amount: 'Rs 30,000',
+        rawAmount: 30000,
+        status: 'confirmed',
+        payment_status: 'deposit_paid',
+        deposit_amount: 7500,
+        assigned_room_number: '302',
+      },
+    ];
+
+    const mockStats: BusinessBookingSummary = {
+      bookings_today: 1,
+      total_bookings_this_week: 1,
+      pending_requests: 0,
+      confirmed_bookings: 1,
+      revenue_pkr: 30000,
+      earnings_week: 30000,
+    };
+
+    render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessStats={mockStats}
+        bookings={mockBookings}
+        onAcceptBooking={vi.fn()}
+        onDeclineBooking={vi.fn()}
+      />
+    );
+
+    // 1. Verify Front Desk Operations Console & Balance Ledger Strip
+    expect(screen.getByTestId('front-desk-operations-console')).toBeInTheDocument();
+    expect(screen.getByText('Front Desk Operations & Balance Ledger')).toBeInTheDocument();
+    expect(screen.getByText('Total Stay Folios')).toBeInTheDocument();
+    expect(screen.getByText('Deposits Collected')).toBeInTheDocument();
+    expect(screen.getByText('Desk Balance Due')).toBeInTheDocument();
+    expect(screen.getByText('In-House Occupancy')).toBeInTheDocument();
+
+    // 2. Test Balance Collection at reception desk
+    const collectBtn = screen.getByTestId('btn-collect-balance-BK-FOLIO-99');
+    expect(collectBtn).toBeInTheDocument();
+    fireEvent.click(collectBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Zero Balance • Folio Settle Complete/i)).toBeInTheDocument();
+    });
+
+    // 3. Test Arrival Key Pass Modal
+    const arrivalPassBtn = screen.getByTestId('btn-fd-pass-BK-FOLIO-99');
+    expect(arrivalPassBtn).toBeInTheDocument();
+    fireEvent.click(arrivalPassBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('hotel-folio-receipt-modal')).toBeInTheDocument();
+      expect(screen.getByText(/GUEST CHECK-IN KEY PASS/i)).toBeInTheDocument();
+      expect(screen.getByTestId('btn-print-hotel-receipt')).toBeInTheDocument();
+    });
+
+    // Close modal
+    fireEvent.click(screen.getByTestId('btn-close-hotel-receipt'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('hotel-folio-receipt-modal')).not.toBeInTheDocument();
+    });
+
+    // 4. Test Checkout Tax Invoice / Receipt Modal
+    const receiptBtn = screen.getByTestId('btn-fd-receipt-BK-FOLIO-99');
+    expect(receiptBtn).toBeInTheDocument();
+    fireEvent.click(receiptBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('hotel-folio-receipt-modal')).toBeInTheDocument();
+      expect(screen.getByText(/OFFICIAL TAX INVOICE & RECEIPT/i)).toBeInTheDocument();
+      expect(screen.getByTestId('btn-print-hotel-receipt')).toBeInTheDocument();
+    });
+  });
 });

@@ -389,6 +389,11 @@ def build_implementation_doc():
             "Unified 5-channel checkout modal with 3 advance payment models, order valuation, and 1-click demo credentials auto-fill."
         ),
         (
+            "frontend/src/modules/business/\nHotelFolioReceiptModal.tsx",
+            "Created",
+            "Official Hotel Tax Invoice & Guest Check-In Key Pass modal with itemized room charges, 5% tourism levy, deposit credit, balance settlement, and print/download support."
+        ),
+        (
             "frontend/src/modules/tourist/\nTouristShell.tsx",
             "Modified",
             "Integrated SwatPayModal for both trip bundle (btn-pay-trip) and single booking checkouts. Replaced simulated toast."
@@ -396,7 +401,7 @@ def build_implementation_doc():
         (
             "frontend/src/modules/business/\nHotelTodayScreen.tsx",
             "Modified",
-            "Added Check In Guest button, Check Out & Settle button, deposit balance due ledger, and housekeeping Mark Cleaned action."
+            "Added executive Front Desk Operations Console, 4-metric Balance Ledger strip, Check In & Key Issue, Check Out & Settle, and Arrival/Checkout Receipt actions."
         ),
         (
             "frontend/src/modules/business/\nphysicalRooms.ts",
@@ -411,12 +416,12 @@ def build_implementation_doc():
         (
             "frontend/src/modules/business/\nBusinessShell.tsx",
             "Modified",
-            "Extended BookingRow interface with payment_status and deposit_amount to support deposit ledger."
+            "Configured default hotel bookings with deposit_paid, deposit_amount, and assigned physical room numbers."
         ),
         (
             "frontend/src/test/\nswatpay_and_stay_operations.test.tsx",
             "Created",
-            "Comprehensive test suite verifying advance payment models, payment channel switching, and check-in/out workflows."
+            "Comprehensive test suite verifying advance payment models, payment channel switching, check-in/out workflows, Front Desk Console, and Folio Receipt modals."
         ),
     ]
     format_table_rows(touch_tbl, touch_data, col_widths=touch_widths)
@@ -438,9 +443,10 @@ def build_implementation_doc():
     p6.paragraph_format.space_after = Pt(6)
     r6 = p6.add_run(
         "The implementation has been thoroughly verified across unit, integration, and type-safety dimensions:\n"
-        "• Vitest Test Suite: 24 test files passed, 122 of 122 tests passed (100% success rate).\n"
+        "• Vitest Test Suite: 24 test files passed, 123 of 123 tests passed (100% success rate).\n"
+        "• Front Desk Operations & Balance Ledger: Verified with interactive Check In, Settle, Arrival Pass, and Checkout Tax Invoice modal tests.\n"
         "• TypeScript Compilation: 'npx tsc -b' completed with 0 errors.\n"
-        "• Git Repository Status: Committed under commit hash fd7949f and pushed to origin/main."
+        "• Git Repository Status: Synchronized with origin/main."
     )
     r6.font.name = "Calibri"
     r6.font.size = Pt(10)
