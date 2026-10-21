@@ -1733,9 +1733,25 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   // Handle tourist deleting a trip
   const handleDeleteTrip = async (tripId: string) => {
     try {
-      await deleteTrip(tripId);
+      // Attempt backend deletion; if offline, mock or local trip, continue gracefully
+      await deleteTrip(tripId).catch((err) => {
+        console.warn('Backend deleteTrip skipped or failed (local/mock trip):', err);
+      });
       const remainingTrips = allTrips.filter((t) => t.id !== tripId);
       setAllTrips(remainingTrips);
+
+      // Clean up localStorage 'swat_local_trips' so the deleted trip does not reappear on refresh
+      try {
+        const raw = localStorage.getItem('swat_local_trips');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const filtered = Array.isArray(parsed) ? parsed.filter((t: any) => t.id !== tripId) : [];
+          localStorage.setItem('swat_local_trips', JSON.stringify(filtered));
+        }
+      } catch (e) {
+        console.warn('Could not update swat_local_trips in localStorage:', e);
+      }
+
       if (activeTripId === tripId) {
         const nextActive = remainingTrips[0] || null;
         setActiveTripId(nextActive ? nextActive.id : null);
@@ -1745,7 +1761,11 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         } else {
           localStorage.removeItem('swat_active_trip_id');
         }
+      } else if (trip && trip.id === tripId) {
+        const nextActive = remainingTrips[0] || null;
+        setTrip(nextActive);
       }
+
       if (currentViewedTrip && currentViewedTrip.id === tripId) {
         setCurrentViewedTrip(null);
       }

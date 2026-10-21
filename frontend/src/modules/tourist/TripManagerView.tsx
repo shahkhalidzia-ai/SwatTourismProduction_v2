@@ -655,6 +655,36 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
                 <span>Set as active</span>
               </button>
             ) : null}
+
+            {onDeleteTrip && (
+              <button
+                type="button"
+                id="btn-delete-trip-header"
+                data-testid="btn-delete-trip-header"
+                onClick={() => {
+                  if (window.confirm(`Are you sure you want to delete "${trip?.title || 'this trip'}"?`)) {
+                    onDeleteTrip();
+                  }
+                }}
+                title="Delete this trip"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '5px 10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#FFF5F5',
+                  border: '1.5px solid rgba(220, 38, 38, 0.3)',
+                  color: '#DC2626',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <Trash2 size={12} style={{ strokeWidth: 2.2 }} />
+                <span>Delete</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -2355,6 +2385,57 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
               </div>
             )}
           </Card>
+
+          {/* Danger Zone: Delete Trip */}
+          {onDeleteTrip && (
+            <Card
+              padding="md"
+              style={{
+                border: '1.5px solid rgba(220, 38, 38, 0.25)',
+                backgroundColor: '#FFFBFB',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 700, color: '#DC2626', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Trash2 size={16} /> Danger Zone: Delete This Trip
+                  </h4>
+                  <span style={{ fontSize: '11.5px', color: 'var(--mute)' }}>
+                    Permanently delete "{trip?.title || 'this trip'}" and clear its itinerary. Active bookings will be unlinked.
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  id="btn-delete-trip-details-danger"
+                  data-testid="btn-delete-trip-details-danger"
+                  onClick={() => {
+                    if (window.confirm(`Are you sure you want to delete "${trip?.title || 'this trip'}"? This action cannot be undone.`)) {
+                      onDeleteTrip();
+                    }
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    border: '1.5px solid #DC2626',
+                    backgroundColor: '#DC2626',
+                    color: '#FFFFFF',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(220, 38, 38, 0.25)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Trash2 size={14} />
+                  <span>Delete Trip</span>
+                </button>
+              </div>
+            </Card>
+          )}
         </div>
       )}
 
@@ -2651,45 +2732,80 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
                   borderTop: '1px solid var(--line)',
                   backgroundColor: 'var(--card)',
                   display: 'flex',
-                  justifyContent: 'flex-end',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                   gap: '12px',
                   boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.04)',
                 }}
               >
-                <Button
-                  variant="secondary"
-                  size="md"
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  style={{
-                    padding: '10px 22px',
-                    borderRadius: '10px',
-                    fontWeight: 600,
-                    fontSize: '13px',
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  size="md"
-                  type="submit"
-                  disabled={isUpdating}
-                  style={{
-                    padding: '10px 24px',
-                    borderRadius: '10px',
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    background: 'linear-gradient(135deg, var(--pri) 0%, #1A5487 100%)',
-                    boxShadow: '0 4px 14px rgba(47, 127, 193, 0.3)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                  }}
-                >
-                  <Sparkles size={15} style={{ marginRight: '6px' }} />
-                  {isUpdating ? 'Saving...' : 'Save Changes'}
-                </Button>
+                <div>
+                  {onDeleteTrip && (
+                    <button
+                      type="button"
+                      id="btn-delete-trip-from-modal"
+                      data-testid="btn-delete-trip-from-modal"
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete "${trip?.title || 'this trip'}"? This action cannot be undone.`)) {
+                          setShowEditModal(false);
+                          onDeleteTrip();
+                        }
+                      }}
+                      style={{
+                        padding: '9px 14px',
+                        borderRadius: '10px',
+                        fontWeight: 600,
+                        fontSize: '12.5px',
+                        border: '1.5px solid rgba(220, 38, 38, 0.25)',
+                        backgroundColor: '#FFF5F5',
+                        color: '#DC2626',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <Trash2 size={14} color="#DC2626" />
+                      <span>Delete Trip</span>
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    style={{
+                      padding: '10px 22px',
+                      borderRadius: '10px',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    type="submit"
+                    disabled={isUpdating}
+                    style={{
+                      padding: '10px 24px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      fontSize: '13.5px',
+                      background: 'linear-gradient(135deg, var(--pri) 0%, #1A5487 100%)',
+                      boxShadow: '0 4px 14px rgba(47, 127, 193, 0.3)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                    }}
+                  >
+                    <Sparkles size={15} style={{ marginRight: '6px' }} />
+                    {isUpdating ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
               </div>
             </form>
           </div>

@@ -279,4 +279,49 @@ describe('TripManagerView (3-View Itinerary, Bookings, Vouchers & Cancellations)
 
     expect(mockClipboardWriteText).toHaveBeenCalled();
   });
+
+  it('provides delete trip options from edit modal form, header bar, and details danger zone', async () => {
+    const mockDeleteTrip = vi.fn();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(
+      <TripManagerView
+        trip={mockTrip}
+        bookings={mockBookings}
+        {...mockHandlers}
+        onDeleteTrip={mockDeleteTrip}
+      />
+    );
+
+    // 1. Delete from top header bar
+    const headerDeleteBtn = screen.getByTestId('btn-delete-trip-header');
+    expect(headerDeleteBtn).toBeInTheDocument();
+    fireEvent.click(headerDeleteBtn);
+    expect(mockDeleteTrip).toHaveBeenCalledTimes(1);
+
+    // 2. Delete from secondary action button
+    const actionDeleteBtn = screen.getByTestId('btn-delete-viewed-trip');
+    expect(actionDeleteBtn).toBeInTheDocument();
+    fireEvent.click(actionDeleteBtn);
+    expect(mockDeleteTrip).toHaveBeenCalledTimes(2);
+
+    // 3. Open Edit Trip modal form and delete from modal footer
+    const editBtn = screen.getByTestId('btn-edit-trip');
+    fireEvent.click(editBtn);
+    expect(screen.getByText(/Edit Trip Itinerary/i)).toBeInTheDocument();
+
+    const modalDeleteBtn = screen.getByTestId('btn-delete-trip-from-modal');
+    expect(modalDeleteBtn).toBeInTheDocument();
+    fireEvent.click(modalDeleteBtn);
+    expect(mockDeleteTrip).toHaveBeenCalledTimes(3);
+
+    // 4. Switch to Details tab and delete from Danger Zone card
+    const detailsTabBtn = screen.getByTestId('tab-details');
+    fireEvent.click(detailsTabBtn);
+
+    const dangerZoneDeleteBtn = screen.getByTestId('btn-delete-trip-details-danger');
+    expect(dangerZoneDeleteBtn).toBeInTheDocument();
+    fireEvent.click(dangerZoneDeleteBtn);
+    expect(mockDeleteTrip).toHaveBeenCalledTimes(4);
+  });
 });
