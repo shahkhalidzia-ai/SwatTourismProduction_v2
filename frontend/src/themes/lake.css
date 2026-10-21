@@ -1,0 +1,166 @@
+/* ==========================================================================
+   Theme 1: Swat Lake (Existing Look, Baseline Default)
+   ========================================================================== */
+
+html[data-theme="lake"],
+:root:not([data-theme="glass"]) {
+  /* Colors - Light Mode */
+  --bg: #E8F1FA;
+  --page-bg: #E8F1FA;
+  --card: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --ink: #12324A;
+  --mute: #5E7A92;
+  --pri: #2F7FC1;
+  --soft: #D3E6F7;
+  --acc: #F2A33A;
+  --ok: #2E9D6B;
+  --bad: #D6564A;
+  --line: #D5E3F0;
+
+  /* Glass tokens in Lake theme fallback to clean flat surfaces */
+  --on-glass: #12324A;
+  --on-glass-mute: #5E7A92;
+  --glass-surface-bg: #FFFFFF;
+  --glass-surface-border: 1px solid #D5E3F0;
+  --glass-surface-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  --glass-backdrop-filter: none;
+
+  /* CTA & Badges */
+  --cta-from: #2F7FC1;
+  --cta-to: #2F7FC1;
+  --cta-text: #FFFFFF;
+  --btn-soft: #D3E6F7;
+  --ok-bg: #D5F0E3;
+  --warn: #7A4A00;
+  --warn-bg: #FFE7BD;
+  --bad-bg: #FADAD6;
+  --info: #0C447C;
+  --info-bg: #D3E6F7;
+
+  /* Geometry */
+  --radius-card: 16px;
+  --radius-button: 11px;
+  --radius-tag: 9999px;
+  --radius-sm: 8px;
+
+  /* Typography */
+  --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --title-font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Shadows */
+  --shadow-card: 0 2px 6px rgba(0, 0, 0, 0.04);
+
+  /* Header & Top Bar Tokens - Theme 1 Light (Exact Cerulean-to-Deep-Navy Gradient) */
+  --header-bg: 
+    radial-gradient(ellipse 700px 360px at 8% 50%, rgba(56, 189, 248, 0.38), transparent 65%),
+    linear-gradient(98deg, #028AC8 0%, #0277B6 24%, #035388 52%, #023664 78%, #011E38 100%);
+  --header-border: 1px solid rgba(255, 255, 255, 0.22);
+  --header-shadow: 0 8px 24px -2px rgba(1, 30, 56, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  --header-ink: #FFFFFF;
+  --header-mute: rgba(255, 255, 255, 0.85);
+  --header-pill-bg: rgba(255, 255, 255, 0.15);
+  --header-pill-border: 1px solid rgba(255, 255, 255, 0.24);
+  --header-pill-ink: #FFFFFF;
+  --header-pill-active-bg: #38BDF8;
+  --header-pill-active-ink: #002244;
+  --header-logout-bg: rgba(239, 68, 68, 0.28);
+  --header-logout-border: 1px solid rgba(255, 255, 255, 0.25);
+  --header-logout-ink: #FEE2E2;
+}
+
+/* Dark Mode for Theme 1 */
+html[data-theme="lake"][data-mode="dark"],
+html[data-theme="lake"] [data-mode="dark"] {
+  --bg: #0F1E2B;
+  --page-bg: #0F1E2B;
+  --card: #172C3D;
+  --card-bg: #172C3D;
+  --ink: #E6F1FA;
+  --mute: #93AEC4;
+  --pri: #2F7FC1;
+  --soft: #1F3B52;
+  --acc: #F2A33A;
+  --ok: #2E9D6B;
+  --bad: #D6564A;
+  --line: #2A4659;
+
+  --on-glass: #E6F1FA;
+  --on-glass-mute: #93AEC4;
+  --glass-surface-bg: #172C3D;
+  --glass-surface-border: 1px solid #2A4659;
+  --glass-surface-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --glass-backdrop-filter: none;
+
+  --ok-bg: #103827;
+  --warn: #FBBF24;
+  --warn-bg: #3B2807;
+  --bad-bg: #3D1815;
+  --info: #7CC2F8;
+  --info-bg: #122B42;
+  --btn-soft: #1F3B52;
+
+  /* Header & Top Bar Tokens - Theme 1 Dark */
+  --header-bg: 
+    radial-gradient(ellipse 700px 360px at 8% 50%, rgba(14, 165, 233, 0.25), transparent 65%),
+    linear-gradient(98deg, #016292 0%, #025280 24%, #023B60 52%, #012848 78%, #011428 100%);
+  --header-border: 1px solid rgba(255, 255, 255, 0.18);
+  --header-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  --header-ink: #FFFFFF;
+  --header-mute: rgba(255, 255, 255, 0.82);
+  --header-pill-bg: rgba(255, 255, 255, 0.12);
+  --header-pill-border: 1px solid rgba(255, 255, 255, 0.2);
+  --header-pill-ink: #FFFFFF;
+  --header-pill-active-bg: #38BDF8;
+  --header-pill-active-ink: #002244;
+  --header-logout-bg: rgba(239, 68, 68, 0.32);
+  --header-logout-border: 1px solid rgba(255, 255, 255, 0.22);
+  --header-logout-ink: #FEE2E2;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="lake"]:not([data-mode="light"]),
+  :root:not([data-theme="glass"]):not([data-mode="light"]) {
+    --bg: #0F1E2B;
+    --page-bg: #0F1E2B;
+    --card: #172C3D;
+    --card-bg: #172C3D;
+    --ink: #E6F1FA;
+    --mute: #93AEC4;
+    --pri: #2F7FC1;
+    --soft: #1F3B52;
+    --acc: #F2A33A;
+    --ok: #2E9D6B;
+    --bad: #D6564A;
+    --line: #2A4659;
+
+    --on-glass: #E6F1FA;
+    --on-glass-mute: #93AEC4;
+    --glass-surface-bg: #172C3D;
+    --glass-surface-border: 1px solid #2A4659;
+    --glass-surface-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    --glass-backdrop-filter: none;
+
+    --ok-bg: #103827;
+    --warn: #FBBF24;
+    --warn-bg: #3B2807;
+    --bad-bg: #3D1815;
+    --info: #7CC2F8;
+    --info-bg: #122B42;
+    --btn-soft: #1F3B52;
+
+    --header-bg: #172C3D;
+    --header-border: 1px solid #2A4659;
+    --header-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.3);
+    --header-ink: #E6F1FA;
+    --header-mute: #93AEC4;
+    --header-pill-bg: #1F3B52;
+    --header-pill-border: 1px solid #2A4659;
+    --header-pill-ink: #E6F1FA;
+    --header-pill-active-bg: #2F7FC1;
+    --header-pill-active-ink: #FFFFFF;
+    --header-logout-bg: #3D1815;
+    --header-logout-border: 1px solid rgba(214, 86, 74, 0.4);
+    --header-logout-ink: #FADAD6;
+  }
+}

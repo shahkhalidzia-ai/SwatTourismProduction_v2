@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role-Based Tab Visibility & Portal Isolation Analysis Report</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --primary-light: #3b82f6;
+            --primary-bg: #eff6ff;
+            --slate-900: #0f172a;
+            --slate-800: #1e293b;
+            --slate-700: #334155;
+            --slate-600: #475569;
+            --slate-200: #e2e8f0;
+            --slate-100: #f1f5f9;
+            --slate-50: #f8fafc;
+            --emerald-600: #059669;
+            --emerald-50: #ecfdf5;
+            --green-badge-bg: #dcfce7;
+            --green-badge-text: #166534;
+            --amber-badge-bg: #fef3c7;
+            --amber-badge-text: #92400e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--slate-50);
+            color: var(--slate-800);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1050px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+            border: 1px solid var(--slate-200);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+            color: #ffffff;
+            padding: 48px;
+            border-bottom: 4px solid var(--primary-light);
+        }
+
+        .header-tag {
+            display: inline-block;
+            background-color: rgba(59, 130, 246, 0.25);
+            color: #93c5fd;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+            border: 1px solid rgba(147, 197, 253, 0.3);
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+
+        .header-desc {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            max-width: 800px;
+            margin-bottom: 24px;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            padding-top: 20px;
+        }
+
+        .meta-item span {
+            display: block;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .meta-item strong {
+            font-size: 0.95rem;
+            color: #ffffff;
+        }
+
+        main {
+            padding: 48px;
+        }
+
+        section {
+            margin-bottom: 40px;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--slate-900);
+            border-bottom: 2px solid var(--slate-100);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        p {
+            margin-bottom: 14px;
+            color: var(--slate-600);
+            font-size: 0.98rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.92rem;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--slate-200);
+        }
+
+        th {
+            background-color: var(--slate-100);
+            color: var(--slate-700);
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--slate-200);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--slate-200);
+            color: var(--slate-700);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--slate-50);
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .badge-green {
+            background-color: var(--green-badge-bg);
+            color: var(--green-badge-text);
+        }
+
+        .badge-amber {
+            background-color: var(--amber-badge-bg);
+            color: var(--amber-badge-text);
+        }
+
+        .card {
+            background-color: var(--slate-50);
+            border: 1px solid var(--slate-200);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        pre {
+            background-color: var(--slate-900);
+            color: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.88rem;
+            margin: 16px 0;
+        }
+
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background-color: var(--slate-100);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--primary);
+            font-size: 0.88em;
+        }
+
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        footer {
+            background-color: var(--slate-50);
+            padding: 24px 48px;
+            border-top: 1px solid var(--slate-200);
+            color: var(--slate-600);
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-tag">Architecture & UX Analysis</div>
+        <h1>Role-Based Tab Visibility & Portal Isolation</h1>
+        <div class="header-desc">
+            Technical assessment of navigation scoping, demo mode segregation, and strict role portal confinement for Tourists, Hotel Managers, Community, and Authority users.
+        </div>
+        <div class="meta-grid">
+            <div class="meta-item">
+                <span>Target Platform</span>
+                <strong>Swat Tourism Platform (Prod)</strong>
+            </div>
+            <div class="meta-item">
+                <span>Document Status</span>
+                <strong>Analysis Report</strong>
+            </div>
+            <div class="meta-item">
+                <span>Target Roles</span>
+                <strong>5 System Personas</strong>
+            </div>
+            <div class="meta-item">
+                <span>Date</span>
+                <strong>October 9, 2026</strong>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section>
+            <h2>1. Executive Summary</h2>
+            <p>
+                This report analyzes how portal tabs and navigation suites are delivered to different user categories:
+            </p>
+            <ul>
+                <li><strong>Demo User / Evaluator:</strong> Full system access with the top role switcher bar enabled, permitting instant switching between all 5 roles for demonstrations.</li>
+                <li><strong>Tourist Account:</strong> Strict access restricted exclusively to Tourist tabs (<code>Home</code>, <code>Explore</code>, <code>Trips</code>, <code>Safety</code>, <code>Profile</code>). Zero exposure to business or authority interfaces.</li>
+                <li><strong>Hotel Manager / Business:</strong> Strict access restricted exclusively to Business portal tabs (<code>Today</code>, <code>Listings</code>, <code>Availability</code>, <code>Reviews</code>, <code>Profile</code>).</li>
+                <li><strong>Community Member:</strong> Strict access restricted to Community tabs (<code>Stories</code>, <code>Crafts</code>, <code>Report</code>, <code>Hosts</code>, <code>Profile</code>).</li>
+                <li><strong>Authority / Admin:</strong> Strict access restricted to Governance tabs (<code>Overview</code>, <code>Directory</code>, <code>Advisories</code>, <code>Approvals</code>, <code>Cases</code>).</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>2. Current Architecture & Role Tab Specifications</h2>
+            <p>
+                In <code>frontend/src/layouts/navItems.ts</code>, navigation tabs are mapped via <code>ROLE_NAV_ITEMS</code>:
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Role Type</th>
+                        <th>Navigation Tabs</th>
+                        <th>Core Functionality</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Tourist</strong></td>
+                        <td><code>Home</code> • <code>Explore</code> • <code>Trips</code> • <code>Safety</code> • <code>Profile</code></td>
+                        <td>Valley discovery, trip itinerary builder, bookings, SOS dispatch, hotel reviews</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Business</strong> (Hotel/Stay)</td>
+                        <td><code>Today</code> • <code>Listings</code> • <code>Availability</code> • <code>Reviews</code> • <code>Profile</code></td>
+                        <td>Daily arrivals KPI, room listings builder, inventory calendar, guest review replies</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Community</strong></td>
+                        <td><code>Stories</code> • <code>Crafts</code> • <code>Report</code> • <code>Hosts</code> • <code>Profile</code></td>
+                        <td>Cultural heritage stories, local crafts market, road civic reports, host onboarding</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Authority</strong></td>
+                        <td><code>Overview</code> • <code>Directory</code> • <code>Advisories</code> • <code>Approvals</code> • <code>Cases</code></td>
+                        <td>Business verification approvals, road weather advisories, emergency coordination</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Admin</strong></td>
+                        <td><code>Overview</code> • <code>Directory</code> • <code>Approvals</code> • <code>Cases & SOS</code> • <code>Advisories</code></td>
+                        <td>Super admin system-wide oversight</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>3. Gap Analysis: Why Cross-Role Tabs Appear</h2>
+            <div class="card">
+                <h3>Root Causes in Existing Codebase</h3>
+                <p>
+                    <strong>1. Global Demo Bar Always Mounted:</strong> In <code>frontend/src/App.tsx</code>, <code>isDemoMode</code> defaults to true. The black top header bar with <code>DEMO LOGINS: Tourist | Business | Community | Authority | Admin</code> is rendered globally across all screens.
+                </p>
+                <p>
+                    <strong>2. Automatic Demo Tourist Token:</strong> In <code>frontend/src/context/AuthContext.tsx</code>, guests visiting the root URL automatically acquire a demo token (Sara Ahmed) to enable immediate exploration.
+                </p>
+                <p>
+                    <strong>3. Permissive Access Matrix:</strong> The helper function <code>canAccessRole()</code> currently allows cross-role viewing for testing flexibility.
+                </p>
+            </div>
+        </section>
+
+        <section>
+            <h2>4. Target Architecture & Role-by-Role Isolation Blueprint</h2>
+            <pre><code>                     USER ARRIVES
+                          │
+         ┌────────────────┴────────────────┐
+         ▼                                 ▼
+ [ DEMO / EVALUATOR ]            [ LOGGED-IN ACCOUNT ]
+ (Guest / Clicks Demo)            (Authenticates via Login)
+         │                                 │
+  • Top Bar: VISIBLE                • Top Bar: HIDDEN
+  • Stepper: VISIBLE                • Stepper: HIDDEN
+  • All 5 Roles Accessible          • STRICT ISOLATION:
+                                          ├── Tourist: ONLY Tourist Tabs
+                                          ├── Business: ONLY Business Tabs
+                                          ├── Community: ONLY Community Tabs
+                                          └── Authority: ONLY Authority Tabs</code></pre>
+        </section>
+
+        <section>
+            <h2>5. Visibility Matrix</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>User Persona</th>
+                        <th>Top Demo Bar</th>
+                        <th>Demo Tour Stepper</th>
+                        <th>Active Portal Tabs</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Demo Evaluator</strong></td>
+                        <td><span class="badge badge-green">Visible (All 5)</span></td>
+                        <td><span class="badge badge-green">Visible</span></td>
+                        <td>Switchable across all 5 roles</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Logged-In Tourist</strong></td>
+                        <td><span class="badge badge-amber">Hidden</span></td>
+                        <td><span class="badge badge-amber">Hidden</span></td>
+                        <td><strong>Only:</strong> Home, Explore, Trips, Safety, Profile</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Logged-In Hotel Manager</strong></td>
+                        <td><span class="badge badge-amber">Hidden</span></td>
+                        <td><span class="badge badge-amber">Hidden</span></td>
+                        <td><strong>Only:</strong> Today, Listings, Availability, Reviews, Profile</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Logged-In Community</strong></td>
+                        <td><span class="badge badge-amber">Hidden</span></td>
+                        <td><span class="badge badge-amber">Hidden</span></td>
+                        <td><strong>Only:</strong> Stories, Crafts, Report, Hosts, Profile</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Logged-In Authority</strong></td>
+                        <td><span class="badge badge-amber">Hidden</span></td>
+                        <td><span class="badge badge-amber">Hidden</span></td>
+                        <td><strong>Only:</strong> Overview, Directory, Advisories, Approvals, Cases</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <span>Swat Tourism Platform — Production Documentation</span>
+        <span>File: docs/role-based-tab-visibility-analysis-report.html</span>
+    </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="glass">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Theme 2 Reference - Glass Alpine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Theme 2 - Glass Alpine Tokens */
+      --page-bg: #14538F;
+      --card: #FFFFFF;
+      --ink: #12324A;
+      --mute: #5E7A92;
+      --on-glass: #FFFFFF;
+      --on-glass-mute: rgba(255, 255, 255, 0.76);
+      --line: #D5E3F0;
+      
+      --cta-from: #FFC96B;
+      --cta-to: #F2A33A;
+      --cta-text: #3A2500;
+      --btn-soft: #D3E6F7;
+
+      --ok: #17694A;
+      --ok-bg: #D5F0E3;
+      --warn: #7A4A00;
+      --warn-bg: #FFE7BD;
+      --bad: #8E2A21;
+      --bad-bg: #FADAD6;
+      --info: #0C447C;
+      --info-bg: #D3E6F7;
+
+      --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, sans-serif;
+      --radius-card: 18px;
+      --radius-button: 11px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: var(--font-family);
+      background-color: var(--page-bg);
+      background-image: 
+        radial-gradient(620px 420px at 88% 6%, rgba(110, 205, 255, 0.38), transparent 62%),
+        radial-gradient(520px 420px at 6% 92%, rgba(242, 163, 58, 0.24), transparent 62%),
+        linear-gradient(160deg, #0B2545, #14538F 55%, #3A8FD0);
+      background-attachment: fixed;
+      min-height: 100vh;
+      color: var(--ink);
+      line-height: 1.5;
+      padding: 32px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Glass Header with Mountain Scenery, Still Clouds, and Snow Particles */
+    .glass-header {
+      position: relative;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+      padding: 28px 24px;
+      overflow: hidden;
+      color: var(--on-glass);
+    }
+
+    /* Header Mountain SVG Background */
+    .header-scenery {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.5;
+      z-index: 1;
+    }
+
+    /* Cloud elements */
+    .cloud {
+      position: absolute;
+      z-index: 2;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .cloud-1 { top: 8px; left: 15%; width: 90px; }
+    .cloud-2 { top: 14px; right: 20%; width: 110px; }
+
+    /* Snow animation container */
+    .snow-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 60%, rgba(0,0,0,0) 90%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 60%, rgba(0,0,0,0) 90%);
+    }
+
+    .flake {
+      position: absolute;
+      background: #FFFFFF;
+      border-radius: 50%;
+      opacity: 0.7;
+      animation: fall linear infinite;
+    }
+
+    @keyframes fall {
+      0% { transform: translateY(-10px); opacity: 0; }
+      15% { opacity: 0.8; }
+      85% { opacity: 0.6; }
+      100% { transform: translateY(140px); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flake { animation: none !important; display: none; }
+    }
+
+    /* Solid White Card Specification */
+    .card-solid {
+      background: #FFFFFF;
+      border-radius: 18px;
+      border: 1px solid #D5E3F0;
+      box-shadow: 0 8px 24px rgba(6, 24, 48, 0.28);
+      padding: 24px;
+      color: var(--ink);
+      position: relative;
+      z-index: 5;
+    }
+
+    .btn-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 22px;
+      border-radius: var(--radius-button);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(135deg, var(--cta-from), var(--cta-to));
+      color: var(--cta-text);
+      box-shadow: 0 4px 14px rgba(242, 163, 58, 0.4);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-cta:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(242, 163, 58, 0.5);
+    }
+
+    .btn-soft {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 18px;
+      border-radius: var(--radius-button);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: var(--btn-soft);
+      color: var(--ink);
+    }
+
+    .badge-ok {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--ok-bg);
+      color: var(--ok);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Glass Header Surface -->
+    <header class="glass-header">
+      <!-- Mountain Scene Vector -->
+      <svg class="header-scenery" viewBox="0 0 1000 240" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="mnt-back" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#8BB8E8" stop-opacity="0.05"/>
+          </linearGradient>
+          <linearGradient id="mnt-front" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#E1F0FF" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#3A8FD0" stop-opacity="0.15"/>
+          </linearGradient>
+        </defs>
+        <!-- Distant Alpine Peaks -->
+        <polygon points="0,240 70,120 180,180 290,90 410,190 530,105 640,165 760,80 880,170 1000,110 1000,240" fill="url(#mnt-back)"/>
+        <!-- Near Alpine Ridge -->
+        <polygon points="0,240 120,160 220,210 350,130 460,200 580,140 700,210 820,135 940,195 1000,160 1000,240" fill="url(#mnt-front)"/>
+      </svg>
+
+      <!-- Faint Still Clouds -->
+      <svg class="cloud cloud-1" viewBox="0 0 100 40">
+        <path d="M10,30 Q10,15 25,18 Q35,5 55,10 Q75,5 85,20 Q95,22 90,32 Z" fill="#FFFFFF"/>
+      </svg>
+      <svg class="cloud cloud-2" viewBox="0 0 100 40">
+        <path d="M10,32 Q12,18 28,20 Q40,8 60,12 Q80,8 90,24 Q98,26 92,34 Z" fill="#FFFFFF"/>
+      </svg>
+
+      <!-- Falling Light Snow Particles -->
+      <div class="snow-container">
+        <div class="flake" style="left: 17%; top: 22px; width: 3px; height: 3px; animation-duration: 3.2s; animation-delay: 0.1s;"></div>
+        <div class="flake" style="left: 20%; top: 26px; width: 4px; height: 4px; animation-duration: 4.1s; animation-delay: 0.8s;"></div>
+        <div class="flake" style="left: 23%; top: 20px; width: 2.5px; height: 2.5px; animation-duration: 3.5s; animation-delay: 1.5s;"></div>
+        <div class="flake" style="left: 77%; top: 28px; width: 3px; height: 3px; animation-duration: 3.7s; animation-delay: 0.3s;"></div>
+        <div class="flake" style="left: 81%; top: 24px; width: 4px; height: 4px; animation-duration: 4.3s; animation-delay: 1.1s;"></div>
+        <div class="flake" style="left: 85%; top: 25px; width: 2.5px; height: 2.5px; animation-duration: 3.8s; animation-delay: 1.9s;"></div>
+      </div>
+
+      <!-- Header Content (Above scenery and snow) -->
+      <div style="position: relative; z-index: 10;">
+        <span class="badge-ok">Theme 2: Glass Alpine</span>
+        <h1 style="font-size: 30px; font-weight: 800; color: var(--on-glass); margin-top: 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+          Swat Valley Tourism Portal
+        </h1>
+        <p style="font-size: 15px; color: var(--on-glass-mute); margin-top: 6px;">
+          Frosted glass header with mountain scenery and faint still clouds over deep alpine gradient.
+        </p>
+      </div>
+    </header>
+
+    <!-- Solid White Card Section (Never Glass) -->
+    <div class="card-solid">
+      <h2 style="font-size: 20px; font-weight: 700; color: var(--ink); margin-bottom: 8px;">
+        Solid White Content Card
+      </h2>
+      <p style="font-size: 14.5px; color: var(--mute); line-height: 1.55; margin-bottom: 20px;">
+        In Theme 2, all cards, tables, and forms are strictly solid white (<code style="background: #F0F4F8; padding: 2px 6px; border-radius: 4px;">#FFFFFF</code>) with 18px radius and deep soft shadow. Glass is reserved exclusively for navigation surfaces, headers, and popovers.
+      </p>
+
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <button class="btn-cta">Explore Destinations</button>
+        <button class="btn-soft">View Map</button>
+        <span class="badge-ok">✓ 100% Halal Verified</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

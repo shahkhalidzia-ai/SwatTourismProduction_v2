@@ -1,0 +1,33 @@
+# ==============================================================================
+# Swat Tourism Platform - Frontend Production Multi-Stage Dockerfile
+# ==============================================================================
+
+# Stage 1: Build the React 18 + Vite Production Bundle
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install dependencies with lockfile caching
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+
+# Copy frontend source files
+COPY frontend/ ./
+
+# Build optimized production bundle
+RUN npm run build
+
+# Stage 2: Serve via High-Performance Nginx Alpine
+FROM nginx:1.25-alpine AS runner
+
+# Remove default nginx welcome page
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy built static assets from builder stage
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Expose HTTP port
+EXPOSE 80
+
+# Default Nginx entrypoint
+CMD ["nginx", "-g", "daemon off;"]

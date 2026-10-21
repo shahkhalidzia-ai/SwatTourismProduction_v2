@@ -1,0 +1,42 @@
+# ==============================================================================
+# Swat Tourism Platform - Backend Production Dockerfile
+# Python 3.12 + FastAPI + Async Uvicorn / Gunicorn
+# ==============================================================================
+
+FROM python:3.12-slim AS runner
+
+# Set non-interactive debian frontend and python buffers
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Install system dependencies (build-essential, curl for healthchecks)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies
+COPY backend/requirements.txt ./
+RUN pip install --upgrade pip && pip install -r requirements.txt
+
+# Copy backend source code and seed scripts
+COPY backend/app ./app
+COPY backend/scripts ./scripts
+COPY backend/seed.py ./seed.py
+COPY backend/main.py ./main.py
+
+# Create persistent storage directories for uploads & SQLite database
+RUN mkdir -p /app/uploads /app/data
+
+# Expose backend service port
+EXPOSE 8090
+
+# Production Health Check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8090/health || exit 1
+
+# Start multi-worker Uvicorn production server
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8090", "--workers", "4", "--proxy-headers", "--forwarded-allow-ips", "*"]

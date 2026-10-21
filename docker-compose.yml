@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: swat_tourism_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: swat_user
+      POSTGRES_PASSWORD: swat_password
+      POSTGRES_DB: swat_tourism
+    ports:
+      - "5433:5432"
+    volumes:
+      - swat_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swat_user -d swat_tourism"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: swat_tourism_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://swat_user:swat_password@db:5432/swat_tourism
+      DATABASE_SYNC_URL: postgresql://swat_user:swat_password@db:5432/swat_tourism
+      PORT: 8090
+      CORS_ORIGINS: "http://localhost:5180,http://127.0.0.1:5180"
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./backend:/app
+      - swat_media_data:/app/uploads
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: swat_tourism_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      VITE_API_URL: http://localhost:8090/api/v1
+    ports:
+      - "5180:5180"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  swat_postgres_data:
+  swat_media_data:

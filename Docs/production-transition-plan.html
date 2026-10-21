@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Swat Tourism Platform — Production Transition Plan</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 24px;
+            background-color: #f8fafc;
+        }
+        .container {
+            background: #ffffff;
+            padding: 48px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        h1 { color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 12px; font-size: 2rem; }
+        h2 { color: #0369a1; margin-top: 36px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; font-size: 1.45rem; }
+        h3 { color: #0f172a; margin-top: 24px; font-size: 1.15rem; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.92rem;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 10px 14px;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background-color: #f8fafc; }
+        hr { border: 0; height: 1px; background: #e2e8f0; margin: 32px 0; }
+        ol, ul { padding-left: 24px; }
+        li { margin-bottom: 6px; }
+        code {
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+            font-family: Consolas, monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+<pre># Production Transition Plan: Swat Tourism Platform
+
+**Project Target:** Convert Prototype into an Enterprise-Grade Working Production Application  
+**Guiding Principle:** **Strict Preservation of Current Prototype** (zero modifications to existing `SwatTourismPlateform1` codebase)  
+**Target New Codebase Directory:** `f:\Antigravity\SwatTourismProduction` (or user-specified destination)  
+**Date:** October 8, 2026  
+**Status:** **PLANNING PHASE (Pending User &amp; Management Approval)**  
+
+---
+
+## 1. Objective &amp; Scope
+
+The purpose of this plan is to outline the step-by-step technical and operational roadmap for duplicating the current working prototype and systematically upgrading it into a production-grade, commercial application.
+
+### Key Tenets
+1. **Zero Impact on Prototype:** The prototype at `f:\Antigravity\SwatTourismPlateform1` remains 100% frozen, intact, and functional for reference, demos, and baseline verification.
+2. **Clean Production Workspace:** The new production workspace will be created as an independent project with separate configuration, dependencies, and git history.
+3. **Phased Evolution:** Staged and simulated features (mock payments, test notifications, static weather) will be replaced with real-world Pakistani payment gateways, telecom SMS providers, and government-compatible APIs.
+
+---
+
+## 2. Proposed System Architecture &amp; Environments
+
+```mermaid
+graph TD
+    subgraph Prototype_Frozen [Frozen Reference Prototype]
+        ProtoApp[f:/Antigravity/SwatTourismPlateform1]
+        ProtoDB[(Local SQLite &amp; Mock Gateways)]
+    end
+
+    subgraph Production_App [New Production Codebase: SwatTourismProduction]
+        ProdFrontend[React 18 + Vite + TypeScript PWA / Web]
+        ProdBackend[FastAPI Async Backend + Gunicorn/Uvicorn]
+        ProdDB[(PostgreSQL / Enhanced SQLite with WAL)]
+        ProdStorage[(Cloud Object Storage / S3 / Local CDN)]
+    end
+
+    subgraph External_Integrations [Production Third-Party Services]
+        JazzCash[Pakistani Payment Gateway: JazzCash / Easypaisa]
+        SMS[Telecom SMS Gateway: Twilio / Jazz / Telenor API]
+        Weather[Live Weather: OpenWeatherMap / PMD]
+        Emergency[Rescue 1122 Dispatch Bridge]
+    end
+
+    ProdFrontend --&gt; ProdBackend
+    ProdBackend --&gt; ProdDB
+    ProdBackend --&gt; ProdStorage
+    ProdBackend --&gt; JazzCash
+    ProdBackend --&gt; SMS
+    ProdBackend --&gt; Weather
+    ProdBackend --&gt; Emergency
+```
+
+---
+
+## 3. Work Breakdown Structure (WBS) &amp; Implementation Phases
+
+The transition is structured into **5 distinct phases**. Each phase ends with a verification gate requiring approval before moving to the next.
+
+```mermaid
+gantt
+    title Production Transition Roadmap
+    dateFormat  YYYY-MM-DD
+    section Phase 1: Environment &amp; Cloned Setup
+    Directory duplication &amp; git init        :p1_1, 2026-10-09, 1d
+    Clean environment variables &amp; configs   :p1_2, after p1_1, 1d
+    Database engine &amp; migrations setup      :p1_3, after p1_2, 1d
+    section Phase 2: Core Platform Hardening
+    Production JWT &amp; Refresh tokens         :p2_1, after p1_3, 2d
+    Role guards &amp; secure password resets    :p2_2, after p2_1, 2d
+    Frontend Vitest &amp; backend test suite    :p2_3, after p2_2, 2d
+    section Phase 3: Commercial Integrations
+    Pakistani Payment Gateway (JazzCash/EP) :p3_1, after p2_3, 3d
+    Telecom SMS Gateway (OTP &amp; Alerts)      :p3_2, after p3_1, 2d
+    Live Weather &amp; Road Condition Feeds     :p3_3, after p3_2, 2d
+    section Phase 4: Safety &amp; Enterprise Ops
+    Rescue 1122 Webhook &amp; Email bridge      :p4_1, after p3_3, 2d
+    Cloud media storage &amp; CDN upload        :p4_2, after p4_1, 2d
+    Audit logging &amp; automated DB backups    :p4_3, after p4_2, 2d
+    section Phase 5: Production Deployment
+    Docker containerization &amp; Nginx proxy   :p5_1, after p4_3, 2d
+    Staging smoke test &amp; production go-live :p5_2, after p5_1, 2d
+```
+
+---
+
+### Phase 1: Safe Workspace Duplication &amp; Isolation
+
+* **Goal:** Create a completely standalone clone of the application without touching the prototype.
+* **Tasks:**
+  1. **Automated Clean Copy Script:**
+     - Copy all source code (`frontend/`, `backend/`, `Docs/`, scripts, configs) to `f:\Antigravity\SwatTourismProduction`.
+     - Exclude build caches and transient files: `node_modules/`, `__pycache__/`, `.pytest_cache/`, `.git/`, test databases.
+  2. **Production Dependency Reinstallation:**
+     - Run `npm install` cleanly in `frontend/`.
+     - Create a dedicated Python virtual environment (`.venv_prod`) for `backend/`.
+  3. **Configuration &amp; Secret Segregation:**
+     - Create `.env.production` separate from `.env.local`.
+     - Generate strong cryptographic keys for `SECRET_KEY` (replacing default development secrets).
+     - Configure configurable CORS origins for staging/production domains.
+* **Deliverable:** A cleanly running, independent instance on distinct ports (e.g., Backend on `8001`, Frontend on `5174`) alongside the prototype.
+
+---
+
+### Phase 2: Security Hardening &amp; Data Persistence
+
+* **Goal:** Upgrade authentication, database resilience, and test stability to production standards.
+* **Tasks:**
+  1. **Database Strategy:**
+     - *Option A (Recommended for scale):* Configure PostgreSQL 16 with connection pooling (SQLAlchemy `asyncpg`).
+     - *Option B (Lightweight on-premise):* SQLite with Write-Ahead Logging (`WAL` mode) and automated daily backup snapshots.
+     - Execute baseline Alembic migrations to establish version-controlled schema tracking.
+  2. **Authentication &amp; Session Hardening:**
+     - Implement JWT Access Token (15-minute expiry) + HTTP-Only Refresh Token rotation (7-day expiry).
+     - Add secure password reset workflow (tokenized email/SMS link).
+     - Enable account lockout after 5 consecutive failed login attempts.
+  3. **Test Suite Stabilization:**
+     - Fix Vitest test wrappers in `frontend/src/test/setup.ts` with global `&lt;AuthProvider&gt;` renderers.
+     - Expand backend `pytest` suite to cover end-to-end integration tests for bookings, listings, and verification.
+* **Deliverable:** Zero-vulnerability authentication and resilient database engine with passing test suites.
+
+---
+
+### Phase 3: Commercial &amp; External Integrations
+
+* **Goal:** Replace simulated stubs with real external service providers.
+* **Tasks:**
+  1. **Pakistani Payment Gateway Adapter Layer:**
+     - Build a modular payment adapter interface (`PaymentProviderInterface`).
+     - Implement support for:
+       - **JazzCash HTTP/Merchant API** (Mobile Wallet &amp; Card).
+       - **Easypaisa Merchant Checkout**.
+       - **1Link / PayFast** for direct bank debit &amp; Visa/Mastercard.
+     - Add webhook listener endpoint (`POST /api/v1/payments/webhook`) with HMAC signature verification to confirm transactions asynchronously.
+     - Implement automated digital receipt PDF generation with downloadable invoice.
+  2. **Telecom SMS Gateway Integration:**
+     - Implement SMS service (`Twilio` or local Pakistani SMS gateway e.g. `Telenor / Jazz API`).
+     - Deliver real-time SMS notifications for:
+       - Booking confirmation with reference code (`SWT-BK-XXXX`).
+       - Emergency severe weather &amp; road blockage broadcast alerts.
+       - One-Time Passwords (OTP) for phone number verification.
+  3. **Live Weather &amp; Road Condition Feeds:**
+     - Connect OpenWeatherMap or PMD (Pakistan Meteorological Department) live API for Mingora, Kalam, Malam Jabba, and Ushu.
+     - Implement background scheduler (hourly cache) to prevent third-party API rate limits.
+* **Deliverable:** Live payments, verified cellular SMS notifications, and dynamic weather radar.
+
+---
+
+### Phase 4: Emergency Services &amp; Media Storage
+
+* **Goal:** Institutional safety integration and scalable media asset delivery.
+* **Tasks:**
+  1. **Rescue 1122 CAD Integration &amp; Emergency Bridge:**
+     - Implement high-priority webhook and email/SMS escalation dispatcher for the Emergency Dispatch Board.
+     - When an SOS is triggered, simultaneously broadcast to the internal Authority Dispatch Board and trigger automated alerts to on-duty Rescue 1122 liaisons with GPS map pin coordinates.
+  2. **Production Media Storage Pipeline:**
+     - Abstract `uploadListingMedia` to support:
+       - *Local High-Performance Static Storage* (via Nginx/Caddy with caching headers).
+       - *S3-compatible Object Storage* (AWS S3, MinIO, or Cloudflare R2) with automatic image compression/WebP conversion.
+  3. **Audit Logging &amp; Governance Ledger:**
+     - Establish immutable audit logging for all government authority actions:
+       - Business verification approval/rejection with officer timestamps.
+       - Safety alert broadcasts and road status modifications.
+       - Citizen complaint resolution histories.
+* **Deliverable:** Production-ready emergency protocol and high-performance media delivery.
+
+---
+
+### Phase 5: Containerization, CI/CD &amp; Production Go-Live
+
+* **Goal:** Automated packaging, deployment, and operational monitoring.
+* **Tasks:**
+  1. **Dockerized Multi-Container Setup:**
+     - Create multi-stage production Dockerfiles:
+       - Frontend: Optimized Vite production build (`dist/`) served via Nginx.
+       - Backend: Multi-worker Uvicorn / Gunicorn server.
+       - Database: Managed PostgreSQL container with volume persistence.
+     - Production `docker-compose.prod.yml` with health checks and restart policies.
+  2. **SSL / Reverse Proxy Setup:**
+     - Nginx or Caddy configuration with automated Let&#x27;s Encrypt SSL certificates (HTTPS/WSS).
+     - Security headers: HSTS, CSP, X-Frame-Options, CORS restriction.
+  3. **Staging Smoke Test &amp; Operational Handover:**
+     - Full persona test execution (Tourist, Business Manager, Authority Officer, Community Member).
+     - Load testing (simulating 500 concurrent users searching listings and itineraries).
+* **Deliverable:** Live, secure, containerized production application ready for public launch.
+
+---
+
+## 4. Safety &amp; Risk Mitigation
+
+| Risk | Impact | Mitigation Strategy |
+| :--- | :---: | :--- |
+| **Accidental overwrite of prototype** | Critical | Duplicate to a completely different folder (`SwatTourismProduction`); keep prototype folder read-only during duplication; execute automated pre-check script. |
+| **Third-party payment gateway downtime** | High | Abstract payment gateway behind adapter pattern; support fallback manual cash-on-arrival or bank transfer receipt upload. |
+| **Slow mobile connectivity in Swat Valleys** | Medium | Implement aggressive client-side caching for offline maps, road condition advisories, and hotel listings. |
+| **Database schema divergence** | Medium | Enforce strict Alembic database migration scripts for all database changes. |
+
+---
+
+## 5. Execution Pre-Requisites &amp; Required User Approvals
+
+Before executing this plan, please confirm:
+1. **Target Folder Name &amp; Location:** Confirm if `f:\Antigravity\SwatTourismProduction` is the preferred target directory, or specify an alternative path.
+2. **Database Choice:** Confirm whether to start with **PostgreSQL** or **High-Performance SQLite with WAL** for the initial production phase.
+3. **Payment Provider Preference:** Confirm preferred Pakistani payment gateway partner (e.g. JazzCash, Easypaisa, PayFast/1Link).
+
+---
+
+## 6. Next Step
+
+**No code or file changes have been made to your prototype.**  
+Once you review this plan and give your explicit approval, we will begin with **Phase 1: Safe Workspace Duplication &amp; Isolation**.
+</pre>
+    </div>
+</body>
+</html>

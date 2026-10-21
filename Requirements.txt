@@ -1,0 +1,73 @@
+when a tourist explore a hotel on Hote tab when any hotel is selected there should be a button on that specific hotel card to 
+view all Rooms detaisl,Facilities , activiteis provided by that hotel. On Restaurean tab the use should eb able to view th contact no, 
+location and Menue of that restauran
+===
+the interactive 15 steps End-to-End 15-Step Platform Walkthrough popu shoul be at the bottom, and when Move to any page in the flow step that 
+that should be clearly visible to me
+==
+on Business portal, Listing, Rooms registration is not available
+can  you please Analys that complet from From Tourist registration , Trip planning, Booking, payments, approve booking by Hotel/any other busness
+Room Sta
+==
+All types of business listing like, hotes, Restaurant, shops, transport, guides, shold be listed on Authority portal
+on Business portal only the specifi business related listing, like Rooms detaisl, other services details, should be listed,
+also business should be able to add new service or edits existing one, please suggest a prompt for it and then we will execute
+==
+Now i want to create one Tourist user, one busness user, one community user, one Atharity user.
+if i login as Tourist i should be able to perform all the funtions reuired to a tourist
+if i login as Hotel/Business account , i shoul be able to perform all funciotns related to to Hotel Manager or other business  manager
+if i login as community user , i should be able to perform all functions related to community user
+if i log as Authority officer , i should be able to perform all functions related to Authority
+For Demo purpose i should have Admin account where i can run the complete flow with single user. but the flow shoudld be compelted
+when a Tourist add booking request, it should appear to Hotel manager on his portal for confirmation
+if a hotel manager or Business manage add His business registration request it should be appear to Authrity Officer for approval..and imilar ly 
+complet flow from Creating Trip to booking , stay , return and review should be complete.
+Please first anaylyse the system, if you find any gape then create prompt and show it to me.
+====
+when a tourist selct a hotel room , all rooms with availablity and price should be appear to him in hotel popup and touris should have option 
+which type of room he/she wants to book for stay..
+===
+On Business/Hotel portal, there should be a form where Logd in user for any specif business/hotel should be able to Add /Edit his/her business 
+Services, Facilities, Rooms, Activities. only related to his business. please create a prompt. donot make any change to existing forms, Add a new 
+form for Adding/updating his business provided services
+Avoid extra steps to save the time
+===
+On Business portal when user is login form any specific Business like in current demo the user has logedin with serena hotle user
+on list only this specific Hotel(Serena should be loading to him, to view and edit his all Facilities, Rooms, acitivities etc)
+. the current listing fuction on Business should be available on Authority or admin port under directory tab.
+Please create prompt Please avoid extra steps to save the time
+==
+Form the business portal Listing tab. Replace the list grid with Manage service, Room and facility popup, Manage service, Room and facility popup
+should be displayed instead of the listing grid. please create prompt
+===
+Please change the style of Top of the form and left menue, make it more profesional and elegant
+==
+the touris should be able to view all the transport services and compnies providing transport to Swat from differen cities of pakistan
+tourist should tell his Origine city and destination is swat. tourist should be able to view all the trans port services to swat , timing and
+ticket price.
+===
+Done:
+•	Tourist Lifecycle: Full registration, profile personalization, origin tracking, group trip builder, destination bookmarks, booking history, post-stay reviews, citizen complaint submissions.
+•	Itinerary & Trip Planning: Multi-day trip planner, budget estimation, interest filters, distance/travel time calculations, **hotel & specific room selection per day**, activity attachments.
+•	Accommodation & Room Inventory: Multi-room definitions, individual room photo upload, room capacity, nightly pricing, interactive 60-day visual availability calendar, booking flow.
+•	Transportation & Guides: Jeep rentals, intercity route listings, certified guide profiles with languages, verified guide badges, direct hire requests.
+•	Dining & Local Artisans: Restaurant menus, operating hours, local craft gallery (shawls, honey, textiles), community artisan profiles.
+•	Geospatial & Safety: MapLibre interactive map, coordinates for all landmarks, emergency SOS trigger with GPS capture, direct directory for 1122 and police.
+•	Business Portal: Dedicated Business Shell, in-app profile editing, listing builder with auto-population of existing property details, booking management, review responses.
+•	Authority Governance Desk: Executive KPI cards, business verification queue, destination content publishing, road condition and travel advisory broadcasting, emergency SOS dispatch desk, complaint investigation desk.
+
+===
+Pending:
+Payments JAZZ cash/Easy paisa/Stipe integration
+Emergency 1122 Dispatch Integration 
+External Weather API - weather map
+Ineteractive maps
+AI Assitance and AI assisted trips generation
+Site Map
+Complete rollbase implementaion
+Make the system configura able/ all distination, Transport, and other features should be configureable
+Notifications and Emails
+Mobile apps for all types of users
+Reports and Analytics of the whole system
+
+

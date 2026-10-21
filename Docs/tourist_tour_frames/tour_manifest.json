@@ -1,0 +1,82 @@
+[
+  {
+    "frame": 1,
+    "filename": "frame_001.png",
+    "label": "Tourist Portal: Home Tab Hero Banner & Overview"
+  },
+  {
+    "frame": 2,
+    "filename": "frame_002.png",
+    "label": "Home: Active Weather Advisories & Featured Valleys"
+  },
+  {
+    "frame": 3,
+    "filename": "frame_003.png",
+    "label": "Home: Verified Valley Stays & Cultural Attractions"
+  },
+  {
+    "frame": 4,
+    "filename": "frame_004.png",
+    "label": "Destination Modal: Kalam Valley Overview, Live Weather & Photos"
+  },
+  {
+    "frame": 5,
+    "filename": "frame_005.png",
+    "label": "Explore Tab: Categories & Verified Listings Catalog"
+  },
+  {
+    "frame": 6,
+    "filename": "frame_006.png",
+    "label": "Explore Filter: 4x4 Mountain Cruisers & Jeeps"
+  },
+  {
+    "frame": 7,
+    "filename": "frame_007.png",
+    "label": "Explore Filter: Verified Luxury Hotels & Riverside Chalets"
+  },
+  {
+    "frame": 8,
+    "filename": "frame_008.png",
+    "label": "Hotel Details Modal: Swat Serena Rooms, Amenities & Pricing Breakdown"
+  },
+  {
+    "frame": 9,
+    "filename": "frame_009.png",
+    "label": "Trips Tab: Multi-Day Swat Itinerary & Stay Planner"
+  },
+  {
+    "frame": 10,
+    "filename": "frame_010.png",
+    "label": "Itinerary Days: Assigned 4x4 Driver, Stay Continuity & Stops"
+  },
+  {
+    "frame": 11,
+    "filename": "frame_011.png",
+    "label": "Trip Builder: Add Hotel & Room Type Selector Modal"
+  },
+  {
+    "frame": 12,
+    "filename": "frame_012.png",
+    "label": "Trip View 2: Bookings List, Reservation Vouchers & Payment Status"
+  },
+  {
+    "frame": 13,
+    "filename": "frame_013.png",
+    "label": "Trip View 3: Complete Trip Breakdown, Rule 4 Guarantee & Share Text"
+  },
+  {
+    "frame": 14,
+    "filename": "frame_014.png",
+    "label": "Safety Tab: Highway & Pass Road Statuses & Weather Advisories"
+  },
+  {
+    "frame": 15,
+    "filename": "frame_015.png",
+    "label": "Emergency SOS Modal: Real-Time GPS Distress Alert Dispatch"
+  },
+  {
+    "frame": 16,
+    "filename": "frame_016.png",
+    "label": "Profile Tab: Tourist Preferences, Budget, Travel Style & Language"
+  }
+]

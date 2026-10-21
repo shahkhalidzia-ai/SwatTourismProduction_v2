@@ -1,0 +1,916 @@
+Software Requirements Specification (SRS)
+Swat Tourism Digital Ecosystem
+Document Version: 1.0Status: Requirements AnalysisScope: Swat District, Khyber Pakhtunkhwa, PakistanPrimary Audience: Tourism stakeholders, project owners, analysts, architects, developers, QA, administrators and tourism businesses
+1. Introduction
+1.1 Purpose
+The purpose of the Swat Tourism Digital Ecosystem is to provide a unified digital platform connecting:
+Tourists 
+Hotels and accommodation providers 
+Restaurants 
+Tour guides 
+Transport providers 
+Activity providers 
+Tour operators 
+Local businesses 
+Tourism authorities 
+Emergency/safety organizations 
+The platform will support the tourist's complete journey:
+Discover → Plan → Book → Travel → Explore → Stay → Participate → Stay Safe → Review → Return
+2. Vision
+The platform should not be limited to a tourism information website.
+It should eventually become a:
+Digital tourism ecosystem connecting tourists, tourism businesses, local communities and tourism authorities.
+The system should support tourists before, during and after their visit to Swat.
+3. Project Objectives
+The system should:
+Promote Swat as a tourism destination. 
+Make tourism information easily accessible. 
+Help tourists plan trips. 
+Provide itinerary planning. 
+Connect tourists with verified tourism businesses. 
+Enable accommodation booking. 
+Enable transportation and activity booking. 
+Promote local businesses and products. 
+Improve tourist safety. 
+Provide emergency assistance. 
+Provide weather and road information. 
+Collect tourism statistics. 
+Provide tourism authorities with operational dashboards. 
+Improve transparency between tourists and service providers. 
+Eventually provide AI-assisted tourism planning. 
+4. Project Scope
+4.1 In Scope
+The platform will cover:
+Tourist management 
+Destinations 
+Attractions 
+Trip planning 
+Itineraries 
+Accommodation 
+Transportation 
+Tour guides 
+Activities 
+Restaurants 
+Local products 
+Maps 
+Weather 
+Road conditions 
+Safety 
+Emergency assistance 
+Booking 
+Payments 
+Reviews 
+Complaints 
+Tourism businesses 
+Tourism authority 
+Notifications 
+Analytics 
+AI tourism assistance 
+4.2 Initially Out of Scope
+The following should not be designed in detail yet:
+Database implementation 
+Specific programming language/framework 
+Cloud architecture 
+Detailed UI design 
+API specification 
+AI model selection 
+Payment provider selection 
+Hardware 
+Detailed GIS implementation 
+These will be addressed after requirements approval.
+5. Stakeholders
+Stakeholder
+Role
+Tourist
+Uses tourism services
+Family/Group Organizer
+Manages group trips
+Hotel
+Provides accommodation
+Restaurant
+Provides food
+Tour Guide
+Provides guiding services
+Transport Provider
+Provides transport
+Driver
+Provides driving services
+Activity Provider
+Provides tourism activities
+Tour Operator
+Provides complete packages
+Local Merchant
+Provides local products
+Tourism Authority
+Manages tourism ecosystem
+Emergency Organization
+Provides emergency services
+System Administrator
+Manages platform
+Content Administrator
+Manages tourism information
+Support Staff
+Handles tourist/business support
+6. User Roles
+The system should support role-based access.
+Primary roles
+Tourist 
+Hotel Manager 
+Restaurant Manager 
+Tour Guide 
+Transport Provider 
+Driver 
+Activity Provider 
+Tour Operator 
+Local Merchant 
+Tourism Officer 
+Verification Officer 
+Emergency Operator 
+Customer Support 
+Content Administrator 
+System Administrator 
+Super Administrator 
+7. High-Level System Concept
+                       SWAT TOURISM PLATFORM
+                               │
+          ┌────────────────────┼────────────────────┐
+          │                    │                    │
+          ▼                    ▼                    ▼
+       TOURISTS            BUSINESSES           AUTHORITY
+          │                    │                    │
+          ▼                    ▼                    ▼
+     Discover              Services            Management
+     Plan                  Inventory           Verification
+     Book                  Bookings            Monitoring
+     Travel                Payments            Analytics
+     Explore               Reviews             Reports
+     Review
+          │                    │                    │
+          └────────────────────┼────────────────────┘
+                               │
+                               ▼
+                       SHARED SERVICES
+                               │
+       ┌────────────┬──────────┼─────────┬────────────┐
+       ▼            ▼          ▼         ▼            ▼
+     Maps        Weather    Booking   Payment    Notification
+                               │
+                               ▼
+                          AI ASSISTANT
+                               │
+                               ▼
+                           ANALYTICS
+8. Functional Requirements
+Module 1 — Tourist Management
+Objective
+Manage tourist accounts, profiles, preferences and travel history.
+Functional Requirements
+FR-TR-001The system shall allow tourists to create an account.
+FR-TR-002The system shall allow tourists to maintain their profile.
+FR-TR-003The system shall capture the tourist's origin city/country.
+FR-TR-004The system shall support domestic and international tourists.
+FR-TR-005The system shall allow tourists to create family/group information.
+FR-TR-006The system shall allow tourists to specify interests.
+Examples:
+Nature 
+Adventure 
+History 
+Culture 
+Family tourism 
+Photography 
+FR-TR-007The system shall maintain tourist booking history.
+FR-TR-008The system shall maintain completed trip history.
+FR-TR-009The system shall allow tourists to save destinations.
+FR-TR-010The system shall allow tourists to save hotels and activities.
+Business Rules
+BR-TR-001: A tourist must have an account before making a confirmed booking.
+BR-TR-002: A tourist may create multiple trips.
+Module 2 — Destination Management
+Objective
+Maintain comprehensive information about Swat destinations and attractions.
+Destination Categories
+Valley 
+Lake 
+Mountain 
+Waterfall 
+River 
+Historical site 
+Archaeological site 
+Museum 
+Cultural site 
+Religious site 
+Viewpoint 
+Park 
+Adventure location 
+Functional Requirements
+FR-DM-001The system shall allow authorized administrators to create destinations.
+FR-DM-002The system shall maintain destination descriptions.
+FR-DM-003The system shall maintain photographs and media.
+FR-DM-004The system shall maintain geographical location.
+FR-DM-005The system shall provide destination search.
+FR-DM-006The system shall categorize destinations.
+FR-DM-007The system shall maintain recommended visiting periods.
+FR-DM-008The system shall maintain nearby services.
+FR-DM-009The system shall display applicable road/access information.
+FR-DM-010The system shall allow tourists to save destinations.
+Business Rules
+BR-DM-001: Destination information published to tourists shall be approved by an authorized administrator.
+Module 3 — Trip Planning & Itinerary
+Objective
+Allow tourists to create and manage complete trips.
+Inputs
+Origin 
+Destination 
+Travel dates 
+Duration 
+Number of travelers 
+Budget 
+Interests 
+Transport preference 
+Accommodation preference 
+Functional Requirements
+FR-TP-001The system shall allow tourists to create a trip.
+FR-TP-002The system shall allow tourists to specify travel dates.
+FR-TP-003The system shall allow tourists to specify their starting location.
+FR-TP-004The system shall allow tourists to specify their budget.
+FR-TP-005The system shall allow tourists to specify interests.
+FR-TP-006The system shall generate an itinerary based on selected criteria.
+FR-TP-007The tourist shall be able to modify the itinerary.
+FR-TP-008The tourist shall be able to add/remove destinations.
+FR-TP-009The system shall calculate estimated travel distances.
+FR-TP-010The system shall display estimated travel times.
+FR-TP-011The system shall associate accommodation with itinerary days.
+FR-TP-012The system shall associate activities with itinerary days.
+Future AI Requirements
+FR-TP-013The AI assistant may generate personalized itinerary suggestions.
+Business Rules
+BR-TP-001: The system should not recommend an itinerary that conflicts with known destination availability or applicable travel restrictions.
+Module 4 — Accommodation
+Accommodation Types
+Hotels 
+Resorts 
+Guest houses 
+Homestays 
+Apartments 
+Camping 
+Glamping 
+Functional Requirements
+FR-AC-001The system shall allow accommodation providers to register.
+FR-AC-002The system shall allow providers to create accommodation profiles.
+FR-AC-003The system shall allow providers to define room types.
+FR-AC-004The system shall maintain room capacity.
+FR-AC-005The system shall maintain pricing.
+FR-AC-006The system shall maintain availability.
+FR-AC-007Tourists shall be able to search accommodation.
+FR-AC-008Tourists shall be able to filter accommodation.
+FR-AC-009Tourists shall be able to view accommodation details.
+FR-AC-010Tourists shall be able to make reservations.
+FR-AC-011The system shall issue booking confirmation.
+FR-AC-012The system shall support cancellation according to provider policy.
+Business Rules
+BR-AC-001: A room cannot be confirmed when there is no available inventory.
+BR-AC-002: Only verified accommodation providers may receive confirmed bookings.
+Module 5 — Transportation
+Functional Requirements
+FR-TRN-001The system shall maintain transport providers.
+FR-TRN-002The system shall maintain transport vehicles/services.
+FR-TRN-003The system shall support intercity transportation.
+FR-TRN-004The system shall support local transportation.
+FR-TRN-005The system shall support car/Jeep rental.
+FR-TRN-006The system shall support driver services.
+FR-TRN-007Tourists shall be able to search transportation.
+FR-TRN-008Tourists shall be able to request/book transport.
+FR-TRN-009The system shall maintain pickup and drop-off information.
+FR-TRN-010The system shall maintain transportation pricing.
+Future
+Vehicle GPS tracking 
+Live driver tracking 
+Digital tickets 
+Module 6 — Tour Guide Management
+Functional Requirements
+FR-GD-001The system shall allow guides to register.
+FR-GD-002The system shall maintain guide profiles.
+FR-GD-003The system shall maintain languages spoken.
+FR-GD-004The system shall maintain guide expertise.
+FR-GD-005The system shall maintain service areas.
+FR-GD-006The system shall maintain guide availability.
+FR-GD-007Tourists shall be able to search guides.
+FR-GD-008Tourists shall be able to request/book guides.
+FR-GD-009The system shall maintain guide reviews.
+Business Rule
+BR-GD-001: A guide must be verified before being presented as a verified guide.
+Module 7 — Activities & Experiences
+Examples
+Hiking 
+Trekking 
+Skiing 
+Fishing 
+Camping 
+Horse riding 
+Sightseeing 
+Photography 
+Cultural experiences 
+Functional Requirements
+FR-ACT-001Activity providers shall be able to register activities.
+FR-ACT-002The system shall maintain activity descriptions.
+FR-ACT-003The system shall maintain activity location.
+FR-ACT-004The system shall maintain duration.
+FR-ACT-005The system shall maintain price.
+FR-ACT-006The system shall maintain capacity.
+FR-ACT-007The system shall maintain availability.
+FR-ACT-008Tourists shall be able to search activities.
+FR-ACT-009Tourists shall be able to book activities.
+FR-ACT-010The system shall display relevant safety requirements.
+Module 8 — Restaurants & Local Commerce
+Restaurants
+FR-RST-001Restaurants shall be able to register.
+FR-RST-002Restaurants shall maintain menus.
+FR-RST-003Restaurants shall maintain operating hours.
+FR-RST-004Tourists shall be able to search restaurants.
+FR-RST-005Tourists shall be able to view restaurant information.
+FR-RST-006Tourists shall be able to review restaurants.
+Local Products
+FR-LC-001Local merchants shall be able to register.
+FR-LC-002Merchants shall be able to list products.
+FR-LC-003The system shall support product categories.
+FR-LC-004Tourists shall be able to discover local products.
+FR-LC-005Future versions may support online purchasing.
+Module 9 — Maps & Location Services
+Functional Requirements
+FR-MAP-001The system shall display tourism locations on maps.
+FR-MAP-002The system shall display attractions.
+FR-MAP-003The system shall display hotels.
+FR-MAP-004The system shall display restaurants.
+FR-MAP-005The system shall display emergency facilities.
+FR-MAP-006The system shall calculate distances.
+FR-MAP-007The system shall provide route information.
+FR-MAP-008The system shall support location-based searches.
+FR-MAP-009The system may provide navigation through an external mapping service.
+Module 10 — Weather, Road & Travel Conditions
+Functional Requirements
+FR-WR-001The system shall display weather information.
+FR-WR-002The system shall display weather forecasts.
+FR-WR-003The system shall display road condition information where reliable data is available.
+FR-WR-004Authorized authorities shall be able to publish travel advisories.
+FR-WR-005The system shall notify affected tourists about important travel alerts.
+FR-WR-006The trip planner may consider weather and road conditions.
+Business Rule
+BR-WR-001: Safety-related alerts should be clearly distinguished from general tourism information.
+Module 11 — Safety & Emergency
+Emergency Services
+Police 
+Rescue 1122 
+Fire 
+Hospitals 
+Ambulance 
+Functional Requirements
+FR-EM-001The system shall provide emergency contact information.
+FR-EM-002Tourists shall be able to initiate an SOS request.
+FR-EM-003The system may provide tourist location with an SOS request.
+FR-EM-004The system shall identify nearby emergency facilities where location data is available.
+FR-EM-005Tourists shall be able to configure emergency contacts.
+FR-EM-006Authorized emergency operators may receive emergency requests.
+Important Rule
+Emergency functionality must be designed so that the tourism platform does not replace official emergency systems. It should complement them.
+Module 12 — Booking & Payment
+This is a shared platform service.
+Functional Requirements
+FR-BK-001The system shall create booking records.
+FR-BK-002The system shall generate unique booking references.
+FR-BK-003The system shall maintain booking status.
+Possible statuses:
+REQUESTED
+PENDING
+CONFIRMED
+CANCELLED
+COMPLETED
+REFUNDED
+FR-BK-004The system shall support booking cancellation.
+FR-BK-005The system shall maintain cancellation policies.
+FR-BK-006The system shall support payment transactions where online payment is enabled.
+FR-BK-007The system shall generate receipts.
+FR-BK-008The system shall maintain payment status.
+FR-BK-009The system shall maintain provider settlement information.
+Important future consideration
+Payment integration should be treated as an integration requirement, rather than assuming a specific payment provider at this stage.
+Module 13 — Reviews, Ratings & Complaints
+Reviews
+FR-RV-001Tourists shall be able to review eligible services after completed transactions.
+FR-RV-002The system shall support ratings.
+FR-RV-003The system shall support written reviews.
+FR-RV-004The system shall allow providers to respond to reviews.
+Complaints
+FR-RV-005Tourists shall be able to submit complaints.
+FR-RV-006The system shall assign complaint status.
+FR-RV-007Authorized staff shall be able to investigate complaints.
+FR-RV-008The system shall maintain complaint history.
+Possible statuses
+OPEN
+UNDER REVIEW
+ACTION REQUIRED
+RESOLVED
+CLOSED
+REJECTED
+Module 14 — Tourism Business Management
+This module manages the entire provider ecosystem.
+Business registration
+FR-BM-001Businesses shall be able to submit registration applications.
+FR-BM-002Businesses shall provide required documentation.
+FR-BM-003Authorized officers shall verify businesses.
+FR-BM-004The system shall maintain business verification status.
+Business dashboard
+Each provider should eventually receive an appropriate dashboard.
+BUSINESS DASHBOARD
+       │
+       ├── Profile
+       ├── Services
+       ├── Availability
+       ├── Bookings
+       ├── Customers
+       ├── Payments
+       ├── Reviews
+       └── Reports
+Module 15 — Tourism Authority / Government
+Functional Requirements
+FR-GOV-001Authorized officers shall manage destinations.
+FR-GOV-002Authorized officers shall verify tourism businesses.
+FR-GOV-003Authorized officers shall manage tourism content.
+FR-GOV-004Authorized officers shall review complaints.
+FR-GOV-005Authorized officers shall publish tourism alerts.
+FR-GOV-006Authorized officers shall manage tourism events.
+FR-GOV-007The system shall provide tourism statistics.
+FR-GOV-008The system shall provide administrative dashboards.
+FR-GOV-009The system shall maintain an audit trail of administrative actions.
+Module 16 — Notifications & Communication
+Channels
+In-app 
+Push 
+SMS 
+Email 
+Functional Requirements
+FR-NOT-001The system shall notify tourists about confirmed bookings.
+FR-NOT-002The system shall send booking reminders.
+FR-NOT-003The system shall send important travel alerts.
+FR-NOT-004The system shall send weather alerts where appropriate.
+FR-NOT-005The system shall notify providers of new bookings.
+FR-NOT-006The system shall notify users about booking changes/cancellations.
+Module 17 — AI Tourism Assistant
+The AI layer should be introduced after the core tourism data and rules are established.
+Functional Requirements
+FR-AI-001The system may provide conversational tourism assistance.
+FR-AI-002The AI may answer questions about Swat destinations.
+FR-AI-003The AI may generate itinerary suggestions.
+FR-AI-004The AI may recommend activities based on tourist preferences.
+FR-AI-005The AI may assist with hotel/activity discovery.
+FR-AI-006The AI may provide multilingual assistance.
+Critical requirement
+FR-AI-007: AI-generated information should be based on authoritative/approved tourism information whenever factual information is being provided.
+The AI should not independently invent:
+Hotel availability 
+Prices 
+Road closures 
+Emergency numbers 
+Booking confirmations 
+Weather conditions 
+Module 18 — Analytics & Tourism Intelligence
+Tourist Analytics
+Tourist numbers 
+Origin cities 
+Origin countries 
+Travel periods 
+Trip duration 
+Popular destinations 
+Business Analytics
+Bookings 
+Occupancy 
+Revenue 
+Activity demand 
+Provider performance 
+Destination Analytics
+Most visited destinations 
+Seasonal demand 
+Tourist flows 
+Authority Analytics
+Tourism growth 
+Complaints 
+Safety incidents 
+Business registrations 
+Tourism trends 
+Module 19 — Administration & Security
+Functional Requirements
+FR-ADM-001The system shall support role-based access control.
+FR-ADM-002Administrators shall only access authorized functions.
+FR-ADM-003The system shall maintain user accounts.
+FR-ADM-004The system shall maintain roles and permissions.
+FR-ADM-005The system shall maintain audit logs.
+FR-ADM-006The system shall support account suspension where authorized.
+FR-ADM-007The system shall protect sensitive user information.
+9. Cross-Module Business Processes
+9.1 Tourist Journey
+Register
+   ↓
+Search Swat
+   ↓
+Select destinations
+   ↓
+Create trip
+   ↓
+Generate itinerary
+   ↓
+Select hotel
+   ↓
+Select transport
+   ↓
+Select activities
+   ↓
+Book services
+   ↓
+Travel
+   ↓
+Explore Swat
+   ↓
+Use safety/services
+   ↓
+Complete trip
+   ↓
+Review services
+10. Hotel Booking Process
+Hotel registers
+       ↓
+Verification
+       ↓
+Hotel approved
+       ↓
+Rooms added
+       ↓
+Availability added
+       ↓
+Tourist searches
+       ↓
+Tourist selects room
+       ↓
+Booking
+       ↓
+Payment
+       ↓
+Confirmation
+       ↓
+Check-in
+       ↓
+Stay
+       ↓
+Check-out
+       ↓
+Review
+11. Guide Booking Process
+Guide registration
+       ↓
+Verification
+       ↓
+Guide approved
+       ↓
+Availability
+       ↓
+Tourist searches
+       ↓
+Tourist selects guide
+       ↓
+Date/time
+       ↓
+Booking
+       ↓
+Service delivered
+       ↓
+Review
+12. Business Verification Process
+Business registration
+        ↓
+Application submitted
+        ↓
+Documents submitted
+        ↓
+Authority review
+        ↓
+Verification
+        ↓
+Approved / Rejected
+        ↓
+If approved
+        ↓
+Business becomes active
+13. Complaint Process
+Tourist submits complaint
+          ↓
+Complaint ID generated
+          ↓
+Authority/Support receives
+          ↓
+Investigation
+          ↓
+Action
+          ↓
+Resolution
+          ↓
+Tourist notified
+          ↓
+Complaint closed
+14. Non-Functional Requirements
+These are requirements about how well the system operates, rather than what individual functions it performs.
+14.1 Security
+The system should provide:
+Secure authentication 
+Role-based authorization 
+Secure password handling 
+Encryption of sensitive data 
+Secure communications 
+Audit logging 
+Session management 
+Protection against unauthorized access 
+14.2 Performance
+The system should be designed to:
+Handle concurrent tourists 
+Handle peak tourism seasons 
+Respond quickly to normal searches 
+Scale as users increase 
+Support large numbers of tourism records 
+Exact performance targets should be established during the architecture phase.
+14.3 Availability
+The platform should target high availability because tourists may require information outside normal office hours.
+Particularly important:
+Booking 
+Maps 
+Emergency information 
+Weather/road alerts 
+14.4 Scalability
+The system should be capable of expanding from:
+Swat → Khyber Pakhtunkhwa → Pakistan
+if the project is eventually expanded.
+14.5 Usability
+The system should:
+Be mobile-friendly 
+Support web access 
+Have simple navigation 
+Support multiple languages 
+Use clear tourism terminology 
+Work well for users with different levels of technical knowledge 
+14.6 Accessibility
+The platform should consider:
+Readable text 
+Appropriate contrast 
+Clear navigation 
+Accessible forms 
+Accessible error messages 
+Keyboard accessibility where applicable 
+14.7 Reliability
+Transactions such as booking and payment must be handled reliably.
+The system should avoid:
+Duplicate bookings 
+Lost transactions 
+Incorrect availability 
+Duplicate payments 
+15. External Integrations
+The final integrations will be decided during architecture/design.
+Potential integrations include:
+Maps
+Mapping provider 
+Geolocation 
+Routing 
+Weather
+Weather API/service 
+Communications
+SMS gateway 
+Email provider 
+Push notifications 
+Payments
+Pakistani payment gateway 
+Bank/payment service 
+Digital wallet where applicable 
+Identity/verification
+Potential government or approved verification services where legally and technically available.
+Emergency
+Possible integration with authorized emergency organizations.
+16. Data Categories
+We are not designing database tables yet, but the SRS identifies these major data categories:
+Tourist Data
+Business Data
+Destination Data
+Accommodation Data
+Transport Data
+Guide Data
+Activity Data
+Restaurant Data
+Product Data
+Trip Data
+Itinerary Data
+Booking Data
+Payment Data
+Review Data
+Complaint Data
+Emergency Data
+Weather Data
+Road Data
+Notification Data
+Event Data
+Analytics Data
+Administrative Data
+This list will become the foundation for the future data model.
+17. Major Business Rules
+Some important rules identified so far:
+BR-001
+Only authorized users may access administrative functions.
+BR-002
+Only verified tourism businesses should be presented as verified providers.
+BR-003
+A service cannot be booked when its confirmed availability is zero.
+BR-004
+A tourist should be able to see the status of their bookings.
+BR-005
+Reviews should normally be associated with a completed/eligible transaction.
+BR-006
+Administrative changes should be auditable.
+BR-007
+Emergency information must be clearly distinguishable from ordinary tourism information.
+BR-008
+Safety alerts should be based on trusted/authorized sources.
+BR-009
+AI should not invent live booking, weather, road or emergency information.
+BR-010
+Tourism information published to the public should have an appropriate approval process.
+18. Module Dependency Map
+This is particularly important for the future architecture.
+                    TOURIST
+                       │
+                       ▼
+               TOURIST MANAGEMENT
+                       │
+                       ▼
+               TRIP PLANNER
+                       │
+          ┌────────────┼─────────────┐
+          ▼            ▼             ▼
+     DESTINATIONS    HOTELS      TRANSPORT
+          │            │             │
+          └────────────┼─────────────┘
+                       ▼
+                  ACTIVITIES
+                       │
+                       ▼
+                  BOOKING
+                       │
+                       ▼
+                   PAYMENT
+                       │
+                       ▼
+                  NOTIFICATION
+                       │
+                       ▼
+                    REVIEW
+Supporting all of them:
+       MAPS
+       WEATHER
+       SAFETY
+       AUTHENTICATION
+       ANALYTICS
+       ADMINISTRATION
+       AI
+19. Core vs Optional Features
+Not everything needs to be implemented in the first release.
+Core
+I recommend considering these fundamental to the initial platform:
+Tourist management 
+Destination management 
+Trip planning 
+Itinerary 
+Hotels 
+Guides 
+Transport 
+Activities 
+Maps 
+Booking 
+Reviews 
+Business registration 
+Authority administration 
+Notifications 
+Second Phase
+Online payments 
+Restaurants 
+Local marketplace 
+Advanced transport 
+Weather/road integrations 
+Complaints 
+Advanced analytics 
+Advanced Phase
+AI tourism assistant 
+Personalized recommendations 
+Dynamic itinerary 
+Live tracking 
+Digital tourist pass 
+Advanced tourism intelligence 
+Multi-destination KP tourism expansion 
+20. Important Strategic Decision
+There are actually three systems inside our proposed platform:
+                 SWAT TOURISM
+                      │
+        ┌─────────────┼─────────────┐
+        ▼             ▼             ▼
+   TOURISM APP    MARKETPLACE    AUTHORITY
+        │             │             │
+    Discover       Book          Manage
+    Plan           Pay           Verify
+    Explore        Review        Monitor
+    Safety         Providers     Analyze
+Tourist platform
+Focus:
+"What can I do in Swat?"
+Marketplace
+Focus:
+"What can I book?"
+Authority platform
+Focus:
+"How is tourism performing and being managed?"
+Keeping these three perspectives separate during requirements analysis will make the eventual system much easier to design.
+21. Requirement Traceability
+One of the advantages of giving requirements IDs now is that later we can trace them.
+For example:
+FR-AC-007
+    ↓
+Accommodation Search
+    ↓
+Future UI Screen
+    ↓
+Future API
+    ↓
+Future Database Model
+    ↓
+Future Test Case
+Likewise:
+FR-TP-006
+    ↓
+Itinerary Generation
+    ↓
+Trip Planning API
+    ↓
+Trip/Itinerary Data Model
+    ↓
+Itinerary UI
+    ↓
+Test Case
+This will be very useful when we eventually start development with multiple developers.
+22. Proposed Future Development Phases
+We should not start development from this SRS immediately.
+I recommend:
+Phase 1 — Requirements Analysis
+Current phase
+Complete and approve SRS.
+Phase 2 — Business Process Analysis
+Create detailed:
+Use cases 
+Activity flows 
+User journeys 
+Business rules 
+Exception scenarios 
+Phase 3 — System Architecture
+Then decide:
+Frontend 
+Backend 
+APIs 
+Authentication 
+Hosting 
+Integrations 
+Architecture pattern 
+Phase 4 — Data Architecture
+Then design:
+Entities 
+Relationships 
+Database 
+Master data 
+Reference data 
+Tourism datasets 
+Phase 5 — UI/UX
+Then design:
+Tourist application 
+Business portal 
+Authority portal 
+Admin portal 
+Phase 6 — Development
+Then build the platform incrementally.
+23. Current SRS Status
+At this point we have established the first complete requirements baseline:
+                    SRS v1.0
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+      Users         Modules        Processes
+        │              │              │
+        ▼              ▼              ▼
+    Stakeholders   Requirements    Business Rules
+                       │
+                       ▼
+                 Non-Functional
+                   Requirements
+                       │
+                       ▼
+                  Integrations
+                       │
+                       ▼
+                Future Architecture

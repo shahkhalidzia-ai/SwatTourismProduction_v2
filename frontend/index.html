@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Swat Tourism Platform</title>
+    <meta name="description" content="Discover Swat Valley, Khyber Pakhtunkhwa. Connect with verified hotels, guides, transport, local crafts, and official travel advisories." />
+    <meta name="theme-color" content="#1b4d3e" />
+    <link rel="manifest" href="/manifest.json" />
+    <!-- Google Fonts: Figtree & Playfair Display -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Prevent Theme Flash -->
+    <script>
+      (function() {
+        try {
+          var savedTheme = localStorage.getItem('swat_theme') || 'lake';
+          var reduceEffects = localStorage.getItem('swat_reduce_effects') === 'true';
+          document.documentElement.setAttribute('data-theme', savedTheme);
+          if (reduceEffects) {
+            document.documentElement.setAttribute('data-reduce-effects', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

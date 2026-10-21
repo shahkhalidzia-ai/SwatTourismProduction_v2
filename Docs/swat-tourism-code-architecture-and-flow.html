@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Swat Tourism Platform — Code Architecture & Calling Flow Guide</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #1e293b;
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 24px;
+            background-color: #f8fafc;
+        }
+        .container {
+            background: #ffffff;
+            padding: 48px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        h1 { color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 12px; font-size: 2rem; }
+        h2 { color: #0369a1; margin-top: 36px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; font-size: 1.45rem; }
+        h3 { color: #0f172a; margin-top: 24px; font-size: 1.15rem; }
+        pre {
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: Consolas, monospace;
+            font-size: 0.9em;
+        }
+        code {
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.88em;
+            font-family: Consolas, monospace;
+        }
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.92rem;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 10px 14px;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 600;
+        }
+        tr:nth-child(even) { background-color: #f8fafc; }
+        hr { border: 0; height: 1px; background: #e2e8f0; margin: 32px 0; }
+        ol, ul { padding-left: 24px; }
+        li { margin-bottom: 6px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+<pre># Swat Tourism Platform — Code Architecture, Structure &amp; Calling Flow Guide
+
+**Audience:** Technical Management, Lead Architects, and Development Team  
+**Scope:** Swat Tourism Digital Ecosystem Full-Stack Platform  
+**Architecture Pattern:** Domain-Driven Modular Monolith (FastAPI + SQLModel Backend) &amp; Feature-Sliced Single Page Application (React + Vite + TypeScript Frontend)  
+
+---
+
+## 1. High-Level System Architecture
+
+```mermaid
+graph TD
+    subgraph Frontend [Client Layer: React 18 + Vite + TypeScript]
+        UI[User Personas: Tourist / Business / Community / Authority]
+        Context[Global State: AuthContext &amp; Role RBAC]
+        Modules[Module Shells: TouristShell / BusinessShell / AuthorityShell / CommunityShell]
+        Components[UI Components: MapLibre, Modals, Forms, Calendar, Badges]
+        API_Layer[API Client Layer: api/client.ts + Domain Services]
+    end
+
+    subgraph Transport [Network Transport]
+        HTTP[REST JSON over HTTP / CORS with JWT Bearer Token]
+    end
+
+    subgraph Backend [Server Layer: FastAPI 0.110+]
+        Router[FastAPI Application: app/main.py]
+        Core[Core: Security, DB Sessions, RBAC Dependency Injection]
+        DomainModules[Domain Modules: accounts, listings, trips, bookings, safety, verification]
+        ORM[SQLModel / SQLAlchemy ORM Engine]
+    end
+
+    subgraph Persistence [Database &amp; Storage]
+        DB[(SQLite / PostgreSQL Relational Database)]
+        Media[(Local / Cloud Static Media Uploads)]
+    end
+
+    UI --&gt; Context
+    Context --&gt; Modules
+    Modules --&gt; Components
+    Components --&gt; API_Layer
+    API_Layer --&gt; HTTP
+    HTTP --&gt; Router
+    Router --&gt; Core
+    Core --&gt; DomainModules
+    DomainModules --&gt; ORM
+    ORM --&gt; DB
+    DomainModules --&gt; Media
+```
+
+---
+
+## 2. Directory Structure Breakdown
+
+### 2.1 Backend Structure (`/backend`)
+The backend uses a **Domain-Driven Design (DDD) Modular Architecture**. Instead of separating controllers, services, and models into monolithic folders, each business capability is an isolated, self-contained module.
+
+```text
+backend/
+├── app/
+│   ├── core/                      # Global Foundation Layer
+│   │   ├── config.py              # Pydantic Settings (ENV variables, CORS, secrets)
+│   │   ├── database.py            # Engine initialization, SessionLocal, Base model
+│   │   ├── deps.py                # FastAPI Dependency Injection (get_db, get_current_user, require_role)
+│   │   └── security.py            # Password hashing (Argon2/Bcrypt) &amp; JWT token handling
+│   │
+│   ├── modules/                   # Self-Contained Business Domains
+│   │   ├── accounts/              # User registration, authentication, profiles, RBAC roles
+│   │   ├── listings/              # Hotels, rooms, transport, guides, activities, restaurants
+│   │   ├── trips/                 # Itinerary builder, distance calculations, day-to-day plan
+│   │   ├── bookings/              # Reservations, availability checks, payments, cancellations
+│   │   ├── safety/                # Emergency SOS alerts, 1122 contacts, road &amp; weather advisories
+│   │   ├── verification/          # Business document quality gate (Approve / Reject)
+│   │   ├── community/             # Local artisan listings, cultural stories, host applications
+│   │   ├── reviews/               # 5-star ratings, tourist reviews, provider reply threads
+│   │   ├── content/               # Swat destinations, historical sites, attractions
+│   │   └── notifications/         # Notification events, in-app alerts
+│   │
+│   └── main.py                    # Root FastAPI app, router aggregation, CORS, lifespan handler
+│
+├── alembic/                       # Database schema migrations
+├── swat_tourism.db                # SQLite database instance
+├── requirements.txt               # Backend dependencies (fastapi, uvicorn, sqlmodel, pydantic)
+└── Dockerfile                     # Containerization definition
+```
+
+#### Inside Every Module (`backend/app/modules/&lt;module_name&gt;/`)
+Each module follows a strict 4-tier pattern:
+1. `models.py`: Defines the database table schema using **SQLModel** (e.g. `Listing`, `Booking`, `RoomType`).
+2. `schemas.py`: Defines **Pydantic** schemas for request validation (`CreateRequest`, `UpdateRequest`, `Response`).
+3. `service.py`: Contains the pure business logic, calculations, and database query executions.
+4. `router.py`: Exposes HTTP REST endpoints, validates inputs, and delegates to `service.py`.
+
+---
+
+### 2.2 Frontend Structure (`/frontend/src`)
+The frontend is built with **Vite + React 18 + TypeScript**, styled with custom design tokens (no bulky third-party CSS frameworks), ensuring blazing speed and responsive rendering.
+
+```text
+frontend/src/
+├── api/                           # API Communication Layer
+│   ├── client.ts                  # Axios/Fetch HTTP wrapper with JWT interceptor &amp; base URL
+│   ├── listings.ts                # API calls for stays, rooms, vehicles, guides, activities
+│   ├── trips.ts                   # API calls for trip creation, itinerary generation, stops
+│   ├── bookings.ts                # API calls for reservations, payment checkout, cancellations
+│   ├── safety.ts                  # API calls for SOS broadcast, weather &amp; road condition advisories
+│   ├── verification.ts            # API calls for business verification queue &amp; approval actions
+│   ├── reviews.ts                 # API calls for reviews submission and provider replies
+│   └── community.ts               # API calls for local crafts and host submissions
+│
+├── context/                       # Global React Contexts
+│   ├── AuthContext.tsx            # Current user session, role claims, login/logout, tokens
+│   └── ThemeContext.tsx           # Dark/Light mode theme state
+│
+├── layouts/                       # Layout &amp; Navigation Scaffolding
+│   ├── RoleLayout.tsx             # Master viewport frame (Navbar, Sidebar, Footer, Role pill)
+│   └── navItems.ts                # Role-specific navigation items (Tourist, Business, Authority, Community)
+│
+├── modules/                       # Role-Specific Feature Shells
+│   ├── tourist/
+│   │   ├── TouristShell.tsx       # Master tourist experience (Explore, Stays, Guides, Bookings)
+│   │   └── TripManagerView.tsx    # Interactive itinerary generator &amp; hotel room selection
+│   ├── business/
+│   │   ├── BusinessShell.tsx      # Business dashboard, revenue KPIs, incoming bookings
+│   │   ├── ListingBuilderModal.tsx # Multi-room listing editor &amp; individual photo uploader
+│   │   ├── BusinessServicesManagerModal.tsx # In-place room &amp; service management
+│   │   └── HotelAvailabilityCalendarModal.tsx # Visual 60-day availability &amp; blackout calendar
+│   ├── authority/
+│   │   └── AuthorityShell.tsx     # Government desk (Verification queue, SOS board, Advisories)
+│   └── community/
+│   │   └── CommunityShell.tsx     # Local artisans, homestay hosts, cultural story listings
+│   │
+├── components/                    # Reusable Design System UI Elements
+│   ├── Map.tsx                    # MapLibre GL map engine with markers for Swat landmarks
+│   ├── Modal.tsx                  # Accessible dialog overlay with focus management
+│   ├── AlertBanner.tsx            # High-priority road blockage and weather advisory banner
+│   └── Badge.tsx / Button.tsx     # Standardized atomic design elements
+│
+├── App.tsx                        # Master application routing &amp; role switcher
+└── main.tsx                       # React DOM entry point
+```
+
+---
+
+## 3. End-to-End Code Calling Flow (The Request Lifecycle)
+
+Every interaction follows a standardized, predictable **7-step round trip**:
+
+```text
+[1. User Action in UI]
+       │
+       ▼
+[2. React Component Handler] (e.g. handleConfirmBooking in TouristShell.tsx)
+       │
+       ▼
+[3. Frontend API Client] (api/bookings.ts -&gt; client.ts with Bearer Token)
+       │
+       ▼  (HTTP POST /api/v1/bookings/)
+[4. FastAPI Route Router] (app/modules/bookings/router.py)
+       │   ├── Input validation via Pydantic Schema (BookingCreate)
+       │   └── Dependency Injection (db: Session, current_user: User)
+       ▼
+[5. Module Service Layer] (app/modules/bookings/service.py)
+       │   ├── Checks room inventory &amp; availability calendar
+       │   ├── Computes total price (nights × rate)
+       │   └── Executes DB transaction via SQLModel
+       ▼
+[6. Database Persistence] (SQLite / PostgreSQL swat_tourism.db)
+       │
+       ▼  (HTTP 200/201 JSON Response)
+[7. React State Update &amp; Re-render]
+       ├── Sets local state (e.g. setConfirmedBooking(res.data))
+       ├── Displays instant feedback (Toast notification / Receipt modal)
+       └── Refreshes bookings list
+```
+
+---
+
+## 4. Deep-Dive Calling Flows for Critical Real-World Scenarios
+
+### Scenario A: Tourist Selects a Room and Books in Itinerary
+*Goal: Tourist plans a 3-day Kalam trip, picks Kalam Alpine Lodge, selects &quot;Deluxe Valley View&quot; room, and books it.*
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Tourist as Tourist User
+    participant UI as TripManagerView.tsx
+    participant API as api/trips.ts &amp; bookings.ts
+    participant Router as app/modules/bookings/router.py
+    participant Service as app/modules/bookings/service.py
+    participant DB as swat_tourism.db (SQLModel)
+
+    Tourist-&gt;&gt;UI: Selects &quot;Kalam Alpine Lodge&quot; &amp; &quot;Deluxe Valley View&quot; Room
+    UI-&gt;&gt;UI: Recalculates daily budget and validates capacity
+    Tourist-&gt;&gt;UI: Clicks &quot;Confirm &amp; Book Itinerary&quot;
+    UI-&gt;&gt;API: createBooking({ listing_id, room_type_id, check_in, check_out, guests })
+    API-&gt;&gt;Router: POST /api/v1/bookings (Authorization: Bearer &lt;JWT&gt;)
+    Router-&gt;&gt;Router: deps.get_current_user validates tourist token
+    Router-&gt;&gt;Service: create_booking(db, booking_data, current_user.id)
+    Service-&gt;&gt;DB: Query RoomInventory where date in range
+    Note over Service,DB: Checks BR-AC-001 (inventory &gt; 0)
+    Service-&gt;&gt;DB: INSERT into bookings (status=&quot;CONFIRMED&quot;, ref=&quot;SWT-BK-XXXX&quot;)
+    DB--&gt;&gt;Service: Return saved Booking record
+    Service--&gt;&gt;Router: Serialize to BookingResponse schema
+    Router--&gt;&gt;API: 201 Created JSON
+    API--&gt;&gt;UI: Promise resolves with booking reference
+    UI-&gt;&gt;Tourist: Displays confirmation badge and digital receipt
+```
+
+---
+
+### Scenario B: Business Manager Updates Room Inventory &amp; Photo
+*Goal: Hotel manager opens Business Portal, modifies the Deluxe Room rate to 18,000 PKR, uploads a new room photo, and saves.*
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Mgr as Hotel Manager
+    participant Shell as BusinessShell.tsx
+    participant Modal as ListingBuilderModal.tsx
+    participant API as api/listings.ts
+    participant Router as app/modules/listings/router.py
+    participant Service as app/modules/listings/service.py
+    participant DB as swat_tourism.db
+
+    Mgr-&gt;&gt;Shell: Clicks &quot;Edit Property Details&quot;
+    Shell-&gt;&gt;Modal: Opens with auto-populated property data &amp; rooms
+    Mgr-&gt;&gt;Modal: Updates price to 18,000 &amp; selects new room photo file
+    Modal-&gt;&gt;API: uploadListingMedia(file)
+    API-&gt;&gt;Router: POST /api/v1/listings/media/upload
+    Router--&gt;&gt;Modal: Returns static URL &quot;/uploads/rooms/deluxe_1.jpg&quot;
+    Mgr-&gt;&gt;Modal: Clicks &quot;Save Property Details&quot;
+    Modal-&gt;&gt;API: updateListing(id, { rooms: [...updatedRooms] })
+    API-&gt;&gt;Router: PUT /api/v1/listings/{id}
+    Router-&gt;&gt;Service: update_listing(db, listing_id, update_data, current_user)
+    Note over Service: Checks ownership (current_user.id == listing.owner_id)
+    Service-&gt;&gt;DB: UPDATE listings &amp; room_types tables
+    DB--&gt;&gt;Service: Success commit
+    Service--&gt;&gt;Router: Returns updated listing
+    Router--&gt;&gt;API: 200 OK
+    API--&gt;&gt;Modal: Close modal callback
+    Modal--&gt;&gt;Shell: Refreshes active listings table with new photo &amp; rate
+```
+
+---
+
+### Scenario C: Authority Officer Verifies a Business License
+*Goal: Tourism officer reviews pending hotel registration and approves it, making it live for tourists.*
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Officer as Tourism Authority Officer
+    participant AuthUI as AuthorityShell.tsx
+    participant API as api/verification.ts
+    participant Router as app/modules/verification/router.py
+    participant Service as app/modules/verification/service.py
+    participant DB as swat_tourism.db
+
+    Officer-&gt;&gt;AuthUI: Navigates to &quot;Verification Queue&quot; tab
+    AuthUI-&gt;&gt;API: getPendingVerifications()
+    API-&gt;&gt;Router: GET /api/v1/verification/pending
+    Router-&gt;&gt;Service: list_pending_applications(db)
+    Service-&gt;&gt;DB: SELECT * FROM business_profiles WHERE status=&quot;PENDING&quot;
+    DB--&gt;&gt;AuthUI: Renders applications with CNIC and license links
+    Officer-&gt;&gt;AuthUI: Clicks &quot;Approve &amp; Issue License&quot;
+    AuthUI-&gt;&gt;API: approveBusiness(applicationId, { notes: &quot;Verified valid license&quot; })
+    API-&gt;&gt;Router: POST /api/v1/verification/{id}/approve
+    Router-&gt;&gt;Router: deps.require_role(&quot;authority&quot;) verifies permissions
+    Router-&gt;&gt;Service: approve_business_application(db, id, officer_id)
+    Service-&gt;&gt;DB: UPDATE business_profiles SET status=&quot;VERIFIED&quot;
+    Service-&gt;&gt;DB: UPDATE listings SET is_active=True WHERE owner_id=...
+    DB--&gt;&gt;AuthUI: 200 OK
+    AuthUI-&gt;&gt;Officer: Item removed from queue, logged in audit record
+    Note over AuthUI: Listing is now immediately visible to Tourists
+```
+
+---
+
+### Scenario D: Emergency SOS Alert Broadcast &amp; Dispatch
+*Goal: Tourist in Kalam encounters an emergency, presses SOS; Authority receives alert instantly.*
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Tourist as Tourist User
+    participant Shell as TouristShell.tsx
+    participant Geo as Browser Geolocation API
+    participant API as api/safety.ts
+    participant Router as app/modules/safety/router.py
+    participant Service as app/modules/safety/service.py
+    participant DB as swat_tourism.db
+    participant OfficerUI as AuthorityShell.tsx
+
+    Tourist-&gt;&gt;Shell: Clicks Red &quot;SOS Emergency&quot; Button
+    Shell-&gt;&gt;Geo: navigator.geolocation.getCurrentPosition()
+    Geo--&gt;&gt;Shell: Returns { latitude: 35.4912, longitude: 72.5833 }
+    Shell-&gt;&gt;API: sendSOSAlert({ lat: 35.4912, lng: 72.5833, details: &quot;Medical Emergency&quot; })
+    API-&gt;&gt;Router: POST /api/v1/safety/sos
+    Router-&gt;&gt;Service: create_sos_alert(db, alert_payload, current_user.id)
+    Service-&gt;&gt;DB: INSERT into sos_alerts (status=&quot;NEW&quot;, lat, lng, tourist_id)
+    DB--&gt;&gt;Router: 201 Created
+    Router--&gt;&gt;Shell: SOS Active acknowledgment
+    Shell-&gt;&gt;Tourist: Displays emergency advice &amp; direct 1122 dial button
+
+    Note over OfficerUI: Authority Shell polls/listens for new alerts
+    OfficerUI-&gt;&gt;API: getActiveSOSAlerts()
+    API--&gt;&gt;OfficerUI: Returns newly created SOS alert
+    OfficerUI-&gt;&gt;OfficerUI: Flashes red emergency beacon with GPS map pin
+```
+
+---
+
+## 5. Key Engineering Strengths &amp; Architectural Highlights
+
+1. **Strict Separation of Concerns**:
+   - The frontend never makes direct database or backend assumptions. All data passes through strictly typed TypeScript interfaces (`api/*.ts`).
+   - The backend adheres to thin routers, rich services, and clean declarative ORM models.
+2. **Unified SQLModel Architecture**:
+   - Eliminates boilerplate by combining **Pydantic schemas** and **SQLAlchemy tables** into single Python definitions, preventing model drift between serialization and database tables.
+3. **Role-Based Access Control (RBAC) at Every Level**:
+   - **Frontend**: Navigation and view shells are guarded by the user&#x27;s active session role (`tourist`, `business`, `authority`, `community`, `super_admin`).
+   - **Backend**: Every sensitive route uses FastAPI dependencies (`Depends(require_role(&quot;...&quot;))`) preventing privilege escalation.
+4. **Data Integrity &amp; Business Rule Enforcement**:
+   - Inventory availability is guarded at the database level before any booking confirmation is generated (**BR-AC-001**).
+   - Only approved and verified businesses can have listings visible in the public tourist marketplace (**BR-002**).
+5. **Resilient Local Media &amp; Geospatial Support**:
+   - Built-in static upload pipeline (`/uploads`) serves images locally without external cloud dependencies during prototypes.
+   - MapLibre GL powers fast, responsive, vector-rendered mapping with accurate coordinates across Swat District.
+
+---
+
+## 6. Executive Talking Points (Boss Demo Summary)
+
+When giving the demonstration to your boss or leadership team, highlight these **5 core points**:
+
+1. **&quot;The codebase is not a prototype toy—it is structured like an enterprise product.&quot;**
+   - We organized the backend into Domain-Driven Modules (`listings`, `bookings`, `safety`, `verification`), matching the exact structure used by modern high-scale travel platforms.
+2. **&quot;Complete multi-persona coverage from day one.&quot;**
+   - The same single codebase powers all four stakeholders: the Tourist, the Hotel/Service Provider, the Local Community Artisan, and the Government Tourism Authority.
+3. **&quot;100% Traceable Code Calling Flow.&quot;**
+   - Every click in the user interface flows through an unambiguous pipeline: Component $\rightarrow$ Typed API Service $\rightarrow$ FastAPI Router $\rightarrow$ Dependency Guard $\rightarrow$ Service Logic $\rightarrow$ Database Transaction $\rightarrow$ UI State.
+4. **&quot;Strict quality and safety gates are built into the code.&quot;**
+   - No business can publish unverified listings, no tourist can overbook a room with zero inventory, and emergency SOS alerts immediately route to the government dispatch board with live GPS coordinates.
+5. **&quot;Seamless path to commercial scale.&quot;**
+   - The architecture is decoupled. Switching from mock payments to real JazzCash, or attaching an SMS gateway, requires editing just a single service file without touching the UI or database structure.
+</pre>
+    </div>
+</body>
+</html>

@@ -1,0 +1,191 @@
+/* ==========================================================================
+   Theme 2: Glass Alpine (New Luxury Mountain & Frosted Glass Look)
+   ========================================================================== */
+
+html[data-theme="glass"] {
+  /* Page Background & Base Palette */
+  --bg: #14538F;
+  --page-bg: #14538F;
+  --page-bg-gradient: 
+    radial-gradient(620px 420px at 88% 6%, rgba(110, 205, 255, 0.38), transparent 62%),
+    radial-gradient(520px 420px at 6% 92%, rgba(242, 163, 58, 0.24), transparent 62%),
+    linear-gradient(160deg, #0B2545, #14538F 55%, #3A8FD0);
+
+  /* Cards, Tables, Forms: ALWAYS Solid White */
+  --card: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --ink: #12324A;
+  --mute: #5E7A92;
+  --line: #D5E3F0;
+  --shadow-card: 0 8px 24px rgba(6, 24, 48, 0.28);
+
+  /* Glass Surfaces (Headers, Tab Bars, Portal Switch, Bottom Bar, Popovers) */
+  --on-glass: #FFFFFF;
+  --on-glass-mute: rgba(255, 255, 255, 0.76);
+  --glass-surface-bg: rgba(255, 255, 255, 0.15);
+  --glass-surface-border: 1px solid rgba(255, 255, 255, 0.32);
+  --glass-surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  --glass-backdrop-filter: blur(20px) saturate(150%);
+  --glass-phone-frame: rgba(255, 255, 255, 0.12);
+
+  /* Buttons & CTAs */
+  --pri: #2F7FC1;
+  --soft: #D3E6F7;
+  --acc: #F2A33A;
+  --cta-from: #FFC96B;
+  --cta-to: #F2A33A;
+  --cta-text: #3A2500;
+  --cta-glow: 0 4px 14px rgba(242, 163, 58, 0.4);
+  --btn-soft: #D3E6F7;
+
+  /* Status Badges */
+  --ok: #17694A;
+  --ok-bg: #D5F0E3;
+  --warn: #7A4A00;
+  --warn-bg: #FFE7BD;
+  --bad: #8E2A21;
+  --bad-bg: #FADAD6;
+  --info: #0C447C;
+  --info-bg: #D3E6F7;
+
+  /* Gradients */
+  --progress-done: linear-gradient(90deg, #34D399, #2E9D6B);
+  --progress-current: linear-gradient(90deg, #FBBF24, #F2A33A);
+  --avatar-gradient: linear-gradient(135deg, #6FB2E5, #2F7FC1);
+
+  /* Geometry */
+  --radius-card: 18px;
+  --radius-button: 11px;
+  --radius-tag: 9999px;
+  --radius-sm: 8px;
+
+  /* Typography */
+  --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --title-font-family: 'Playfair Display', 'Figtree', Georgia, serif;
+
+  /* Header & Top Bar Tokens - Theme 2 Light (Alpine Sky) */
+  --header-bg: radial-gradient(700px 300px at 85% 0%, rgba(110, 205, 255, 0.28), transparent 70%),
+               radial-gradient(500px 300px at 10% 100%, rgba(242, 163, 58, 0.2), transparent 70%),
+               linear-gradient(160deg, #091D36 0%, #103F6E 52%, #19588F 100%);
+  --header-border: 1px solid rgba(255, 255, 255, 0.28);
+  --header-shadow: 0 12px 32px rgba(6, 24, 48, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  --header-ink: #FFFFFF;
+  --header-mute: rgba(255, 255, 255, 0.85);
+  --header-pill-bg: rgba(0, 0, 0, 0.32);
+  --header-pill-border: 1px solid rgba(255, 255, 255, 0.28);
+  --header-pill-ink: #FFFFFF;
+  --header-pill-active-bg: linear-gradient(135deg, #FFC96B, #F2A33A);
+  --header-pill-active-ink: #3A2500;
+  --header-logout-bg: rgba(214, 86, 74, 0.35);
+  --header-logout-border: 1px solid rgba(255, 255, 255, 0.3);
+  --header-logout-ink: #FFFFFF;
+}
+
+/* Glass Alpine - Dark Mode Specification */
+html[data-theme="glass"][data-mode="dark"],
+html[data-theme="glass"] [data-mode="dark"] {
+  --bg: #0A2B4D;
+  --page-bg: #0A2B4D;
+  --page-bg-gradient: 
+    radial-gradient(620px 420px at 88% 6%, rgba(70, 160, 220, 0.22), transparent 62%),
+    radial-gradient(520px 420px at 6% 92%, rgba(200, 130, 40, 0.16), transparent 62%),
+    linear-gradient(160deg, #050F1F, #0A2B4D 55%, #16507F);
+
+  --card: #15273B;
+  --card-bg: #15273B;
+  --ink: #F0F6FC;
+  --mute: #99B2C6;
+  --line: #223F5A;
+  --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.45);
+
+  --on-glass: #FFFFFF;
+  --on-glass-mute: rgba(255, 255, 255, 0.72);
+  --glass-surface-bg: rgba(10, 35, 65, 0.45);
+  --glass-surface-border: 1px solid rgba(255, 255, 255, 0.18);
+  --glass-surface-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  --glass-backdrop-filter: blur(20px) saturate(140%);
+
+  --btn-soft: #1E374E;
+  --ok-bg: #103827;
+  --warn-bg: #3B2807;
+  --bad-bg: #3D1815;
+  --info-bg: #122B42;
+
+  --header-bg: radial-gradient(700px 300px at 85% 0%, rgba(70, 160, 220, 0.2), transparent 70%),
+               radial-gradient(500px 300px at 10% 100%, rgba(200, 130, 40, 0.15), transparent 70%),
+               linear-gradient(160deg, #050F1F 0%, #0A2B4D 52%, #14446E 100%);
+  --header-border: 1px solid rgba(255, 255, 255, 0.22);
+  --header-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --header-ink: #FFFFFF;
+  --header-mute: rgba(255, 255, 255, 0.78);
+  --header-pill-bg: rgba(0, 0, 0, 0.45);
+  --header-pill-border: 1px solid rgba(255, 255, 255, 0.22);
+  --header-pill-ink: #FFFFFF;
+  --header-pill-active-bg: linear-gradient(135deg, #FFC96B, #F2A33A);
+  --header-pill-active-ink: #3A2500;
+  --header-logout-bg: rgba(214, 86, 74, 0.4);
+  --header-logout-border: 1px solid rgba(255, 255, 255, 0.25);
+  --header-logout-ink: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="glass"]:not([data-mode="light"]) {
+    --bg: #0A2B4D;
+    --page-bg: #0A2B4D;
+    --page-bg-gradient: 
+      radial-gradient(620px 420px at 88% 6%, rgba(70, 160, 220, 0.22), transparent 62%),
+      radial-gradient(520px 420px at 6% 92%, rgba(200, 130, 40, 0.16), transparent 62%),
+      linear-gradient(160deg, #050F1F, #0A2B4D 55%, #16507F);
+
+    --card: #15273B;
+    --card-bg: #15273B;
+    --ink: #F0F6FC;
+    --mute: #99B2C6;
+    --line: #223F5A;
+    --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.45);
+
+    --on-glass: #FFFFFF;
+    --on-glass-mute: rgba(255, 255, 255, 0.72);
+    --glass-surface-bg: rgba(10, 35, 65, 0.45);
+    --glass-surface-border: 1px solid rgba(255, 255, 255, 0.18);
+    --glass-surface-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    --glass-backdrop-filter: blur(20px) saturate(140%);
+
+    --btn-soft: #1E374E;
+    --ok-bg: #103827;
+    --warn-bg: #3B2807;
+    --bad-bg: #3D1815;
+    --info-bg: #122B42;
+
+    --header-bg: radial-gradient(700px 300px at 85% 0%, rgba(70, 160, 220, 0.2), transparent 70%),
+                 radial-gradient(500px 300px at 10% 100%, rgba(200, 130, 40, 0.15), transparent 70%),
+                 linear-gradient(160deg, #050F1F 0%, #0A2B4D 52%, #14446E 100%);
+    --header-border: 1px solid rgba(255, 255, 255, 0.22);
+    --header-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    --header-ink: #FFFFFF;
+    --header-mute: rgba(255, 255, 255, 0.78);
+    --header-pill-bg: rgba(0, 0, 0, 0.45);
+    --header-pill-border: 1px solid rgba(255, 255, 255, 0.22);
+    --header-pill-ink: #FFFFFF;
+    --header-pill-active-bg: linear-gradient(135deg, #FFC96B, #F2A33A);
+    --header-pill-active-ink: #3A2500;
+    --header-logout-bg: rgba(214, 86, 74, 0.4);
+    --header-logout-border: 1px solid rgba(255, 255, 255, 0.25);
+    --header-logout-ink: #FFFFFF;
+  }
+}
+
+/* Reduce Effects override: solid background instead of blur, animations off */
+html[data-reduce-effects="true"] {
+  --glass-surface-bg: rgba(20, 60, 100, 0.88) !important;
+  --glass-backdrop-filter: none !important;
+  --cta-glow: none !important;
+}
+
+/* Page body styling when Glass theme is active */
+html[data-theme="glass"] body {
+  background-color: var(--page-bg);
+  background-image: var(--page-bg-gradient);
+  background-attachment: fixed;
+  background-size: cover;
+}

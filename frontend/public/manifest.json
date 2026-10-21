@@ -1,0 +1,23 @@
+{
+  "short_name": "Swat Tourism",
+  "name": "Swat Valley Tourism Platform",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#f8f9fa",
+  "theme_color": "#1b4d3e",
+  "display": "standalone",
+  "orientation": "portrait"
+}

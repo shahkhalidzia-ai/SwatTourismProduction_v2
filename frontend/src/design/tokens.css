@@ -1,0 +1,28 @@
+:root {
+  /* Typography */
+  --font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-xs: 0.75rem;
+  --font-sm: 0.875rem;
+  --font-base: 1rem;
+  --font-lg: 1.125rem;
+  --font-xl: 1.25rem;
+  --font-2xl: 1.5rem;
+  --font-3xl: 1.875rem;
+
+  /* Geometry */
+  --radius-card: 16px;
+  --radius-button: 11px;
+  --radius-tag: 9999px;
+  --radius-sm: 8px;
+
+  /* Layout */
+  --header-height: 64px;
+  --bottom-bar-height: 64px;
+  --sidebar-width: 272px;
+  --max-content-width: 1200px;
+  --min-touch-target: 44px;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}

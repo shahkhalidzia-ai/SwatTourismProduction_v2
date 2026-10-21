@@ -1,0 +1,10 @@
+Backend API (FastAPI)	8000	8090	http://localhost:8090 (Docs: http://localhost:8090/docs)
+Frontend Web (Vite / React)	5173	5180	http://localhost:5180
+
+The local development servers were not running. Both the backend API and frontend Vite servers have now been started in the background:
+
+Frontend: http://localhost:5180/ (Active)
+Backend API: http://localhost:8090/ (Active, proxied through Vite /api)
+You can now refresh or open http://localhost:5180/ in your browser.
+
+3:10 PM

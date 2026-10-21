@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: swat_tourism_backend
+    restart: always
+    environment:
+      - PROJECT_NAME=Swat Tourism Platform (Production)
+      - PORT=8090
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/swat_tourism_prod.db
+      - DATABASE_SYNC_URL=sqlite:////app/data/swat_tourism_prod.db
+      - SQLITE_WAL_MODE=true
+      - SECRET_KEY=swat_tourism_prod_secure_secret_key_99482910485720184729
+      - UPLOAD_DIR=/app/uploads
+      - EASYPAISA_ENV=sandbox
+      - JAZZCASH_ENV=sandbox
+      - SMS_PROVIDER=mock
+      - WEATHER_PROVIDER=mock
+      - RESCUE_1122_ENABLED=true
+    volumes:
+      - swat_prod_data:/app/data
+      - swat_prod_uploads:/app/uploads
+    networks:
+      - swat_prod_net
+    expose:
+      - "8090"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: swat_tourism_frontend
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - swat_prod_uploads:/app/uploads:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - swat_prod_net
+
+volumes:
+  swat_prod_data:
+    name: swat_prod_data
+  swat_prod_uploads:
+    name: swat_prod_uploads
+
+networks:
+  swat_prod_net:
+    name: swat_prod_net
+    driver: bridge
