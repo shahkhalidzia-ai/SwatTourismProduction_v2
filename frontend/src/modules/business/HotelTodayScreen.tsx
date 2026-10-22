@@ -20,6 +20,7 @@ import { AssignRoomModal } from './AssignRoomModal';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
 import { HotelFolioReceiptModal } from './HotelFolioReceiptModal';
 import { getCurrentWeekDays } from '../../utils/currentWeek';
+import { collectBookingBalance } from '../../api/bookings';
 import {
   getPhysicalRoomsForHotel,
   updatePhysicalRoomStatus,
@@ -40,6 +41,7 @@ interface HotelTodayScreenProps {
   onTabChange?: (tabId: string) => void;
   onAcceptBooking: (bookingId: string) => void;
   onDeclineBooking: (bookingId: string, reference: string) => void;
+  onCollectBalance?: (bookingIdOrRef: string) => void;
   isMobile?: boolean;
   isDemoUser?: boolean;
   listingId?: string;
@@ -55,6 +57,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   onTabChange,
   onAcceptBooking,
   onDeclineBooking,
+  onCollectBalance,
   isMobile = false,
   isDemoUser = false,
   listingId,
@@ -147,7 +150,83 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     }
   });
 
-  const [collectedBalanceMap, setCollectedBalanceMap] = useState<Record<string, boolean>>({});
+  // Track collected balances permanently in localStorage and synchronize across reloads
+  const [collectedBalanceMap, setCollectedBalanceMap] = useState<Record<string, boolean>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('swat_hotel_collected_balances') || '{}');
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    const syncBalances = () => {
+      try {
+        const raw = localStorage.getItem('swat_hotel_collected_balances');
+        if (raw) setCollectedBalanceMap(JSON.parse(raw));
+      } catch {}
+    };
+    window.addEventListener('swat_booking_balance_collected', syncBalances);
+    window.addEventListener('storage', syncBalances);
+    return () => {
+      window.removeEventListener('swat_booking_balance_collected', syncBalances);
+      window.removeEventListener('storage', syncBalances);
+    };
+  }, []);
+
+  const handleCollectBalance = async (booking: BookingRow) => {
+    const key = booking.id || booking.reference;
+    // 1. Immediately update component state & persist to localStorage so it stays settled permanently across reloads
+    const updated = {
+      ...collectedBalanceMap,
+      [key]: true,
+      ...(booking.id ? { [booking.id]: true } : {}),
+      ...(booking.reference ? { [booking.reference]: true } : {}),
+    };
+    setCollectedBalanceMap(updated);
+    try {
+      localStorage.setItem('swat_hotel_collected_balances', JSON.stringify(updated));
+    } catch {}
+
+    // 2. Notify parent BusinessShell to update its bookings state
+    if (onCollectBalance) {
+      onCollectBalance(key);
+    }
+
+    // 3. Persist permanently to backend database via API
+    if (booking.id) {
+      try {
+        await collectBookingBalance(booking.id).catch((err) => {
+          console.warn('Backend collectBookingBalance skipped (demo/offline booking):', err);
+        });
+      } catch (err) {
+        console.warn('Failed to call collectBookingBalance:', err);
+      }
+    }
+
+    // 4. Update swat_bookings in localStorage if present
+    try {
+      const rawStored = localStorage.getItem('swat_bookings');
+      if (rawStored) {
+        const parsed = JSON.parse(rawStored);
+        if (Array.isArray(parsed)) {
+          const updatedBookings = parsed.map((b: any) => {
+            if (b.id === booking.id || b.reference === booking.reference) {
+              return {
+                ...b,
+                payment_status: 'paid',
+                deposit_amount: b.total_amount || b.deposit_amount,
+              };
+            }
+            return b;
+          });
+          localStorage.setItem('swat_bookings', JSON.stringify(updatedBookings));
+        }
+      }
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('swat_booking_balance_collected', { detail: { bookingId: key } }));
+  };
 
   const handleCheckInGuest = (booking: BookingRow) => {
     const key = booking.id || booking.reference;
@@ -858,7 +937,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       {balanceDue > 0 ? (
                         <button
                           type="button"
-                          onClick={() => setCollectedBalanceMap((prev) => ({ ...prev, [bKey]: true }))}
+                          onClick={() => handleCollectBalance(booking)}
                           data-testid={`btn-collect-balance-${booking.reference}`}
                           style={{
                             background: '#D97706',
@@ -2075,11 +2154,17 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
           roomCategory={receiptModal.booking.item.split('(')[0].trim()}
           depositAmount={(receiptModal.booking as any).deposit_amount || Math.round((Number(receiptModal.booking.rawAmount) || 24000) * 0.25)}
           balanceDue={
-            collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference]
+            (collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference] ||
+             (receiptModal.booking as any).payment_status === 'paid' ||
+             (receiptModal.booking as any).payment_status === 'full_paid')
               ? 0
               : Math.max(0, (Number(receiptModal.booking.rawAmount) || 24000) - ((receiptModal.booking as any).deposit_amount || Math.round((Number(receiptModal.booking.rawAmount) || 24000) * 0.25)))
           }
-          isBalanceSettled={Boolean(collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference])}
+          isBalanceSettled={Boolean(
+            collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference] ||
+            (receiptModal.booking as any).payment_status === 'paid' ||
+            (receiptModal.booking as any).payment_status === 'full_paid'
+          )}
           receiptType={receiptModal.receiptType}
         />
       )}

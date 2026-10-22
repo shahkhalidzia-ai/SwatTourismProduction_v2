@@ -202,6 +202,17 @@ async def process_mock_payment(
     return await BookingService.process_mock_payment(db, booking_id, user_id, payment_req)
 
 
+@router.post("/{booking_id}/collect-balance", response_model=BookingOut)
+async def collect_booking_balance(
+    booking_id: uuid.UUID,
+    payload: dict = Depends(require_roles(["business", "authority", "admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Business / Front Desk collects remaining folio balance at check-in or checkout."""
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.collect_booking_balance(db, booking_id, user_id)
+
+
 @router.post("/trip/{trip_id}/pay", response_model=List[BookingOut])
 async def pay_entire_trip(
     trip_id: uuid.UUID,

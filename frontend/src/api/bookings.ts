@@ -220,6 +220,12 @@ export async function completeBooking(bookingId: string, note?: string): Promise
   });
 }
 
+export async function collectBookingBalance(bookingId: string): Promise<Booking> {
+  return apiRequest<Booking>(`/bookings/${bookingId}/collect-balance`, {
+    method: 'POST',
+  });
+}
+
 
 export interface EasypaisaPayPayload {
   mobile_number: string;

@@ -965,22 +965,39 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       try {
         const bData = await fetchBusinessBookings();
         if (isMounted) {
+          const collectedBalances: Record<string, boolean> = (() => {
+            try {
+              return JSON.parse(localStorage.getItem('swat_hotel_collected_balances') || '{}');
+            } catch {
+              return {};
+            }
+          })();
+
           if (bData && bData.length > 0) {
-            const mappedB: BookingRow[] = bData.map((b) => ({
-              id: b.id,
-              reference: b.reference,
-              tourist: b.tourist?.full_name || 'Tourist',
-              touristEmail: b.tourist?.email,
-              item: b.listing?.title || (b.items && b.items[0]?.price_item_name) || 'Booking Service',
-              dates: b.end_date ? `${b.start_date} – ${b.end_date}` : b.start_date,
-              amount: `Rs ${Number(b.total_amount).toLocaleString()}`,
-              rawAmount: Number(b.total_amount),
-              status: b.status,
-              payment_status: b.payment_status,
-              deposit_amount: b.deposit_amount,
-              declineReason: b.decline_reason,
-              rawBooking: b,
-            }));
+            const mappedB: BookingRow[] = bData.map((b) => {
+              const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
+              const payment_status = isCollected ? 'paid' : b.payment_status;
+              const deposit_amount = isCollected ? Number(b.total_amount) : b.deposit_amount;
+              return {
+                id: b.id,
+                reference: b.reference,
+                tourist: b.tourist?.full_name || 'Tourist',
+                touristEmail: b.tourist?.email,
+                item: b.listing?.title || (b.items && b.items[0]?.price_item_name) || 'Booking Service',
+                dates: b.end_date ? `${b.start_date} – ${b.end_date}` : b.start_date,
+                amount: `Rs ${Number(b.total_amount).toLocaleString()}`,
+                rawAmount: Number(b.total_amount),
+                status: b.status,
+                payment_status,
+                deposit_amount,
+                declineReason: b.decline_reason,
+                rawBooking: {
+                  ...b,
+                  payment_status,
+                  deposit_amount,
+                },
+              };
+            });
             if (currentBizType === 'transport') {
               const combined = loadTransportRideOrders(mappedB, currentProviderContext);
               setBookings(combined);
@@ -994,7 +1011,19 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               setBookings(localOrders);
               updateTransportStats(localOrders);
             } else {
-              setBookings(isDemoAccount ? getCategoryDemoBookings(currentBizType, currentProviderContext) : []);
+              const demoList = isDemoAccount ? getCategoryDemoBookings(currentBizType, currentProviderContext) : [];
+              const mappedDemo = demoList.map((b) => {
+                const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
+                if (isCollected) {
+                  return {
+                    ...b,
+                    payment_status: 'paid',
+                    deposit_amount: b.rawAmount,
+                  };
+                }
+                return b;
+              });
+              setBookings(mappedDemo);
               if (!isDemoAccount) {
                 setBusinessStats({ bookings_today: 0, earnings_week: 0, pending_requests: 0, confirmed_count: 0 });
               }
@@ -1003,12 +1032,32 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
         }
       } catch {
         if (isMounted) {
+          const collectedBalances: Record<string, boolean> = (() => {
+            try {
+              return JSON.parse(localStorage.getItem('swat_hotel_collected_balances') || '{}');
+            } catch {
+              return {};
+            }
+          })();
+
           if (currentBizType === 'transport') {
             const localOrders = loadTransportRideOrders(undefined, currentProviderContext);
             setBookings(localOrders);
             updateTransportStats(localOrders);
           } else {
-            setBookings(isDemoAccount ? getCategoryDemoBookings(currentBizType, currentProviderContext) : []);
+            const demoList = isDemoAccount ? getCategoryDemoBookings(currentBizType, currentProviderContext) : [];
+            const mappedDemo = demoList.map((b) => {
+              const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
+              if (isCollected) {
+                return {
+                  ...b,
+                  payment_status: 'paid',
+                  deposit_amount: b.rawAmount,
+                };
+              }
+              return b;
+            });
+            setBookings(mappedDemo);
             if (!isDemoAccount) {
               setBusinessStats({ bookings_today: 0, earnings_week: 0, pending_requests: 0, confirmed_count: 0 });
             }
@@ -1166,6 +1215,32 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
     showToast('Booking declined and reserved availability restored.');
     setDeclineModal({ open: false, bookingId: '', reference: '' });
     setDeclineReasonText('');
+  };
+
+  const handleCollectBookingBalance = (bookingIdOrRef: string) => {
+    setBookings((prev) =>
+      prev.map((b) => {
+        if (
+          b.id === bookingIdOrRef ||
+          b.reference === bookingIdOrRef ||
+          (b.reference && bookingIdOrRef && b.reference.toUpperCase() === bookingIdOrRef.toUpperCase())
+        ) {
+          return {
+            ...b,
+            payment_status: 'paid',
+            deposit_amount: b.rawAmount,
+            rawBooking: b.rawBooking
+              ? {
+                  ...b.rawBooking,
+                  payment_status: 'paid',
+                  deposit_amount: b.rawAmount,
+                }
+              : b.rawBooking,
+          };
+        }
+        return b;
+      })
+    );
   };
 
   const handleUploadDocument = async () => {
@@ -1484,6 +1559,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
           onTabChange={onTabChange}
           onAcceptBooking={handleAccept}
           onDeclineBooking={(id, ref) => setDeclineModal({ open: true, bookingId: id, reference: ref })}
+          onCollectBalance={handleCollectBookingBalance}
           isMobile={isMobile}
           isDemoUser={isDemoAccount}
           listingId={listings[0]?.id || (isDemoAccount ? 'serena-hotel-swat' : 'hotel-main')}

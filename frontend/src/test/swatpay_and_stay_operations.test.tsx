@@ -237,4 +237,86 @@ describe('SwatPay Checkout Modal & Hotel Stay Operations', () => {
       expect(screen.getByTestId('btn-print-hotel-receipt')).toBeInTheDocument();
     });
   });
+
+  it('permanently persists collected balance to localStorage and retains zero balance across screen reload/remount', async () => {
+    localStorage.removeItem('swat_hotel_collected_balances');
+    const onCollectBalance = vi.fn();
+
+    const mockBookings: BookingRow[] = [
+      {
+        id: 'b-persist-1',
+        reference: 'BK-PERSIST-101',
+        tourist: 'Zia Ur Rahman',
+        touristEmail: 'zia@swat.pk',
+        item: 'River View Deluxe',
+        dates: '2026-10-22 – 2026-10-24',
+        amount: 'Rs 20,000',
+        rawAmount: 20000,
+        status: 'confirmed',
+        payment_status: 'deposit_paid',
+        deposit_amount: 5000,
+      },
+    ];
+
+    const mockStats: BusinessBookingSummary = {
+      bookings_today: 1,
+      total_bookings_this_week: 1,
+      pending_requests: 0,
+      confirmed_bookings: 1,
+      revenue_pkr: 20000,
+      earnings_week: 20000,
+    };
+
+    // First render before collection: shows Balance Due (Rs. 15,000) and Collect Balance button
+    const { unmount } = render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessStats={mockStats}
+        bookings={mockBookings}
+        onAcceptBooking={vi.fn()}
+        onDeclineBooking={vi.fn()}
+        onCollectBalance={onCollectBalance}
+      />
+    );
+
+    expect(screen.getAllByText(/15,000/i).length).toBeGreaterThan(0);
+    const collectBtn = screen.getByTestId('btn-collect-balance-BK-PERSIST-101');
+    expect(collectBtn).toBeInTheDocument();
+
+    // Click "Collect Balance"
+    fireEvent.click(collectBtn);
+
+    // Verify UI immediately transitions to Zero Balance
+    await waitFor(() => {
+      expect(screen.getByText(/Zero Balance • Folio Settle Complete/i)).toBeInTheDocument();
+      expect(onCollectBalance).toHaveBeenCalledWith('b-persist-1');
+    });
+
+    // Verify localStorage has permanently saved this settled state
+    const saved = JSON.parse(localStorage.getItem('swat_hotel_collected_balances') || '{}');
+    expect(saved['b-persist-1']).toBe(true);
+    expect(saved['BK-PERSIST-101']).toBe(true);
+
+    // Simulate page refresh / remounting with original un-settled booking data
+    unmount();
+
+    render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessStats={mockStats}
+        bookings={mockBookings}
+        onAcceptBooking={vi.fn()}
+        onDeclineBooking={vi.fn()}
+        onCollectBalance={onCollectBalance}
+      />
+    );
+
+    // After refresh, the booking must still be Zero Balance, NOT pending!
+    await waitFor(() => {
+      expect(screen.getByText(/Zero Balance • Folio Settle Complete/i)).toBeInTheDocument();
+      expect(screen.queryByTestId('btn-collect-balance-BK-PERSIST-101')).not.toBeInTheDocument();
+      expect(screen.getByText(/✓ Fully Settled/i)).toBeInTheDocument();
+    });
+  });
 });
+

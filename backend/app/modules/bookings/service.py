@@ -938,6 +938,44 @@ class BookingService:
         return await BookingService.get_booking_by_id(db, booking.id)
 
     @staticmethod
+    async def collect_booking_balance(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> Booking:
+        """Business or Front Desk collects the remaining folio balance for a booking."""
+        booking = await BookingService.get_booking_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        # Verify business ownership, authority or admin
+        if booking.business.owner_id != user_id:
+            user_q = select(User).where(User.id == user_id)
+            user_res = await db.execute(user_q)
+            current_user = user_res.scalar_one_or_none()
+            if not current_user or current_user.role not in ("authority", "admin", "business"):
+                raise HTTPException(status_code=403, detail="Not authorized to collect balance for this booking")
+
+        old_status = booking.status
+        booking.payment_status = "paid"
+        booking.deposit_amount = float(booking.total_amount)
+        booking.updated_at = datetime.now(timezone.utc)
+
+        history = BookingStatusHistory(
+            id=uuid.uuid4(),
+            booking_id=booking.id,
+            from_status=old_status,
+            to_status=old_status,
+            changed_by=user_id,
+            note=f"Remaining balance collected at front desk. Folio settled in full: PKR {booking.total_amount:,.2f}.",
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(history)
+
+        await db.commit()
+        return await BookingService.get_booking_by_id(db, booking.id)
+
+    @staticmethod
     async def pay_entire_trip(
         db: AsyncSession,
         trip_id: uuid.UUID,
