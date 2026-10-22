@@ -12,6 +12,7 @@ export interface PhysicalRoom {
   current_guest_name?: string;
   stay_dates?: string;
   notes?: string;
+  last_booking_id?: string;
   updated_at: string;
 }
 
@@ -353,20 +354,50 @@ export function checkInBooking(listingId: string, bookingId: string): { success:
 /**
  * Checks out a guest for a booking, transitioning their physical room to 'cleaning'
  */
-export function checkOutBooking(listingId: string, bookingId: string): { success: boolean; room?: PhysicalRoom } {
+export function checkOutBooking(
+  listingId: string,
+  bookingId: string,
+  roomIdOrNumber?: string
+): { success: boolean; room?: PhysicalRoom } {
   const all = getAllPhysicalRooms();
-  const rooms = all[listingId] || [];
+  let targetListingKey = listingId;
+
+  // If rooms not found under specified listingId, search across all listing stores
+  if (
+    !all[targetListingKey] ||
+    !all[targetListingKey].some(
+      (r) =>
+        r.current_booking_id === bookingId ||
+        (roomIdOrNumber && (r.id === roomIdOrNumber || r.room_number === roomIdOrNumber))
+    )
+  ) {
+    const foundKey = Object.keys(all).find((k) =>
+      all[k].some(
+        (r) =>
+          r.current_booking_id === bookingId ||
+          (roomIdOrNumber && (r.id === roomIdOrNumber || r.room_number === roomIdOrNumber))
+      )
+    );
+    if (foundKey) targetListingKey = foundKey;
+  }
+
+  const rooms = all[targetListingKey] || [];
   let vacatedRoom: PhysicalRoom | undefined;
 
   const updatedRooms = rooms.map((r) => {
-    if (r.current_booking_id === bookingId) {
+    const isTarget =
+      r.current_booking_id === bookingId ||
+      (roomIdOrNumber && (r.id === roomIdOrNumber || r.room_number === roomIdOrNumber));
+
+    if (isTarget) {
       vacatedRoom = {
         ...r,
         status: 'cleaning' as const,
-        notes: `Vacated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Awaiting housekeeping`,
+        notes: `Vacated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Ready for clean`,
         current_booking_id: undefined,
         current_guest_name: undefined,
         stay_dates: undefined,
+        last_booking_id: bookingId,
         updated_at: new Date().toISOString(),
       };
       return vacatedRoom;
@@ -375,12 +406,16 @@ export function checkOutBooking(listingId: string, bookingId: string): { success
   });
 
   if (vacatedRoom) {
-    all[listingId] = updatedRooms;
+    all[targetListingKey] = updatedRooms;
     saveAllPhysicalRooms(all);
     try {
       const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
       if (storedMap[bookingId]) {
         storedMap[bookingId].status = 'cleaning';
+        localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
+      }
+      if (roomIdOrNumber && storedMap[roomIdOrNumber]) {
+        storedMap[roomIdOrNumber].status = 'cleaning';
         localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
       }
     } catch {}
@@ -406,7 +441,20 @@ export function updatePhysicalRoomStatus(
   notes?: string
 ): boolean {
   const all = getAllPhysicalRooms();
-  const rooms = all[listingId] || [];
+  let targetListingKey = listingId;
+
+  // If not found in current listing, check all listing stores
+  if (
+    !all[targetListingKey] ||
+    !all[targetListingKey].some((r) => r.id === roomId || r.room_number === roomId)
+  ) {
+    const foundKey = Object.keys(all).find((k) =>
+      all[k].some((r) => r.id === roomId || r.room_number === roomId)
+    );
+    if (foundKey) targetListingKey = foundKey;
+  }
+
+  const rooms = all[targetListingKey] || [];
   let found = false;
 
   const updated = rooms.map((r) => {
@@ -423,7 +471,7 @@ export function updatePhysicalRoomStatus(
   });
 
   if (found) {
-    all[listingId] = updated;
+    all[targetListingKey] = updated;
     saveAllPhysicalRooms(all);
   }
   return found;

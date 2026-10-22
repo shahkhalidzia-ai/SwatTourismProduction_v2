@@ -444,6 +444,21 @@ describe('SwatPay Checkout Modal & Hotel Stay Operations', () => {
     fireEvent.click(inHouseTab);
     expect(screen.getByText('Sara Ahmed')).toBeInTheDocument();
     expect(screen.getByTestId('btn-fd-checkout-SWT-DA6D4L')).toBeInTheDocument();
+
+    // 6. Click checkout, switch to All Operations, and verify Room transitions to Ready for Clean
+    fireEvent.click(checkoutBtn);
+
+    const allTab = screen.getByTestId('tab-front-desk-all');
+    fireEvent.click(allTab);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Stay Completed • Room Moved to Cleaning \(Ready for Clean\)/i)).toBeInTheDocument();
+    });
+
+    // 7. Verify Key Rack displays Ready for Clean filter button and tile status
+    expect(screen.getByText(/Ready for Clean \(2\)/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Ready for Clean/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Mark Room 102 Cleaned & Ready/i)).toBeInTheDocument();
   });
 });
 

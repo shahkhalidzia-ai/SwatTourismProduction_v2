@@ -248,10 +248,43 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   const handleCheckOutGuest = (booking: BookingRow) => {
     const key = booking.id || booking.reference;
-    checkOutBooking(effectiveListingId, key);
+    const storedAssignment = (() => {
+      try {
+        const m = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+        return m[booking.id] || m[booking.reference] || (key ? m[key] : null);
+      } catch {
+        return null;
+      }
+    })();
+
+    const targetRoom = physicalRooms.find(
+      (r) =>
+        r.current_booking_id === booking.id ||
+        r.current_booking_id === booking.reference ||
+        r.id === (booking as any).assigned_room_id ||
+        r.room_number === (booking as any).assigned_room_number ||
+        (storedAssignment && (r.id === storedAssignment.roomId || r.room_number === storedAssignment.roomNumber)) ||
+        (r as any).last_booking_id === booking.id ||
+        (r as any).last_booking_id === booking.reference
+    );
+
+    const targetRoomIdentifier = targetRoom?.id || targetRoom?.room_number || (booking as any).assigned_room_id || (booking as any).assigned_room_number || storedAssignment?.roomNumber;
+
+    checkOutBooking(effectiveListingId, key, targetRoomIdentifier);
     if (booking.reference && booking.reference !== key) {
-      checkOutBooking(effectiveListingId, booking.reference);
+      checkOutBooking(effectiveListingId, booking.reference, targetRoomIdentifier);
     }
+    if (booking.id && booking.id !== key) {
+      checkOutBooking(effectiveListingId, booking.id, targetRoomIdentifier);
+    }
+
+    if (targetRoom) {
+      updatePhysicalRoomStatus(effectiveListingId, targetRoom.id, 'cleaning', 'Vacated by guest • Ready for clean');
+      if (targetRoom.room_number) {
+        updatePhysicalRoomStatus(effectiveListingId, targetRoom.room_number, 'cleaning', 'Vacated by guest • Ready for clean');
+      }
+    }
+
     const updated = {
       ...stayStateMap,
       [key]: 'checked_out' as const,
@@ -268,8 +301,14 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     try {
       localStorage.setItem('swat_hotel_stay_states', JSON.stringify(updated));
     } catch {}
+
     const refreshed = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
-    setPhysicalRooms(refreshed);
+    const synced = refreshed.map((r) =>
+      targetRoom && (r.id === targetRoom.id || r.room_number === targetRoom.room_number)
+        ? { ...r, status: 'cleaning' as const, notes: 'Vacated by guest • Ready for clean', last_booking_id: key }
+        : r
+    );
+    setPhysicalRooms(synced);
     window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated'));
   };
 
@@ -889,12 +928,24 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
               const isBalanceCollected = collectedBalanceMap[bKey];
               const balanceDue = isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
 
+              const storedAssignment = (() => {
+                try {
+                  const m = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+                  return m[booking.id] || m[booking.reference] || m[bKey];
+                } catch {
+                  return null;
+                }
+              })();
+
               const assignedRoom = physicalRooms.find(
                 (r) =>
                   r.current_booking_id === booking.id ||
                   r.current_booking_id === booking.reference ||
                   r.id === (booking as any).assigned_room_id ||
-                  r.room_number === (booking as any).assigned_room_number
+                  r.room_number === (booking as any).assigned_room_number ||
+                  (storedAssignment && (r.id === storedAssignment.roomId || r.room_number === storedAssignment.roomNumber)) ||
+                  r.last_booking_id === booking.id ||
+                  r.last_booking_id === booking.reference
               );
 
               return (
@@ -1284,9 +1335,9 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#059669', fontWeight: 700 }}>
                             <CheckCircle size={14} />
-                            <span>Stay Completed • Room Moved to Cleaning</span>
+                            <span>Stay Completed • Room Moved to Cleaning (Ready for Clean)</span>
                           </div>
-                          {assignedRoom && assignedRoom.status === 'cleaning' && (
+                          {assignedRoom && (assignedRoom.status === 'cleaning' || stayState === 'checked_out') && (
                             <button
                               type="button"
                               onClick={() => handleMarkCleanedRoom(assignedRoom.id)}
@@ -1305,7 +1356,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                               }}
                             >
                               <Sparkles size={13} />
-                              <span>Mark Room {assignedRoom.room_number} Cleaned</span>
+                              <span>Mark Room {assignedRoom.room_number} Cleaned &amp; Ready</span>
                             </button>
                           )}
                         </div>
@@ -1772,7 +1823,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 color: roomRackFilter === 'cleaning' ? '#FFFFFF' : '#7A4A00',
               }}
             >
-              Cleaning ({cleaningCount})
+              Ready for Clean ({cleaningCount})
             </button>
           </div>
         </div>
@@ -1805,7 +1856,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 available: { bg: '#D5F0E3', text: '#17694A', border: '#A7E1C7', label: 'Available' },
                 reserved: { bg: '#D3E6F7', text: '#0C447C', border: '#A6CDEC', label: 'Reserved' },
                 occupied: { bg: '#FADAD6', text: '#8E2A21', border: '#F5B8B1', label: 'Occupied' },
-                cleaning: { bg: '#FFE7BD', text: '#7A4A00', border: '#FFD48E', label: 'Cleaning' },
+                cleaning: { bg: '#FFE7BD', text: '#7A4A00', border: '#FFD48E', label: 'Ready for Clean' },
                 maintenance: { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1', label: 'Maintenance' },
               }[room.status] || { bg: '#F1F5F9', text: '#475569', border: '#CBD5E1', label: room.status || 'Available' };
 
@@ -1908,13 +1959,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           color: '#FFFFFF',
                           border: 'none',
                           borderRadius: '6px',
-                          padding: '3px 6px',
+                          padding: '4px 6px',
                           fontSize: '10.5px',
                           fontWeight: 700,
                           cursor: 'pointer',
                         }}
                       >
-                        ✓ Mark Cleaned
+                        ✓ Mark Cleaned &amp; Ready
                       </button>
                     )}
                   </div>
