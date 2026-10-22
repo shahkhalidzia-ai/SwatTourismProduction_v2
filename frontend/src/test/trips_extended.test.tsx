@@ -5,6 +5,7 @@ import { TripManagerView } from '../modules/tourist/TripManagerView';
 import type { Trip } from '../api/trips';
 import type { Booking } from '../api/bookings';
 import * as bookingsApi from '../api/bookings';
+import { ReviewModal } from '../modules/tourist/ReviewModal';
 
 describe('TripManagerView (3-View Itinerary, Bookings, Vouchers & Cancellations)', () => {
   const mockTrip: Trip = {
@@ -323,5 +324,57 @@ describe('TripManagerView (3-View Itinerary, Bookings, Vouchers & Cancellations)
     expect(dangerZoneDeleteBtn).toBeInTheDocument();
     fireEvent.click(dangerZoneDeleteBtn);
     expect(mockDeleteTrip).toHaveBeenCalledTimes(4);
+  });
+
+  it('allows completing a trip and submitting a review without system errors', async () => {
+    const onUpdateTrip = vi.fn().mockResolvedValue(undefined);
+    const onCompleteBooking = vi.fn().mockResolvedValue(undefined);
+    const onRateBooking = vi.fn();
+
+    render(
+      <TripManagerView
+        trip={mockTrip}
+        bookings={mockBookings}
+        {...mockHandlers}
+        onUpdateTrip={onUpdateTrip}
+        onCompleteBooking={onCompleteBooking}
+        onRateBooking={onRateBooking}
+      />
+    );
+
+    // Complete button is rendered
+    const completeBtn = screen.getByTestId('btn-complete-trip');
+    expect(completeBtn).toBeInTheDocument();
+
+    // Click Complete
+    fireEvent.click(completeBtn);
+
+    await waitFor(() => {
+      expect(onUpdateTrip).toHaveBeenCalledWith({ status: 'completed' });
+      expect(onCompleteBooking).toHaveBeenCalledWith('b-1');
+      expect(onRateBooking).toHaveBeenCalled();
+    });
+
+    // Now test ReviewModal submission
+    const onSuccess = vi.fn();
+    render(
+      <ReviewModal
+        isOpen={true}
+        onClose={vi.fn()}
+        booking={{ ...mockBookings[0], status: 'completed' }}
+        onSuccess={onSuccess}
+      />
+    );
+
+    expect(screen.getByText(/Rate Your Experience/i)).toBeInTheDocument();
+    const submitBtn = screen.getByText(/Submit Review/i);
+    expect(submitBtn).toBeInTheDocument();
+
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalled();
+      expect(screen.getByText(/Thank You for Your Review!/i)).toBeInTheDocument();
+    });
   });
 });

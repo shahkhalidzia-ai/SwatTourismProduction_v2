@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 
 from app.modules.reviews.models import Review, ReviewReply
 from app.modules.reviews.schemas import ReviewCreate, ReviewReplyCreate, ReviewOut, ReviewReplyOut, ListingReviewsSummaryOut
-from app.modules.bookings.models import Booking
+from app.modules.bookings.models import Booking, BookingStatusHistory
 from app.modules.listings.models import Listing
 from app.modules.accounts.models import User, BusinessProfile
 
@@ -20,7 +20,7 @@ class ReviewService:
         user_id: uuid.UUID,
         req: ReviewCreate,
     ) -> ReviewOut:
-        """Create a review for a completed booking by the authenticated tourist."""
+        """Create a review for a completed or confirmed booking by the authenticated tourist."""
         # 1. Verify booking exists and belongs to the tourist
         b_q = (
             select(Booking)
@@ -35,11 +35,27 @@ class ReviewService:
         if booking.tourist_id != user_id:
             raise HTTPException(status_code=403, detail="You can only review your own bookings")
 
-        if booking.status != "completed":
+        if booking.status not in ("completed", "confirmed", "accepted"):
             raise HTTPException(
                 status_code=400,
-                detail=f"Only completed bookings can be reviewed. Current status is '{booking.status}'",
+                detail=f"Only completed or confirmed bookings can be reviewed. Current status is '{booking.status}'",
             )
+
+        # Conclude booking if not already marked completed
+        if booking.status != "completed":
+            old_status = booking.status
+            booking.status = "completed"
+            booking.updated_at = datetime.now(timezone.utc)
+            history = BookingStatusHistory(
+                id=uuid.uuid4(),
+                booking_id=booking.id,
+                from_status=old_status,
+                to_status="completed",
+                changed_by=user_id,
+                note="Concluded upon tourist review submission.",
+                created_at=datetime.now(timezone.utc),
+            )
+            db.add(history)
 
         # 2. Check if a review already exists for this booking
         existing_q = select(Review).where(Review.booking_id == req.booking_id)
