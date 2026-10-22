@@ -880,17 +880,21 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                     </div>
                     <button
                       type="button"
+                      disabled={stayState === 'checked_out'}
                       onClick={() => setAssignModalBooking(booking)}
+                      data-testid={`btn-assign-key-${booking.reference}`}
                       style={{
-                        background: '#FFFFFF',
-                        border: '1px solid #CBD5E1',
+                        background: stayState === 'checked_out' ? '#F1F5F9' : '#FFFFFF',
+                        border: stayState === 'checked_out' ? '1px solid #E2E8F0' : '1px solid #CBD5E1',
                         borderRadius: '6px',
                         padding: '4px 10px',
                         fontSize: '11.5px',
                         fontWeight: 700,
-                        color: '#088395',
-                        cursor: 'pointer',
+                        color: stayState === 'checked_out' ? '#94A3B8' : '#088395',
+                        cursor: stayState === 'checked_out' ? 'not-allowed' : 'pointer',
+                        opacity: stayState === 'checked_out' ? 0.6 : 1,
                       }}
+                      title={stayState === 'checked_out' ? 'Stay completed & settled - room key returned' : undefined}
                     >
                       {assignedRoom ? 'Change Key / Room' : '🔑 Assign Key'}
                     </button>
@@ -1687,6 +1691,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             {displayedRequests.slice(0, 4).map((booking) => {
               const bKey = booking.id || booking.reference;
               const effectiveStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
+              const stayState = stayStateMap[bKey] || 'reserved';
+              const isCheckedOut = stayState === 'checked_out';
               const isPendingOrRequested = effectiveStatus === 'requested' || effectiveStatus === 'pending';
               const isAccepted = effectiveStatus === 'accepted';
               const isCompleted = effectiveStatus === 'completed';
@@ -1816,17 +1822,21 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         </div>
                         <button
                           type="button"
+                          disabled={isCheckedOut}
                           onClick={() => setAssignModalBooking(booking)}
+                          data-testid={`btn-change-room-${booking.reference}`}
                           style={{
-                            background: '#FFFFFF',
-                            border: '1px solid #93C5FD',
-                            color: '#1D4ED8',
+                            background: isCheckedOut ? '#F1F5F9' : '#FFFFFF',
+                            border: isCheckedOut ? '1px solid #E2E8F0' : '1px solid #93C5FD',
+                            color: isCheckedOut ? '#94A3B8' : '#1D4ED8',
                             borderRadius: '6px',
                             padding: '3px 8px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            cursor: 'pointer',
+                            cursor: isCheckedOut ? 'not-allowed' : 'pointer',
+                            opacity: isCheckedOut ? 0.6 : 1,
                           }}
+                          title={isCheckedOut ? 'Stay completed & settled - room returned' : undefined}
                         >
                           Change Room
                         </button>
@@ -1835,20 +1845,24 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       <div style={{ marginTop: '8px' }}>
                         <button
                           type="button"
+                          disabled={isCheckedOut}
                           onClick={() => setAssignModalBooking(booking)}
+                          data-testid={`btn-assign-key-bottom-${booking.reference}`}
                           style={{
-                            background: 'none',
-                            border: '1px dashed #3B82F6',
-                            color: '#2563EB',
+                            background: isCheckedOut ? '#F8FAFC' : 'none',
+                            border: isCheckedOut ? '1px dashed #CBD5E1' : '1px dashed #3B82F6',
+                            color: isCheckedOut ? '#94A3B8' : '#2563EB',
                             borderRadius: '8px',
                             padding: '4px 10px',
                             fontSize: '12px',
                             fontWeight: 600,
-                            cursor: 'pointer',
+                            cursor: isCheckedOut ? 'not-allowed' : 'pointer',
+                            opacity: isCheckedOut ? 0.6 : 1,
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
                           }}
+                          title={isCheckedOut ? 'Stay completed & settled - room returned' : undefined}
                         >
                           <span>🔑</span> Assign Physical Room Key
                         </button>
@@ -2072,7 +2086,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                               {!isBalanceCollected ? (
                                 <button
                                   type="button"
-                                  onClick={() => setCollectedBalanceMap((prev) => ({ ...prev, [bKey]: true }))}
+                                  onClick={() => handleCollectBalance(booking)}
+                                  data-testid={`btn-mark-collected-${booking.reference}`}
                                   style={{
                                     background: '#D97706',
                                     color: '#FFFFFF',

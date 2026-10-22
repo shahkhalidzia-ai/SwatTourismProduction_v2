@@ -318,5 +318,73 @@ describe('SwatPay Checkout Modal & Hotel Stay Operations', () => {
       expect(screen.getByText(/✓ Fully Settled/i)).toBeInTheDocument();
     });
   });
+
+  it('disables the Assign Key / Change Key button when tourist checkout is completed and settled', async () => {
+    localStorage.removeItem('swat_hotel_stay_states');
+    const mockBookings: BookingRow[] = [
+      {
+        id: 'b-checkout-test',
+        reference: 'BK-CO-707',
+        tourist: 'Noman Tariq',
+        touristEmail: 'noman@swat.pk',
+        item: 'Deluxe Suite',
+        dates: '2026-10-22 – 2026-10-24',
+        amount: 'Rs 32,000',
+        rawAmount: 32000,
+        status: 'confirmed',
+        payment_status: 'paid',
+        deposit_amount: 32000,
+      },
+    ];
+
+    const mockStats: BusinessBookingSummary = {
+      bookings_today: 1,
+      total_bookings_this_week: 1,
+      pending_requests: 0,
+      confirmed_bookings: 1,
+      revenue_pkr: 32000,
+      earnings_week: 32000,
+    };
+
+    render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessStats={mockStats}
+        bookings={mockBookings}
+        onAcceptBooking={vi.fn()}
+        onDeclineBooking={vi.fn()}
+      />
+    );
+
+    // 1. Initial state: Assign Key button is enabled
+    const assignKeyBtn = screen.getByTestId('btn-assign-key-BK-CO-707');
+    expect(assignKeyBtn).toBeInTheDocument();
+    expect(assignKeyBtn).not.toBeDisabled();
+
+    // 2. Front desk check-in
+    const checkInBtn = screen.getByTestId('btn-fd-checkin-BK-CO-707');
+    fireEvent.click(checkInBtn);
+
+    // 3. Front desk check-out
+    await waitFor(() => {
+      expect(screen.getByTestId('btn-fd-checkout-BK-CO-707')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByTestId('btn-fd-checkout-BK-CO-707'));
+
+    // 4. Verify status displays "Stay Completed & Settled" and Assign Key button is disabled
+    await waitFor(() => {
+      expect(screen.getByText(/Stay Completed & Settled/i)).toBeInTheDocument();
+    });
+
+    const disabledAssignKeyBtn = screen.getByTestId('btn-assign-key-BK-CO-707');
+    expect(disabledAssignKeyBtn).toBeDisabled();
+
+    // Check bottom section key button is also disabled
+    const bottomKeyBtn = screen.queryByTestId('btn-change-room-BK-CO-707') || screen.queryByTestId('btn-assign-key-bottom-BK-CO-707');
+    if (bottomKeyBtn) {
+      expect(bottomKeyBtn).toBeDisabled();
+    }
+  });
 });
+
 
