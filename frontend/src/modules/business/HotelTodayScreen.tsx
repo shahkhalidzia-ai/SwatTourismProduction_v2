@@ -450,19 +450,25 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     if (isDep) return sum + ((b as any).deposit_amount || Math.round(raw * 0.25));
     return sum;
   }, 0);
-  const totalPendingBalance = displayedRequests.reduce((sum, b) => {
+  const getBookingBalanceDue = (b: BookingRow): number => {
     const bKey = b.id || b.reference;
-    if (collectedBalanceMap[bKey]) return sum;
-    const raw = Number(b.rawAmount) || 0;
-    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
+    const isBalanceCollected = Boolean(
+      collectedBalanceMap[bKey] ||
+      (b.id && collectedBalanceMap[b.id]) ||
+      (b.reference && collectedBalanceMap[b.reference])
+    );
+    if (isBalanceCollected) return 0;
     const isPaid = (b as any).payment_status === 'full_paid' || (b as any).payment_status === 'paid' || b.status === 'completed';
-    if (isPaid) return sum;
-    if (isDep) {
-      const dep = (b as any).deposit_amount || Math.round(raw * 0.25);
-      return sum + Math.max(0, raw - dep);
-    }
-    return sum;
-  }, 0);
+    if (isPaid) return 0;
+
+    const rawAmt = Number(b.rawAmount) || 0;
+    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
+    const depAmt = (b as any).deposit_amount || (isDep ? Math.round(rawAmt * 0.25) : 0);
+    return Math.max(0, rawAmt - depAmt);
+  };
+
+  const totalPendingBalance = displayedRequests.reduce((sum, b) => sum + getBookingBalanceDue(b), 0);
+
   const getBookingStayState = (b: BookingRow): 'reserved' | 'checked_in' | 'checked_out' => {
     const bKey = b.id || b.reference;
     const raw = stayStateMap[bKey] || (b.id ? stayStateMap[b.id] : undefined) || (b.reference ? stayStateMap[b.reference] : undefined);
@@ -481,12 +487,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     if (assigned?.status === 'occupied') return 'checked_in';
 
     // Check financial settlement
-    const rawAmt = Number(b.rawAmount) || 0;
     const isPaid = (b as any).payment_status === 'full_paid' || (b as any).payment_status === 'paid' || b.status === 'completed';
-    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
-    const depAmt = (b as any).deposit_amount || (isPaid ? rawAmt : (isDep ? Math.round(rawAmt * 0.25) : 0));
-    const isBalanceCollected = Boolean(collectedBalanceMap[bKey] || (b.id && collectedBalanceMap[b.id]) || (b.reference && collectedBalanceMap[b.reference]));
-    const balanceDue = isPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depAmt);
+    const balanceDue = getBookingBalanceDue(b);
 
     // If a room is assigned and balance is settled (or paid in full), guest is in-house
     if (assigned && (balanceDue === 0 || isPaid || (b as any).payment_status === 'paid' || (b as any).payment_status === 'full_paid')) {
@@ -523,12 +525,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     return st === 'checked_in' || st === 'checked_out';
   }).length;
 
-  const ledgerPendingCount = displayedRequests.filter((b) => {
-    const bKey = b.id || b.reference;
-    if (collectedBalanceMap[bKey]) return false;
-    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
-    return isDep;
-  }).length;
+  const ledgerPendingCount = displayedRequests.filter((b) => getBookingBalanceDue(b) > 0).length;
 
   const frontDeskBookings = displayedRequests.filter((b) => {
     const bKey = b.id || b.reference;
@@ -550,8 +547,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
       return st === 'checked_in' || st === 'checked_out';
     }
     if (frontDeskFilter === 'ledger') {
-      const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
-      return isDep || !collectedBalanceMap[bKey];
+      return getBookingBalanceDue(b) > 0;
     }
     return true;
   });
@@ -911,6 +907,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             <p style={{ margin: 0, fontSize: '13.5px', color: '#64748B', fontWeight: 500 }}>
               {frontDeskFilter === 'requests'
                 ? 'No pending booking requests. All incoming reservations have been accepted and processed.'
+                : frontDeskFilter === 'ledger'
+                ? '✓ All guest folios are fully settled. There are no outstanding desk balances due.'
                 : `No bookings matching filter "${frontDeskFilter}". Switch to "All Operations" to see full guest roster.`}
             </p>
           </div>

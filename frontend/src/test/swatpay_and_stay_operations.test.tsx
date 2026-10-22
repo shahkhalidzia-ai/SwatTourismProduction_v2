@@ -439,26 +439,34 @@ describe('SwatPay Checkout Modal & Hotel Stay Operations', () => {
     expect(screen.queryByText(/Waiting for payment/i)).toBeNull();
     expect(screen.queryByText(/Awaiting tourist payment confirmation/i)).toBeNull();
 
-    // 5. Clicking In-House Guests filter loads the guest
+    // 5. Clicking In-House Guests filter loads the guest and shows checkout button
     const inHouseTab = screen.getByTestId('tab-front-desk-in_house');
     fireEvent.click(inHouseTab);
     expect(screen.getByText('Sara Ahmed')).toBeInTheDocument();
     expect(screen.getByTestId('btn-fd-checkout-SWT-DA6D4L')).toBeInTheDocument();
 
-    // 6. Click checkout, switch to All Operations, and verify Room transitions to Ready for Clean
-    fireEvent.click(checkoutBtn);
+    // 6. Balance Ledger tab must show (0) since balance is fully settled
+    expect(screen.getByText(/Balance Ledger \(0\)/i)).toBeInTheDocument();
 
+    // 7. Click checkout and switch to All Operations
+    fireEvent.click(checkoutBtn);
     const allTab = screen.getByTestId('tab-front-desk-all');
     fireEvent.click(allTab);
 
     await waitFor(() => {
       expect(screen.getByText(/Stay Completed • Room Moved to Cleaning \(Ready for Clean\)/i)).toBeInTheDocument();
     });
+    expect(screen.getByText(/Mark Room 102 Cleaned & Ready/i)).toBeInTheDocument();
 
-    // 7. Verify Key Rack displays Ready for Clean filter button and tile status
+    // 8. Switching to Balance Ledger shows the all-settled empty state
+    const ledgerTab = screen.getByTestId('tab-front-desk-ledger');
+    fireEvent.click(ledgerTab);
+    expect(screen.getByText(/All guest folios are fully settled/i)).toBeInTheDocument();
+
+    // 9. Verify Key Rack displays Ready for Clean filter button and tile status
     expect(screen.getByText(/Ready for Clean \(2\)/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Ready for Clean/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Mark Room 102 Cleaned & Ready/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Mark Cleaned & Ready/i).length).toBeGreaterThan(0);
   });
 });
 
