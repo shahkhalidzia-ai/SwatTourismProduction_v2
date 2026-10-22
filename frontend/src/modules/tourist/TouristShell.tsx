@@ -941,6 +941,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showAIAssistantModal, setShowAIAssistantModal] = useState(false);
   const [showAITripModal, setShowAITripModal] = useState(false);
+  const [aiTripPrompt, setAiTripPrompt] = useState('');
 
   // Active trip calculation (prompt 3: Explore shows "Adding to: <trip name>" with Change trip button)
   const activeTrip = useMemo(() => {
@@ -5019,7 +5020,17 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
       <TouristAIAssistantModal
         isOpen={showAIAssistantModal}
         onClose={() => setShowAIAssistantModal(false)}
-        onNavigateTab={(tab) => onTabChange?.(tab as any)}
+        onNavigateTab={(tab) => {
+          if (tab === 'ai-trip-plan') {
+            setShowAITripModal(true);
+          } else {
+            onTabChange?.(tab as any);
+          }
+        }}
+        onOpenTripPlan={(prompt) => {
+          setAiTripPrompt(prompt);
+          setShowAITripModal(true);
+        }}
         touristName={user?.full_name || 'Tourist Guest'}
         touristPhone={user?.phone || '+92-300-1234567'}
       />
@@ -5027,7 +5038,11 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
       {/* AI 1-Prompt Trip Generator Modal (Phase A) */}
       <AITripGeneratorModal
         isOpen={showAITripModal}
-        onClose={() => setShowAITripModal(false)}
+        initialPrompt={aiTripPrompt}
+        onClose={() => {
+          setShowAITripModal(false);
+          setAiTripPrompt('');
+        }}
         onCreateTrip={async (data: any) => {
           let created: Trip;
           try {

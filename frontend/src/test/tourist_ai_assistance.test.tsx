@@ -69,6 +69,71 @@ describe('Tourist AI Assistance Engine (Phases A, B, C, D)', () => {
         expect(mockClose).toHaveBeenCalledTimes(1);
       });
     });
+
+    it('accurately parses "2-day family trip from Islamabad, under 20k PKR, Mingora" and creates clean Mingora itinerary', async () => {
+      const prompt = '2-day family trip from Islamabad, under 20k PKR, Mingora';
+      const parsed = parseAndGenerateTripFromPrompt(prompt);
+
+      expect(parsed.days).toBe(2);
+      expect(parsed.travellers).toBe(4); // family = 4
+      expect(parsed.budgetPKR).toBe(20000); // 20k PKR
+      expect(parsed.originCity).toBe('Islamabad');
+      expect(parsed.title).toContain('Mingora');
+      expect(parsed.theme).toContain('Mingora');
+
+      const stopTitles = parsed.stops.map((s) => s.custom_title).join(' ');
+      expect(stopTitles).toContain('Mingora');
+      expect(stopTitles).toContain('Swat Museum');
+      expect(stopTitles).toContain('Marghuzar White Palace');
+      expect(stopTitles).toContain('Faza Gat');
+      expect(stopTitles).toContain('Green Valley / Riverside Inn'); // budget hotel under 25k
+
+      // Test modal execution with this exact prompt
+      const mockCreate = vi.fn().mockImplementation(async (data) => {
+        // Assert backend schema requirements: stops must NOT have trip_id: 'pending'
+        expect(data.stops).toBeDefined();
+        for (const stop of data.stops) {
+          expect(stop.trip_id).toBeUndefined();
+          expect(stop.id).toBeUndefined();
+        }
+        return {
+          id: 'trip-mingora-uuid-1234',
+          title: data.title,
+          travellers: data.travellers,
+          stops: data.stops.map((s: any, idx: number) => ({
+            ...s,
+            id: `stop-db-${idx}`,
+            trip_id: 'trip-mingora-uuid-1234',
+          })),
+        };
+      });
+
+      const mockTripCreated = vi.fn();
+      const mockClose = vi.fn();
+
+      render(
+        <AITripGeneratorModal
+          isOpen={true}
+          initialPrompt={prompt}
+          onClose={mockClose}
+          onCreateTrip={mockCreate}
+          onTripCreated={mockTripCreated}
+        />
+      );
+
+      // Confirm create
+      const confirmBtn = screen.getByTestId('btn-confirm-create-ai-trip');
+      fireEvent.click(confirmBtn);
+
+      await waitFor(() => {
+        expect(mockCreate).toHaveBeenCalledTimes(1);
+        const payload = mockCreate.mock.calls[0][0];
+        expect(payload.title).toContain('Mingora');
+        expect(payload.travellers).toBe(4);
+        expect(payload.estimated_total).toBe(20000);
+        expect(mockTripCreated).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   // --------------------------------------------------------------------------
@@ -182,6 +247,38 @@ describe('Tourist AI Assistance Engine (Phases A, B, C, D)', () => {
       await waitFor(() => {
         expect(screen.getByText(/24\/7 central room heating/i)).toBeInTheDocument();
       });
+    });
+
+    it('processes trip plan prompt in TouristAIAssistantModal and invokes onOpenTripPlan', async () => {
+      const mockClose = vi.fn();
+      const mockOpenTripPlan = vi.fn();
+      render(
+        <TouristAIAssistantModal
+          isOpen={true}
+          onClose={mockClose}
+          onOpenTripPlan={mockOpenTripPlan}
+          touristName="Zainab Bibi"
+        />
+      );
+
+      const input = screen.getByTestId('input-ai-concierge-query');
+      fireEvent.change(input, {
+        target: { value: '2-day family trip from Islamabad, under 20k PKR, Mingora' },
+      });
+      const sendBtn = screen.getByTestId('btn-send-ai-query');
+      fireEvent.click(sendBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Mingora Cultural & Valley Discovery/i)).toBeInTheDocument();
+        expect(screen.getByTestId('btn-ai-quick-action')).toBeInTheDocument();
+      });
+
+      const actionBtn = screen.getByTestId('btn-ai-quick-action');
+      fireEvent.click(actionBtn);
+
+      expect(mockOpenTripPlan).toHaveBeenCalledTimes(1);
+      expect(mockOpenTripPlan).toHaveBeenCalledWith('2-day family trip from Islamabad, under 20k PKR, Mingora');
+      expect(mockClose).toHaveBeenCalledTimes(1);
     });
   });
 });

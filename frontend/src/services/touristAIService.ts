@@ -49,9 +49,9 @@ export interface GeneratedAITrip {
 export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip {
   const p = prompt.toLowerCase();
 
-  // Extract Days
+  // Extract Days (handles "2-day", "3 days", "4d", etc.)
   let days = 3;
-  const daysMatch = p.match(/(\d+)\s*(?:day|days|d)/i);
+  const daysMatch = p.match(/(\d+)[\s-]*(?:day|days|d)\b/i);
   if (daysMatch) {
     days = Math.min(7, Math.max(1, parseInt(daysMatch[1], 10)));
   } else if (p.includes('weekend')) {
@@ -73,12 +73,27 @@ export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip 
     travellers = 2;
   }
 
-  // Extract Budget
+  // Extract Budget (handles "under 20k PKR", "under 20000", "20,000 pkr", "50k", etc.)
   let budgetPKR = days * 18000;
-  const budgetMatch = p.match(/(\d+)\s*(?:k|thousand|000|pkr|rs)/i);
+  const budgetMatch =
+    p.match(/(?:under|upto|below|budget|max|approx|around|cost|for)?\s*([0-9]+(?:,[0-9]+)?)\s*(k|thousand|000|lakh|lac)\b/i) ||
+    p.match(/(?:under|upto|below|budget|max|approx|around)?\s*([0-9]+(?:,[0-9]+)?)\s*(?:pkr|rs|rupees)\b/i) ||
+    p.match(/(?:pkr|rs\.?)\s*([0-9]+(?:,[0-9]+)?)\b/i) ||
+    p.match(/(\d+)\s*(?:k|thousand|000|pkr|rs)/i);
+
   if (budgetMatch) {
-    const raw = parseInt(budgetMatch[1], 10);
-    budgetPKR = raw < 100 ? raw * 1000 : raw;
+    const rawNumStr = budgetMatch[1].replace(/,/g, '');
+    const unit = (budgetMatch[2] || '').toLowerCase();
+    let raw = parseInt(rawNumStr, 10);
+    if (unit.startsWith('k') || unit.startsWith('thous') || unit === '000') {
+      budgetPKR = raw * 1000;
+    } else if (unit.startsWith('lac') || unit.startsWith('lakh')) {
+      budgetPKR = raw * 100000;
+    } else if (raw < 100) {
+      budgetPKR = raw * 1000;
+    } else {
+      budgetPKR = raw;
+    }
   } else if (p.includes('luxury') || p.includes('serena') || p.includes('expensive')) {
     budgetPKR = days * 35000;
   } else if (p.includes('budget') || p.includes('cheap') || p.includes('backpacker')) {
@@ -90,8 +105,10 @@ export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip 
   if (p.includes('lahore')) originCity = 'Lahore';
   else if (p.includes('peshawar')) originCity = 'Peshawar';
   else if (p.includes('karachi')) originCity = 'Karachi';
+  else if (p.includes('islamabad') || p.includes('isb') || p.includes('rawalpindi')) originCity = 'Islamabad';
 
-  // Determine Primary Themes
+  // Determine Primary Themes & Destination Area
+  const hasMingora = p.includes('mingora') || p.includes('saidu') || p.includes('marghuzar');
   const hasSnow = p.includes('snow') || p.includes('ski') || p.includes('malam jabba') || p.includes('winter');
   const hasTrout = p.includes('trout') || p.includes('fish') || p.includes('bahrain') || p.includes('madyan') || p.includes('food');
   const hasAlpine = p.includes('lake') || p.includes('mahodand') || p.includes('kalam') || p.includes('ushu') || p.includes('4x4');
@@ -101,7 +118,10 @@ export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip 
   let theme = 'Scenic Mountain Discovery';
   let title = `${days}-Day Swat Valley Explorer`;
 
-  if (hasSnow && hasAlpine) {
+  if (hasMingora && !hasSnow && !hasAlpine) {
+    theme = 'Mingora Valley & Gandhara Heritage';
+    title = `${days}-Day Mingora Cultural & Valley Discovery`;
+  } else if (hasSnow && hasAlpine) {
     theme = 'Snow Peaks & Alpine Lakes';
     title = `${days}-Day Snow & Alpine Odyssey`;
   } else if (hasSnow) {
@@ -115,19 +135,69 @@ export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip 
     title = `${days}-Day Swati Heritage Discovery`;
   }
 
+  // Generate Highlights
+  const highlights: string[] = [];
+  if (hasMingora && !hasSnow && !hasAlpine) {
+    highlights.push('🏛️ Swat Museum & Butkara Ancient Stupa');
+    highlights.push('🏰 Marghuzar White Palace Tour');
+    highlights.push('🌊 Faza Gat Swat River Walk');
+    highlights.push('🛍️ Mingora Silk & Traditional Bazaar');
+  } else {
+    highlights.push(hasSnow ? '❄️ Malam Jabba Snow & Chairlift' : '🌲 Kalam Valley Alpine Forest');
+    highlights.push('🐟 Fresh Swati River Trout Dining');
+    highlights.push(hasAlpine ? '💎 Mahodand Glacial Lake 4x4 Excursion' : '🏰 Royal White Palace Tour');
+    highlights.push('🚌 Direct M-16 Expressway Transit');
+  }
+
   // Generate Day-by-Day Stops
   const stops: GeneratedAITrip['stops'] = [];
 
-  // Day 1: Arrival & Valley Entrance / Heritage
+  // Day 1: Arrival & Valley Entrance / Heritage / Mingora Hub
   stops.push({
     day_number: 1,
     time_slot: '07:30 AM',
     custom_title: `🚌 Swat Express Luxury Coach: ${originCity} ➔ Mingora`,
     stop_type: 'custom',
-    notes: `VIP Departure via M-16 Swat Expressway. Journey duration ~3.5 hrs. Safe tunnel corridor transit.`,
+    notes: `VIP Departure via M-16 Swat Expressway. Journey duration ~3.5 hrs. Safe tunnel corridor transit to Mingora hub.`,
   });
 
-  if (hasHeritage) {
+  if (hasMingora && !hasSnow && !hasAlpine) {
+    // Family / Budget appropriate hotel for Mingora
+    if (budgetPKR <= 25000) {
+      stops.push({
+        day_number: 1,
+        time_slot: '01:00 PM',
+        custom_title: '🏨 Swat Green Valley / Riverside Inn Mingora Check-in',
+        stop_type: 'listing',
+        notes: 'Comfortable family budget rooms, mountain and river views, warm hospitality, and welcome green tea.',
+      });
+    } else {
+      stops.push({
+        day_number: 1,
+        time_slot: '01:00 PM',
+        custom_title: '🏨 Swat Serena Heritage Hotel Check-in',
+        stop_type: 'listing',
+        notes: 'Rose gardens, luxury heated rooms, and welcome Qahwa.',
+      });
+    }
+
+    stops.push({
+      day_number: 1,
+      time_slot: '03:30 PM',
+      custom_title: '🌳 Faza Gat Riverside Park & River Walk',
+      stop_type: 'destination',
+      notes: 'Scenic family park along the rushing Swat River with children activities and fresh mountain breezes.',
+      destination_name: 'Faza Gat Park',
+    });
+
+    stops.push({
+      day_number: 1,
+      time_slot: '07:30 PM',
+      custom_title: '🍲 Traditional Mingora Trout & BBQ Dinner',
+      stop_type: 'listing',
+      notes: 'Famous Swati pan-fried river trout, spiced Chapli kebabs, and green tea.',
+    });
+  } else if (hasHeritage) {
     stops.push({
       day_number: 1,
       time_slot: '01:30 PM',
@@ -135,6 +205,13 @@ export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip 
       stop_type: 'destination',
       notes: 'Historical 1940s royal white marble residence of Wali of Swat.',
       destination_name: 'White Palace Marghuzar',
+    });
+    stops.push({
+      day_number: 1,
+      time_slot: '07:30 PM',
+      custom_title: '🍲 Swat Trout Palace & BBQ Dinner',
+      stop_type: 'listing',
+      notes: 'Fresh spiced river trout with tandoori naan and green tea.',
     });
   } else {
     stops.push({
@@ -144,19 +221,51 @@ export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip 
       stop_type: 'listing',
       notes: 'Rose gardens, luxury heated rooms, and welcome Qahwa.',
     });
+    stops.push({
+      day_number: 1,
+      time_slot: '07:30 PM',
+      custom_title: '🍲 Swat Trout Palace & BBQ Dinner',
+      stop_type: 'listing',
+      notes: 'Fresh spiced river trout with tandoori naan and green tea.',
+    });
   }
 
-  stops.push({
-    day_number: 1,
-    time_slot: '07:30 PM',
-    custom_title: '🍲 Swat Trout Palace & BBQ Dinner',
-    stop_type: 'listing',
-    notes: 'Fresh spiced river trout with tandoori naan and green tea.',
-  });
-
-  // Day 2: High Elevation Adventure or Snow
+  // Day 2: High Elevation Adventure, Snow, or Mingora & Heritage
   if (days >= 2) {
-    if (hasSnow) {
+    if (hasMingora && !hasSnow && !hasAlpine) {
+      stops.push({
+        day_number: 2,
+        time_slot: '08:30 AM',
+        custom_title: '🏛️ Swat Museum & Ancient Butkara Stupa',
+        stop_type: 'destination',
+        notes: 'World-renowned Gandhara Buddhist art, royal Swati antiquities, and 3rd-century BC Ashokan stupa.',
+        destination_name: 'Swat Museum',
+      });
+      stops.push({
+        day_number: 2,
+        time_slot: '11:30 AM',
+        custom_title: '🏰 Marghuzar White Palace & Royal Springs',
+        stop_type: 'destination',
+        notes: 'Historical 1940s royal white marble palace of Wali of Swat surrounded by verdant mountain scenery.',
+        destination_name: 'White Palace Marghuzar',
+      });
+      stops.push({
+        day_number: 2,
+        time_slot: '03:00 PM',
+        custom_title: '🛍️ Mingora Silk & Traditional Handicrafts Bazaar',
+        stop_type: 'custom',
+        notes: 'Shop for authentic Swati shawls, emerald gemstones, local wild honey, and pure walnut oil.',
+      });
+      if (days === 2) {
+        stops.push({
+          day_number: 2,
+          time_slot: '06:00 PM',
+          custom_title: `🚌 Return Departure: Mingora ➔ ${originCity}`,
+          stop_type: 'custom',
+          notes: `Comfortable return drive via M-16 Swat Expressway corridor back to ${originCity}.`,
+        });
+      }
+    } else if (hasSnow) {
       stops.push({
         day_number: 2,
         time_slot: '08:30 AM',
@@ -190,31 +299,49 @@ export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip 
     }
   }
 
-  // Day 3: Alpine Glacial Lakes or Cedar Forests
+  // Day 3: Alpine Glacial Lakes or Mingora Extension
   if (days >= 3) {
-    stops.push({
-      day_number: 3,
-      time_slot: '08:30 AM',
-      custom_title: '💎 Mahodand & Saifullah Glacial Lakes Excursion',
-      stop_type: 'destination',
-      notes: 'Rugged 4x4 trail through Ushu pine forest to turquoise glacier waters.',
-      destination_name: 'Mahodand Lake',
-    });
-    stops.push({
-      day_number: 3,
-      time_slot: '02:00 PM',
-      custom_title: '🌲 Ushu Forest Riverside Walk & Photography',
-      stop_type: 'destination',
-      notes: 'Dense deodar cedar forest canopy with crystal streams.',
-      destination_name: 'Ushu Forest',
-    });
-    stops.push({
-      day_number: 3,
-      time_slot: '08:00 PM',
-      custom_title: '🔥 Mountain Bonfire & Shinwari Karahi',
-      stop_type: 'custom',
-      notes: 'Starlit alpine dinner with live local rubab music.',
-    });
+    if (hasMingora && !hasSnow && !hasAlpine) {
+      stops.push({
+        day_number: 3,
+        time_slot: '09:00 AM',
+        custom_title: '⛷️ Malam Jabba Chairlift & Mountain Panorama Day Excursion',
+        stop_type: 'destination',
+        notes: 'Excursion up to Malam Jabba peak for chairlift, alpine meadows, and mountain vistas.',
+        destination_name: 'Malam Jabba Ski Resort',
+      });
+      stops.push({
+        day_number: 3,
+        time_slot: '05:00 PM',
+        custom_title: `🚌 Evening Return: Swat ➔ ${originCity}`,
+        stop_type: 'custom',
+        notes: `Scenic return drive via M-16 Swat Expressway back to ${originCity}.`,
+      });
+    } else {
+      stops.push({
+        day_number: 3,
+        time_slot: '08:30 AM',
+        custom_title: '💎 Mahodand & Saifullah Glacial Lakes Excursion',
+        stop_type: 'destination',
+        notes: 'Rugged 4x4 trail through Ushu pine forest to turquoise glacier waters.',
+        destination_name: 'Mahodand Lake',
+      });
+      stops.push({
+        day_number: 3,
+        time_slot: '02:00 PM',
+        custom_title: '🌲 Ushu Forest Riverside Walk & Photography',
+        stop_type: 'destination',
+        notes: 'Dense deodar cedar forest canopy with crystal streams.',
+        destination_name: 'Ushu Forest',
+      });
+      stops.push({
+        day_number: 3,
+        time_slot: '08:00 PM',
+        custom_title: '🔥 Mountain Bonfire & Shinwari Karahi',
+        stop_type: 'custom',
+        notes: 'Starlit alpine dinner with live local rubab music.',
+      });
+    }
   }
 
   // Day 4+: Additional days extension
@@ -235,12 +362,7 @@ export function parseAndGenerateTripFromPrompt(prompt: string): GeneratedAITrip 
     budgetPKR,
     originCity,
     theme,
-    highlights: [
-      hasSnow ? '❄️ Malam Jabba Snow & Chairlift' : '🌲 Kalam Valley Alpine Forest',
-      '🐟 Fresh Swati River Trout Dining',
-      hasAlpine ? '💎 Mahodand Glacial Lake 4x4 Excursion' : '🏰 Royal White Palace Tour',
-      '🚌 Direct M-16 Expressway Transit',
-    ],
+    highlights,
     stops,
   };
 }
@@ -471,6 +593,43 @@ const CONCIERGE_KB: ConciergeAnswer[] = [
 
 export function queryTouristAIConcierge(userQuery: string): ConciergeAnswer {
   const q = userQuery.toLowerCase().trim();
+
+  // 1. Detect trip planning / itinerary requests
+  const isTripPlanQuery =
+    (q.includes('trip') || q.includes('itinerary') || q.includes('plan') || q.includes('tour') || q.includes('getaway')) &&
+    (/\b\d+\s*(?:day|days|d)\b/i.test(q) || q.includes('weekend') || q.includes('family') || q.includes('pkr') || q.includes('under') || q.includes('mingora') || q.includes('kalam') || q.includes('swat') || q.includes('malam'));
+
+  if (isTripPlanQuery) {
+    const plan = parseAndGenerateTripFromPrompt(userQuery);
+    const day1Stops = plan.stops
+      .filter((s) => s.day_number === 1)
+      .map((s) => s.custom_title.replace(/^[^\w\s]+/, '').trim())
+      .slice(0, 3)
+      .join(' ➔ ');
+    const day2Stops = plan.stops
+      .filter((s) => s.day_number === 2)
+      .map((s) => s.custom_title.replace(/^[^\w\s]+/, '').trim())
+      .slice(0, 3)
+      .join(' ➔ ');
+
+    const summaryParts = [
+      `✨ Created ${plan.days}-Day Itinerary: "${plan.title}"`,
+      `• Travelers: ${plan.travellers} (${plan.originCity})`,
+      `• Estimated Budget: ~PKR ${plan.budgetPKR.toLocaleString()}`,
+      `• Day 1: ${day1Stops}`,
+      day2Stops ? `• Day 2: ${day2Stops}` : null,
+      `• Highlights: ${plan.highlights.join(' • ')}`,
+      `\nReady to save this trip? Click below to load it into the 1-Prompt Trip Builder!`,
+    ].filter(Boolean);
+
+    return {
+      question: userQuery,
+      answer: summaryParts.join('\n'),
+      category: 'culture',
+      quickActionText: '⚡ Open & Save AI Trip Itinerary',
+      quickActionTab: 'ai-trip-plan',
+    };
+  }
 
   for (const item of CONCIERGE_KB) {
     const keywords = item.question.split(' ');

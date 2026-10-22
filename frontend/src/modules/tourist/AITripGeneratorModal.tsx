@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, Calendar, Users, DollarSign, X, Loader2 } from 'lucide-react';
 import { Button } from '../../design/Button';
 import { Tag } from '../../design/Tag';
@@ -11,9 +11,13 @@ export interface AITripGeneratorModalProps {
   onCreateTrip: (tripData: any) => Promise<Trip | void>;
   onTripCreated?: (trip: Trip) => void;
   showToast?: (msg: string) => void;
+  initialPrompt?: string;
 }
 
+const DEFAULT_PROMPT = '3-day family trip from Islamabad, under 60k PKR, snow in Malam Jabba and riverside trout';
+
 const SAMPLE_PROMPTS = [
+  '2-day family trip from Islamabad, under 20k PKR, Mingora',
   '3-day family trip from Islamabad, under 60k PKR, snow in Malam Jabba and riverside trout',
   '2-day weekend romantic getaway to Bahrain with luxury hotel and scenic river walks',
   '4-day high alpine adventure: Kalam, Mahodand Lake 4x4 trail and cedar forest camping',
@@ -26,17 +30,44 @@ export const AITripGeneratorModal: React.FC<AITripGeneratorModalProps> = ({
   onCreateTrip,
   onTripCreated,
   showToast,
+  initialPrompt,
 }) => {
-  const [promptText, setPromptText] = useState(
-    '3-day family trip from Islamabad, under 60k PKR, snow in Malam Jabba and riverside trout'
-  );
+  const [promptText, setPromptText] = useState(initialPrompt || DEFAULT_PROMPT);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [generatedTrip, setGeneratedTrip] = useState<GeneratedAITrip | null>(() =>
-    parseAndGenerateTripFromPrompt(
-      '3-day family trip from Islamabad, under 60k PKR, snow in Malam Jabba and riverside trout'
-    )
+    parseAndGenerateTripFromPrompt(initialPrompt || DEFAULT_PROMPT)
   );
+
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync when initialPrompt or modal open state changes
+  useEffect(() => {
+    if (isOpen) {
+      const activePrompt = initialPrompt?.trim() || promptText.trim() || DEFAULT_PROMPT;
+      setPromptText(activePrompt);
+      setGeneratedTrip(parseAndGenerateTripFromPrompt(activePrompt));
+    }
+  }, [isOpen, initialPrompt]);
+
+  // Debounced auto-generation as user types (300ms)
+  useEffect(() => {
+    if (!promptText.trim()) return;
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      const plan = parseAndGenerateTripFromPrompt(promptText.trim());
+      setGeneratedTrip(plan);
+      setIsGenerating(false);
+    }, 280);
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [promptText]);
 
   if (!isOpen) return null;
 
@@ -46,35 +77,33 @@ export const AITripGeneratorModal: React.FC<AITripGeneratorModalProps> = ({
       const gen = parseAndGenerateTripFromPrompt(text);
       setGeneratedTrip(gen);
       setIsGenerating(false);
-    }, 400);
+    }, 200);
   };
 
   const handleConfirmCreate = async () => {
-    if (!generatedTrip) return;
+    // Guarantee plan is synthesized from latest promptText
+    const planToSave = parseAndGenerateTripFromPrompt(promptText.trim() || DEFAULT_PROMPT);
     setIsCreating(true);
     try {
       const today = new Date();
       const end = new Date();
-      end.setDate(today.getDate() + generatedTrip.days);
+      end.setDate(today.getDate() + planToSave.days);
 
       const created = await onCreateTrip({
-        title: generatedTrip.title,
-        travellers: generatedTrip.travellers,
+        title: planToSave.title,
+        travellers: planToSave.travellers,
         start_date: today.toISOString().split('T')[0],
         end_date: end.toISOString().split('T')[0],
-        estimated_total: generatedTrip.budgetPKR,
+        estimated_total: planToSave.budgetPKR,
         status: 'planned',
-        stops: generatedTrip.stops.map((s, idx) => ({
-          id: `stop-ai-${Date.now()}-${idx}`,
-          trip_id: 'pending',
+        stops: planToSave.stops.map((s, idx) => ({
           day_number: s.day_number,
           stop_order: idx + 1,
           time_slot: s.time_slot,
           stop_type: s.stop_type,
           custom_title: s.custom_title,
           notes: s.notes,
-          created_at: new Date().toISOString(),
-        })) as any,
+        })),
       });
 
       if (created) {
@@ -83,7 +112,7 @@ export const AITripGeneratorModal: React.FC<AITripGeneratorModalProps> = ({
           stops:
             created.stops && created.stops.length > 0
               ? created.stops
-              : generatedTrip.stops.map((s, idx) => ({
+              : planToSave.stops.map((s, idx) => ({
                   id: `stop-ai-${Date.now()}-${idx}`,
                   trip_id: created.id,
                   day_number: s.day_number,

@@ -15,11 +15,13 @@ export interface TouristAIAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigateTab?: (tab: string) => void;
+  onOpenTripPlan?: (prompt: string) => void;
   touristName?: string;
   touristPhone?: string;
 }
 
 const FREQUENT_QUESTIONS = [
+  '2-day family trip from Islamabad, under 20k PKR, Mingora',
   'Can a sedan car reach Kalam?',
   'What is Swati trout fish & how is it cooked?',
   'Do verified hotels have room heating in winter?',
@@ -31,6 +33,7 @@ export const TouristAIAssistantModal: React.FC<TouristAIAssistantModalProps> = (
   isOpen,
   onClose,
   onNavigateTab,
+  onOpenTripPlan,
   touristName = 'Tourist Guest',
   touristPhone = '+92-300-1234567',
 }) => {
@@ -39,7 +42,7 @@ export const TouristAIAssistantModal: React.FC<TouristAIAssistantModalProps> = (
   const [isListening, setIsListening] = useState(false);
   const [copied, setCopied] = useState(false);
   const [conversation, setConversation] = useState<
-    Array<{ sender: 'user' | 'ai'; text: string; actionText?: string; actionTab?: string }>
+    Array<{ sender: 'user' | 'ai'; text: string; actionText?: string; actionTab?: string; originPrompt?: string }>
   >([
     {
       sender: 'ai',
@@ -60,6 +63,7 @@ export const TouristAIAssistantModal: React.FC<TouristAIAssistantModalProps> = (
       text: ans.answer,
       actionText: ans.quickActionText,
       actionTab: ans.quickActionTab,
+      originPrompt: text,
     };
 
     setConversation((prev) => [...prev, userEntry, aiEntry]);
@@ -294,11 +298,15 @@ export const TouristAIAssistantModal: React.FC<TouristAIAssistantModalProps> = (
                     <button
                       type="button"
                       onClick={() => {
-                        if (msg.actionTab && onNavigateTab) {
+                        if (msg.actionTab === 'ai-trip-plan' && onOpenTripPlan) {
+                          onOpenTripPlan(msg.originPrompt || '2-day family trip from Islamabad, under 20k PKR, Mingora');
+                          onClose();
+                        } else if (msg.actionTab && onNavigateTab) {
                           onNavigateTab(msg.actionTab);
                           onClose();
                         }
                       }}
+                      data-testid="btn-ai-quick-action"
                       style={{
                         fontSize: '11px',
                         fontWeight: 700,
