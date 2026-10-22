@@ -31,6 +31,7 @@ import {
   Sparkles,
   ArrowLeft,
   Check,
+  Search,
 } from 'lucide-react';
 import type { Trip, TripStop } from '../../api/trips';
 import type { Booking, CancellationPreview } from '../../api/bookings';
@@ -278,6 +279,8 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
   const [customTimeSlot, setCustomTimeSlot] = useState('09:00 AM');
   const [customNotes, setCustomNotes] = useState('');
   const [modalCategory, setModalCategory] = useState<'hotel' | 'transport' | 'guide' | 'custom'>('hotel');
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
+  const [modalAreaFilter, setModalAreaFilter] = useState('all');
   const [addingListingId, setAddingListingId] = useState<string | null>(null);
   const [addedSuccessMsg, setAddedSuccessMsg] = useState<string | null>(null);
   const [fleetVersion, setFleetVersion] = useState(0);
@@ -459,10 +462,78 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
   const transportListings = useMemo(() => allListings.filter((l) => l.type_code === 'transport'), [allListings]);
   const guideListings = useMemo(() => allListings.filter((l) => l.type_code === 'guide'), [allListings]);
 
+  // Filtered listings for the Add Service Modal
+  const filteredHotelListings = useMemo(() => {
+    return hotelListings.filter((hotel) => {
+      if (modalAreaFilter !== 'all' && (hotel.area_name || '').toLowerCase() !== modalAreaFilter.toLowerCase()) {
+        return false;
+      }
+      if (!modalSearchQuery.trim()) return true;
+      const q = modalSearchQuery.toLowerCase().trim();
+      const titleMatch = (hotel.title || '').toLowerCase().includes(q);
+      const descMatch = (hotel.description || '').toLowerCase().includes(q);
+      const areaMatch = (hotel.area_name || '').toLowerCase().includes(q);
+      const addressMatch = (hotel.address_text || '').toLowerCase().includes(q);
+      const roomsMatch = (hotel.price_items || []).some((r) =>
+        (r.name || '').toLowerCase().includes(q) || String(r.price || '').includes(q)
+      );
+      return titleMatch || descMatch || areaMatch || addressMatch || roomsMatch;
+    });
+  }, [hotelListings, modalSearchQuery, modalAreaFilter]);
+
+  const filteredTransportListings = useMemo(() => {
+    return transportListings.filter((trans) => {
+      if (modalAreaFilter !== 'all' && (trans.area_name || '').toLowerCase() !== modalAreaFilter.toLowerCase()) {
+        return false;
+      }
+      if (!modalSearchQuery.trim()) return true;
+      const q = modalSearchQuery.toLowerCase().trim();
+      const titleMatch = (trans.title || '').toLowerCase().includes(q);
+      const descMatch = (trans.description || '').toLowerCase().includes(q);
+      const areaMatch = (trans.area_name || '').toLowerCase().includes(q);
+      const driverMatch = (trans.details?.driver_name || '').toLowerCase().includes(q);
+      const regMatch = (trans.details?.registration_no || '').toLowerCase().includes(q);
+      const catMatch = (trans.details?.category || '').toLowerCase().includes(q);
+      return titleMatch || descMatch || areaMatch || driverMatch || regMatch || catMatch;
+    });
+  }, [transportListings, modalSearchQuery, modalAreaFilter]);
+
+  const filteredGuideListings = useMemo(() => {
+    return guideListings.filter((guide) => {
+      if (modalAreaFilter !== 'all' && (guide.area_name || '').toLowerCase() !== modalAreaFilter.toLowerCase()) {
+        return false;
+      }
+      if (!modalSearchQuery.trim()) return true;
+      const q = modalSearchQuery.toLowerCase().trim();
+      const titleMatch = (guide.title || '').toLowerCase().includes(q);
+      const descMatch = (guide.description || '').toLowerCase().includes(q);
+      const areaMatch = (guide.area_name || '').toLowerCase().includes(q);
+      return titleMatch || descMatch || areaMatch;
+    });
+  }, [guideListings, modalSearchQuery, modalAreaFilter]);
+
+  const currentAvailableAreas = useMemo(() => {
+    const list =
+      modalCategory === 'hotel'
+        ? hotelListings
+        : modalCategory === 'transport'
+        ? transportListings
+        : guideListings;
+    const areas = new Set<string>();
+    list.forEach((item) => {
+      if (item.area_name && item.area_name.trim()) {
+        areas.add(item.area_name.trim());
+      }
+    });
+    return Array.from(areas).sort();
+  }, [modalCategory, hotelListings, transportListings, guideListings]);
+
   const handleOpenAddModal = (day: number, category: 'hotel' | 'transport' | 'guide' | 'custom' = 'hotel') => {
     setCustomDay(day);
     setCustomEndDay(category === 'hotel' ? (day < (daysList.length || 3) ? day + 1 : day) : undefined);
     setModalCategory(category);
+    setModalSearchQuery('');
+    setModalAreaFilter('all');
     setShowAddCustomModal(true);
   };
 
@@ -2998,7 +3069,11 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
             >
               <button
                 type="button"
-                onClick={() => setModalCategory('hotel')}
+                onClick={() => {
+                  setModalCategory('hotel');
+                  setModalSearchQuery('');
+                  setModalAreaFilter('all');
+                }}
                 style={{
                   padding: '9px 6px',
                   borderRadius: '9px',
@@ -3022,7 +3097,11 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => setModalCategory('transport')}
+                onClick={() => {
+                  setModalCategory('transport');
+                  setModalSearchQuery('');
+                  setModalAreaFilter('all');
+                }}
                 style={{
                   padding: '9px 6px',
                   borderRadius: '9px',
@@ -3046,7 +3125,11 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => setModalCategory('guide')}
+                onClick={() => {
+                  setModalCategory('guide');
+                  setModalSearchQuery('');
+                  setModalAreaFilter('all');
+                }}
                 style={{
                   padding: '9px 6px',
                   borderRadius: '9px',
@@ -3070,7 +3153,11 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
 
               <button
                 type="button"
-                onClick={() => setModalCategory('custom')}
+                onClick={() => {
+                  setModalCategory('custom');
+                  setModalSearchQuery('');
+                  setModalAreaFilter('all');
+                }}
                 style={{
                   padding: '9px 6px',
                   borderRadius: '9px',
@@ -3093,6 +3180,158 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
               </button>
             </div>
 
+            {/* Search Box & Location Filter (Hotels, Transport, Guides) */}
+            {modalCategory !== 'custom' && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <div
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Search
+                    size={16}
+                    color="var(--pri)"
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                  <input
+                    type="text"
+                    id="modal-service-search-input"
+                    data-testid="modal-service-search-input"
+                    value={modalSearchQuery}
+                    onChange={(e) => setModalSearchQuery(e.target.value)}
+                    placeholder={
+                      modalCategory === 'hotel'
+                        ? 'Search hotel name, location (e.g. Kalam, Mingora, Serena), room types...'
+                        : modalCategory === 'transport'
+                        ? 'Search vehicle model, 4x4, Prado, Hiace, driver name, plate #, or area...'
+                        : 'Search mountain guides, trekking, cultural experts, or areas...'
+                    }
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '10px 38px 10px 36px',
+                      borderRadius: '10px',
+                      border: '1.5px solid rgba(27, 79, 114, 0.22)',
+                      backgroundColor: '#FFFFFF',
+                      fontSize: '12.5px',
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                      outline: 'none',
+                      boxShadow: '0 2px 6px rgba(18, 50, 74, 0.04)',
+                      transition: 'border-color 0.15s ease',
+                    }}
+                  />
+                  {modalSearchQuery && (
+                    <button
+                      type="button"
+                      id="btn-clear-service-search"
+                      data-testid="btn-clear-service-search"
+                      onClick={() => setModalSearchQuery('')}
+                      aria-label="Clear search"
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--mute)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Area Filter Pills & Results Count */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '6px',
+                    fontSize: '11px',
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--mute)', fontWeight: 700, marginRight: '2px' }}>
+                      Location:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setModalAreaFilter('all')}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: modalAreaFilter === 'all' ? '1px solid var(--pri)' : '1px solid var(--line)',
+                        backgroundColor: modalAreaFilter === 'all' ? 'rgba(27, 79, 114, 0.12)' : '#FFFFFF',
+                        color: modalAreaFilter === 'all' ? 'var(--pri)' : 'var(--ink)',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                      data-testid="pill-area-all"
+                    >
+                      All ({modalCategory === 'hotel' ? hotelListings.length : modalCategory === 'transport' ? transportListings.length : guideListings.length})
+                    </button>
+                    {currentAvailableAreas.map((area) => (
+                      <button
+                        key={area}
+                        type="button"
+                        onClick={() => setModalAreaFilter(area)}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          border: modalAreaFilter === area ? '1px solid var(--pri)' : '1px solid var(--line)',
+                          backgroundColor: modalAreaFilter === area ? 'rgba(27, 79, 114, 0.12)' : '#FFFFFF',
+                          color: modalAreaFilter === area ? 'var(--pri)' : 'var(--ink)',
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                        data-testid={`pill-area-${area.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        {area}
+                      </button>
+                    ))}
+                  </div>
+
+                  <span style={{ color: 'var(--mute)', fontWeight: 600 }}>
+                    Showing{' '}
+                    <strong style={{ color: 'var(--ink)' }}>
+                      {modalCategory === 'hotel'
+                        ? filteredHotelListings.length
+                        : modalCategory === 'transport'
+                        ? filteredTransportListings.length
+                        : filteredGuideListings.length}
+                    </strong>{' '}
+                    {modalCategory === 'hotel'
+                      ? 'hotel(s)'
+                      : modalCategory === 'transport'
+                      ? 'vehicle(s)'
+                      : 'guide(s)'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* TAB 1: HOTELS & STAYS */}
             {modalCategory === 'hotel' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -3105,7 +3344,46 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
                   </span>
                 </div>
 
-                {hotelListings.map((hotel) => {
+                {filteredHotelListings.length === 0 ? (
+                  <div
+                    style={{
+                      padding: '28px 16px',
+                      textAlign: 'center',
+                      backgroundColor: '#F8FAFD',
+                      borderRadius: '12px',
+                      border: '1.5px dashed rgba(27, 79, 114, 0.2)',
+                    }}
+                    data-testid="no-hotels-found"
+                  >
+                    <Search size={28} color="var(--mute)" style={{ margin: '0 auto 8px' }} />
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', marginBottom: '4px' }}>
+                      No hotels match your search "{modalSearchQuery}"
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--mute)', marginBottom: '12px' }}>
+                      Try searching another name or location, or reset filters to see all available hotels.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setModalSearchQuery('');
+                        setModalAreaFilter('all');
+                      }}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--pri)',
+                        color: '#FFFFFF',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Clear Search & Filters
+                    </button>
+                  </div>
+                ) : (
+                  filteredHotelListings.map((hotel) => {
                   const rooms: PriceItem[] = (hotel.price_items && hotel.price_items.length > 0)
                     ? hotel.price_items
                     : [
@@ -3237,7 +3515,7 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
                       </div>
                     </div>
                   );
-                })}
+                }))}
               </div>
             )}
 
@@ -3247,15 +3525,39 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
                 <span style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 600 }}>
                   Hire 4x4 Jeeps & mountain transport for Day {customDay}:
                 </span>
-                {transportListings.length === 0 ? (
+                {filteredTransportListings.length === 0 ? (
                   <div style={{ padding: '24px', textAlign: 'center', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
                     <Car size={32} color="#0284C7" style={{ margin: '0 auto 8px auto', display: 'block' }} />
                     <p style={{ margin: 0, fontSize: 'var(--font-sm)', fontWeight: 600, color: 'var(--ink)' }}>
-                      No vehicles currently available for booking
+                      {modalSearchQuery || modalAreaFilter !== 'all'
+                        ? `No transport vehicles match "${modalSearchQuery || modalAreaFilter}"`
+                        : 'No vehicles currently available for booking'}
                     </p>
+                    {(modalSearchQuery || modalAreaFilter !== 'all') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModalSearchQuery('');
+                          setModalAreaFilter('all');
+                        }}
+                        style={{
+                          marginTop: '10px',
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          backgroundColor: '#0284C7',
+                          color: '#FFFFFF',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Show All Transport
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  transportListings.map((trans) => {
+                  filteredTransportListings.map((trans) => {
                     const priceItem = trans.price_items?.[0];
                     const unitLabel = priceItem?.unit ? priceItem.unit.replace('per_', '') : 'day';
                     const priceText = priceItem
@@ -3355,7 +3657,39 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
                 <span style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 600 }}>
                   Hire licensed local mountain & heritage guides for Day {customDay}:
                 </span>
-                {guideListings.map((guide) => {
+                {filteredGuideListings.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
+                    <Users size={32} color="#0D9488" style={{ margin: '0 auto 8px auto', display: 'block' }} />
+                    <p style={{ margin: 0, fontSize: 'var(--font-sm)', fontWeight: 600, color: 'var(--ink)' }}>
+                      {modalSearchQuery || modalAreaFilter !== 'all'
+                        ? `No guides match "${modalSearchQuery || modalAreaFilter}"`
+                        : 'No guides currently available'}
+                    </p>
+                    {(modalSearchQuery || modalAreaFilter !== 'all') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setModalSearchQuery('');
+                          setModalAreaFilter('all');
+                        }}
+                        style={{
+                          marginTop: '10px',
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          backgroundColor: '#0D9488',
+                          color: '#FFFFFF',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Show All Guides
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  filteredGuideListings.map((guide) => {
                   const priceItem = guide.price_items?.[0];
                   const priceText = priceItem
                     ? `PKR ${priceItem.price.toLocaleString()} / day`
@@ -3416,7 +3750,7 @@ export const TripManagerView: React.FC<TripManagerViewProps> = ({
                       </div>
                     </div>
                   );
-                })}
+                }))}
               </div>
             )}
 

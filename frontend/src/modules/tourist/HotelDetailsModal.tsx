@@ -22,6 +22,7 @@ import {
   AlertCircle,
   BookmarkCheck,
   ArrowRight,
+  Search,
 } from 'lucide-react';
 import { Tag } from '../../design/Tag';
 import { Button } from '../../design/Button';
@@ -70,6 +71,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
 
   // Selected room state
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
+  const [roomSearchQuery, setRoomSearchQuery] = useState<string>('');
 
   // Live availability state
   const [availabilityData, setAvailabilityData] = useState<AvailabilityRecord[]>([]);
@@ -128,6 +130,17 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
       setSelectedRoomId(rooms[0].id || '');
     }
   }, [rooms, selectedRoomId]);
+
+  const filteredRooms = useMemo(() => {
+    if (!roomSearchQuery.trim()) return rooms;
+    const q = roomSearchQuery.toLowerCase().trim();
+    return rooms.filter(
+      (r) =>
+        (r.name || '').toLowerCase().includes(q) ||
+        (r.description || '').toLowerCase().includes(q) ||
+        String(r.price || '').includes(q)
+    );
+  }, [rooms, roomSearchQuery]);
 
   // Calculate nights
   const nightsCount = useMemo(() => {
@@ -764,18 +777,79 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     </div>
                   )}
 
-                  {/* ROOMS LIST WITH DIRECT CHOICE */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                  {/* ROOMS LIST WITH DIRECT CHOICE & SEARCH */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap', gap: '8px' }}>
                     <p style={{ margin: 0, fontSize: 'var(--font-sm)', color: 'var(--ink)', fontWeight: 600 }}>
                       Available Room Types at {hotel.title}:
                     </p>
-                    <span style={{ fontSize: '11px', color: 'var(--mute)' }}>
-                      Click a room card to select it for your stay
-                    </span>
+                    <div style={{ position: 'relative', width: '220px' }}>
+                      <Search size={14} color="var(--mute)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input
+                        type="text"
+                        value={roomSearchQuery}
+                        onChange={(e) => setRoomSearchQuery(e.target.value)}
+                        placeholder="Search rooms..."
+                        data-testid="input-search-hotel-rooms"
+                        style={{
+                          width: '100%',
+                          padding: '6px 28px 6px 30px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--line)',
+                          fontSize: '11.5px',
+                          backgroundColor: 'var(--card)',
+                          color: 'var(--ink)',
+                          outline: 'none',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      {roomSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setRoomSearchQuery('')}
+                          style={{
+                            position: 'absolute',
+                            right: '6px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--mute)',
+                            cursor: 'pointer',
+                            padding: '2px',
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {rooms.map((room) => {
+                    {filteredRooms.length === 0 ? (
+                      <div style={{ padding: '24px', textAlign: 'center', backgroundColor: '#F8FAFC', borderRadius: '10px', border: '1px dashed var(--line)' }}>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--mute)' }}>
+                          No room types match "{roomSearchQuery}".
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setRoomSearchQuery('')}
+                          style={{
+                            marginTop: '8px',
+                            padding: '4px 10px',
+                            borderRadius: '6px',
+                            backgroundColor: 'var(--pri)',
+                            color: '#FFFFFF',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Show All Rooms
+                        </button>
+                      </div>
+                    ) : (
+                      filteredRooms.map((room) => {
                       const rMeta = roomsInfo[room.name] || {};
                       const capacity = room.capacity || rMeta.capacity || 2;
                       const beds = rMeta.beds || (capacity > 2 ? '2 Queen Beds' : '1 King Bed');
@@ -975,7 +1049,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           </div>
                         </div>
                       );
-                    })}
+                    }))}
                   </div>
 
                   {/* SPECIAL REQUESTS (OPTIONAL) */}

@@ -111,4 +111,127 @@ describe('Hotel Room Selection Flow', () => {
     expect(stopCall.custom_title).toBe('Swat Serena Hotel, Mingora - Heritage Presidential Suite');
     expect(stopCall.day_number).toBe(1);
   });
+
+  it('filters hotel rooms using search box in HotelDetailsModal', () => {
+    render(
+      <HotelDetailsModal
+        hotel={mockHotel}
+        onClose={() => {}}
+        onAddRoomToTrip={() => {}}
+      />
+    );
+
+    const roomSearchInput = screen.getByTestId('input-search-hotel-rooms');
+    expect(roomSearchInput).toBeDefined();
+
+    // Search for "Presidential"
+    fireEvent.change(roomSearchInput, { target: { value: 'Presidential' } });
+    expect(screen.getByText('Heritage Presidential Suite')).toBeDefined();
+    expect(screen.queryByText('Standard Twin Room')).toBeNull();
+
+    // Search for non-existent room
+    fireEvent.change(roomSearchInput, { target: { value: 'Penthouse Underwater' } });
+    expect(screen.getByText(/No room types match "Penthouse Underwater"/i)).toBeDefined();
+
+    // Click Show All Rooms
+    fireEvent.click(screen.getByText('Show All Rooms'));
+    expect(screen.getByText('Standard Twin Room')).toBeDefined();
+  });
+
+  it('filters hotel, transport, and guide listings using the itinerary add modal search box and location pills', async () => {
+    const mockTransport: ListingItem = {
+      id: 'trans-prado',
+      business_id: 'biz-trans',
+      business_name: 'Swat Jeep Rentals',
+      type_id: 'type-trans',
+      type_code: 'transport',
+      type_label: '4x4 Transport',
+      area_name: 'Kalam',
+      title: 'Kalam 4x4 Luxury Prado Cruiser',
+      description: 'Mountain capable 4x4 cruiser with chauffeur',
+      details: { driver_name: 'Sher Alam Khan', registration_no: 'SWT-7788' } as any,
+      price_items: [{ id: 'p-1', name: 'Full Day Hire', price: 14000, unit: 'per_day', is_bookable: true }],
+    };
+
+    const mockGuide: ListingItem = {
+      id: 'guide-1',
+      business_id: 'biz-guide',
+      business_name: 'Swat Trek Guides',
+      type_id: 'type-guide',
+      type_code: 'guide',
+      type_label: 'Tour Guide',
+      area_name: 'Malam Jabba',
+      title: 'Tariq Khan - Certified Mountain Guide',
+      description: 'Expert Alpine climbing & hiking guide',
+      price_items: [{ id: 'g-1', name: 'Guide Service', price: 4000, unit: 'per_day', is_bookable: true }],
+    };
+
+    const mockTrip: Trip = {
+      id: 'trip-1',
+      tourist_id: 'tourist-1',
+      title: 'Swat Discovery Trip',
+      travellers: 2,
+      status: 'planned',
+      estimated_total: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      stops: [],
+    };
+
+    render(
+      <TripManagerView
+        trip={mockTrip}
+        bookings={[]}
+        availableListings={[mockHotel, mockTransport, mockGuide]}
+        onUpdateTrip={async () => {}}
+        onRemoveStop={async () => {}}
+        onAddCustomStop={async () => {}}
+        onWithdrawBooking={async () => {}}
+        onCancelBooking={async () => {}}
+        onRemoveBooking={async () => {}}
+        onPayBooking={async () => {}}
+        onPayEntireTrip={async () => {}}
+      />
+    );
+
+    // Open add modal on Day 1
+    const addHotelBtn = screen.getByTestId('btn-add-hotel-day-1');
+    fireEvent.click(addHotelBtn);
+
+    // 1. Verify Search Box in Hotel tab
+    const searchInput = screen.getByTestId('modal-service-search-input');
+    expect(searchInput).toBeDefined();
+
+    // Type "Serena"
+    fireEvent.change(searchInput, { target: { value: 'Serena' } });
+    expect(screen.getByText('Swat Serena Hotel, Mingora')).toBeDefined();
+
+    // Type non-matching query
+    fireEvent.change(searchInput, { target: { value: 'NonExistentResort' } });
+    expect(screen.getByTestId('no-hotels-found')).toBeDefined();
+    expect(screen.getByText(/No hotels match your search "NonExistentResort"/i)).toBeDefined();
+
+    // Clear search
+    fireEvent.click(screen.getByText('Clear Search & Filters'));
+    expect(screen.getByText('Swat Serena Hotel, Mingora')).toBeDefined();
+
+    // 2. Switch to Transport tab and verify search
+    const transportTab = screen.getByTestId('modal-tab-transport');
+    fireEvent.click(transportTab);
+
+    expect(screen.getByTestId('modal-service-search-input')).toBeDefined();
+    expect(screen.getByText('Kalam 4x4 Luxury Prado Cruiser')).toBeDefined();
+
+    // Search by driver name
+    fireEvent.change(screen.getByTestId('modal-service-search-input'), { target: { value: 'Sher Alam' } });
+    expect(screen.getByText('Kalam 4x4 Luxury Prado Cruiser')).toBeDefined();
+
+    // 3. Switch to Guides tab and verify search
+    const guideTab = screen.getByTestId('modal-tab-guides');
+    fireEvent.click(guideTab);
+
+    expect(screen.getByText('Tariq Khan - Certified Mountain Guide')).toBeDefined();
+    fireEvent.change(screen.getByTestId('modal-service-search-input'), { target: { value: 'Tariq' } });
+    expect(screen.getByText('Tariq Khan - Certified Mountain Guide')).toBeDefined();
+  });
 });
