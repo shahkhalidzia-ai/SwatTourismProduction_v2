@@ -424,9 +424,41 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     }
     return sum;
   }, 0);
-  const totalInHouseGuests = displayedRequests.filter((b) => {
+  const getBookingStayState = (b: BookingRow): 'reserved' | 'checked_in' | 'checked_out' => {
     const bKey = b.id || b.reference;
-    return stayStateMap[bKey] === 'checked_in';
+    const raw = stayStateMap[bKey] || (b.id ? stayStateMap[b.id] : undefined) || (b.reference ? stayStateMap[b.reference] : undefined);
+    if (raw === 'checked_out') return 'checked_out';
+    if (raw === 'checked_in') return 'checked_in';
+
+    // Find assigned physical room
+    const assigned = physicalRooms.find(
+      (r) =>
+        r.current_booking_id === b.id ||
+        r.current_booking_id === b.reference ||
+        r.id === (b as any).assigned_room_id ||
+        r.room_number === (b as any).assigned_room_number
+    );
+
+    if (assigned?.status === 'occupied') return 'checked_in';
+
+    // Check financial settlement
+    const rawAmt = Number(b.rawAmount) || 0;
+    const isPaid = (b as any).payment_status === 'full_paid' || (b as any).payment_status === 'paid' || b.status === 'completed';
+    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
+    const depAmt = (b as any).deposit_amount || (isPaid ? rawAmt : (isDep ? Math.round(rawAmt * 0.25) : 0));
+    const isBalanceCollected = Boolean(collectedBalanceMap[bKey] || (b.id && collectedBalanceMap[b.id]) || (b.reference && collectedBalanceMap[b.reference]));
+    const balanceDue = isPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depAmt);
+
+    // If a room is assigned and balance is settled (or paid in full), guest is in-house
+    if (assigned && (balanceDue === 0 || isPaid || (b as any).payment_status === 'paid' || (b as any).payment_status === 'full_paid')) {
+      return 'checked_in';
+    }
+
+    return 'reserved';
+  };
+
+  const totalInHouseGuests = displayedRequests.filter((b) => {
+    return getBookingStayState(b) === 'checked_in';
   }).length;
 
   const requestsCount = displayedRequests.filter((b) => {
@@ -438,18 +470,18 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   const arrivalsCount = displayedRequests.filter((b) => {
     const bKey = b.id || b.reference;
     const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
-    const isConf = effStatus === 'confirmed';
-    return isConf && stayStateMap[bKey] !== 'checked_in' && stayStateMap[bKey] !== 'checked_out';
+    const isConf = effStatus === 'confirmed' || effStatus === 'accepted';
+    const st = getBookingStayState(b);
+    return isConf && st !== 'checked_in' && st !== 'checked_out';
   }).length;
 
   const inHouseCount = displayedRequests.filter((b) => {
-    const bKey = b.id || b.reference;
-    return stayStateMap[bKey] === 'checked_in';
+    return getBookingStayState(b) === 'checked_in';
   }).length;
 
   const departuresCount = displayedRequests.filter((b) => {
-    const bKey = b.id || b.reference;
-    return stayStateMap[bKey] === 'checked_in' || stayStateMap[bKey] === 'checked_out';
+    const st = getBookingStayState(b);
+    return st === 'checked_in' || st === 'checked_out';
   }).length;
 
   const ledgerPendingCount = displayedRequests.filter((b) => {
@@ -461,9 +493,9 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   const frontDeskBookings = displayedRequests.filter((b) => {
     const bKey = b.id || b.reference;
-    const st = stayStateMap[bKey] || 'reserved';
+    const st = getBookingStayState(b);
     const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
-    const isConf = effStatus === 'confirmed' || effStatus === 'completed';
+    const isConf = effStatus === 'confirmed' || effStatus === 'completed' || effStatus === 'accepted';
     const isReq = effStatus === 'requested' || effStatus === 'pending';
 
     if (frontDeskFilter === 'requests') {
@@ -849,7 +881,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
               const bKey = booking.id || booking.reference;
               const effStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
               const isPendingOrRequested = effStatus === 'requested' || effStatus === 'pending';
-              const stayState = stayStateMap[bKey] || 'reserved';
+              const stayState = getBookingStayState(booking);
               const rawAmt = Number(booking.rawAmount) || 24000;
               const isDeposit = (booking as any).payment_status === 'deposit_paid' || Boolean((booking as any).deposit_amount);
               const isFullPaid = (booking as any).payment_status === 'full_paid' || (booking as any).payment_status === 'paid' || effStatus === 'completed';
@@ -971,7 +1003,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         <span style={{ background: '#F1F5F9', color: '#475569', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                           <span>✓ Stay Completed &amp; Settled</span>
                         </span>
-                      ) : effStatus === 'accepted' ? (
+                      ) : effStatus === 'accepted' && balanceDue > 0 ? (
                         <span style={{ background: '#D3E6F7', color: '#0C447C', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                           <Clock size={13} />
                           <span>Waiting for payment</span>
@@ -1167,14 +1199,14 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         </>
                       )}
 
-                      {!isPendingOrRequested && effStatus === 'accepted' && (
+                      {!isPendingOrRequested && effStatus === 'accepted' && balanceDue > 0 && stayState !== 'checked_in' && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#0C447C', fontWeight: 600, padding: '6px 12px', background: '#EFF6FF', borderRadius: '8px', border: '1px solid #BFDBFE' }}>
                           <Clock size={14} />
                           <span>Awaiting tourist payment confirmation</span>
                         </div>
                       )}
 
-                      {!isPendingOrRequested && effStatus !== 'accepted' && stayState === 'reserved' && (
+                      {!isPendingOrRequested && stayState === 'reserved' && (
                         <>
                           <button
                             type="button"
@@ -1211,7 +1243,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         </>
                       )}
 
-                      {!isPendingOrRequested && stayState === 'checked_in' && (
+                      {!isPendingOrRequested && (stayState === 'checked_in' || (assignedRoom && stayState !== 'checked_out')) && (
                         <>
                           <button
                             type="button"

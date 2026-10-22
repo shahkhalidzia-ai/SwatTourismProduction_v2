@@ -385,6 +385,66 @@ describe('SwatPay Checkout Modal & Hotel Stay Operations', () => {
       expect(bottomKeyBtn).toBeDisabled();
     }
   });
+
+  it('correctly categorizes guest with allocated physical room and settled folio as In-House with visible Checkout button', async () => {
+    localStorage.removeItem('swat_hotel_stay_states');
+    localStorage.removeItem('swat_hotel_physical_rooms');
+
+    const inHouseBooking: BookingRow = {
+      id: 'b-inhouse-sara',
+      reference: 'SWT-DA6D4L',
+      tourist: 'Sara Ahmed',
+      touristEmail: 'tourist@swattourism.pk',
+      item: 'Deluxe Heritage Room',
+      dates: '2026-10-23 – 2026-10-24',
+      amount: 'Rs 12,000',
+      rawAmount: 12000,
+      status: 'accepted',
+      payment_status: 'paid',
+      deposit_amount: 12000,
+      assigned_room_number: '102',
+    };
+
+    const mockStats: BusinessBookingSummary = {
+      bookings_today: 1,
+      total_bookings_this_week: 1,
+      pending_requests: 0,
+      confirmed_bookings: 1,
+      revenue_pkr: 12000,
+      earnings_week: 12000,
+    };
+
+    render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessStats={mockStats}
+        bookings={[inHouseBooking]}
+        onAcceptBooking={vi.fn()}
+        onDeclineBooking={vi.fn()}
+      />
+    );
+
+    // 1. Tab count must show In-House Guests (1)
+    expect(screen.getByText(/In-House Guests \(1\)/i)).toBeInTheDocument();
+
+    // 2. Status badge on card must display Guest In-House • Room 102
+    expect(screen.getByText(/Guest In-House • Room 102/i)).toBeInTheDocument();
+
+    // 3. Checkout button MUST be clearly visible and active
+    const checkoutBtn = screen.getByTestId('btn-fd-checkout-SWT-DA6D4L');
+    expect(checkoutBtn).toBeInTheDocument();
+    expect(checkoutBtn).toBeEnabled();
+
+    // 4. Must NOT show "Waiting for payment" or "Awaiting tourist payment confirmation"
+    expect(screen.queryByText(/Waiting for payment/i)).toBeNull();
+    expect(screen.queryByText(/Awaiting tourist payment confirmation/i)).toBeNull();
+
+    // 5. Clicking In-House Guests filter loads the guest
+    const inHouseTab = screen.getByTestId('tab-front-desk-in_house');
+    fireEvent.click(inHouseTab);
+    expect(screen.getByText('Sara Ahmed')).toBeInTheDocument();
+    expect(screen.getByTestId('btn-fd-checkout-SWT-DA6D4L')).toBeInTheDocument();
+  });
 });
 
 
