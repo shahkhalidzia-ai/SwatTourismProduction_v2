@@ -470,3 +470,11 @@ async def get_booking_receipt_html(
     )
     html_content = ReceiptInvoiceService.generate_html_receipt(invoice_data)
     return HTMLResponse(content=html_content, status_code=200)
+
+
+@router.post("/clear-hotel-bookings")
+async def clear_hotel_bookings_endpoint():
+    """Clear all bookings and booking requests data for all hotels."""
+    from scripts.clear_hotel_bookings import clear_hotel_bookings
+    clear_hotel_bookings()
+    return {"message": "All hotel bookings and booking requests data successfully cleared."}

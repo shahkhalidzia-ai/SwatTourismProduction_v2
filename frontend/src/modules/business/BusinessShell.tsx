@@ -446,58 +446,7 @@ const getCategoryDemoBookings = (type: ListingTypeCode, providerCtx?: TransportP
       },
     ];
   }
-  return [
-    {
-      id: 'b-demo-1',
-      reference: 'BK-2041',
-      tourist: 'Sara Ahmed',
-      touristEmail: 'sara@swat.pk',
-      item: 'Executive Deluxe Room (2 nights)',
-      dates: '2026-10-15 – 2026-10-17',
-      amount: 'Rs 37,000',
-      rawAmount: 37000,
-      status: 'requested',
-    },
-    {
-      id: 'b-demo-2',
-      reference: 'BK-2039',
-      tourist: 'Imran Shah',
-      touristEmail: 'imran@swat.pk',
-      item: 'Heritage Presidential Suite (1 night)',
-      dates: '2026-10-16 – 2026-10-17',
-      amount: 'Rs 42,000',
-      rawAmount: 42000,
-      status: 'accepted',
-    },
-    {
-      id: 'b-demo-3',
-      reference: 'BK-2045',
-      tourist: 'Dr. Tariq Khan',
-      touristEmail: 'tariq.khan@swat.pk',
-      item: 'Standard Twin Room (3 nights)',
-      dates: '2026-10-18 – 2026-10-21',
-      amount: 'Rs 36,000',
-      rawAmount: 36000,
-      status: 'confirmed',
-      payment_status: 'deposit_paid',
-      deposit_amount: 9000,
-      assigned_room_number: '204',
-    },
-    {
-      id: 'b-demo-4',
-      reference: 'BK-2048',
-      tourist: 'Ayesha Noor',
-      touristEmail: 'ayesha.noor@swat.pk',
-      item: 'Executive Deluxe Room (1 night)',
-      dates: '2026-10-19 – 2026-10-20',
-      amount: 'Rs 18,500',
-      rawAmount: 18500,
-      status: 'confirmed',
-      payment_status: 'full_paid',
-      deposit_amount: 18500,
-      assigned_room_number: '102',
-    },
-  ];
+  return [];
 };
 
 const getCategoryPriceItems = (type: ListingTypeCode): PriceItem[] => {
@@ -774,6 +723,14 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       };
     }
     if (isDemoAccount) {
+      if (currentBizType === 'hotel') {
+        return {
+          bookings_today: 0,
+          earnings_week: 0,
+          pending_requests: 0,
+          confirmed_count: 0,
+        };
+      }
       return {
         bookings_today: 6,
         earnings_week: 42000,

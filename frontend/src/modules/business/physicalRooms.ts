@@ -58,7 +58,7 @@ export function seedDefaultRooms(listingId: string, businessName: string, priceI
     return [
       // Executive Deluxe (5 keys, Floor 1)
       { id: `${listingId}-101`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '101', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
-      { id: `${listingId}-102`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '102', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'reserved', current_guest_name: 'Sara K.', stay_dates: '2026-10-15 – 2026-10-17', current_booking_id: 'b-demo-1', updated_at: new Date().toISOString() },
+      { id: `${listingId}-102`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '102', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
       { id: `${listingId}-103`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '103', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
       { id: `${listingId}-104`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '104', floor: 1, wing: 'Garden Wing', bed_setup: '2 Twin Beds', status: 'cleaning', updated_at: new Date().toISOString() },
       { id: `${listingId}-105`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '105', floor: 1, wing: 'River Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
@@ -68,7 +68,7 @@ export function seedDefaultRooms(listingId: string, businessName: string, priceI
       { id: `${listingId}-108`, listing_id: listingId, price_item_id: 'p-serena-heritage', category_name: 'Deluxe Heritage Room', room_number: '108', floor: 1, wing: 'Heritage Wing', bed_setup: '1 Queen Bed', status: 'available', updated_at: new Date().toISOString() },
       // Presidential Suite (2 keys, Floor 2)
       { id: `${listingId}-201`, listing_id: listingId, price_item_id: 'p-serena-suite', category_name: 'Heritage Presidential Suite', room_number: 'Suite 201', floor: 2, wing: 'Royal Wing', bed_setup: 'King Master + Lounge', status: 'available', updated_at: new Date().toISOString() },
-      { id: `${listingId}-202`, listing_id: listingId, price_item_id: 'p-serena-suite', category_name: 'Heritage Presidential Suite', room_number: 'Suite 202', floor: 2, wing: 'Royal Wing', bed_setup: 'King Master + Lounge', status: 'occupied', current_guest_name: 'VIP Govt Delegation', stay_dates: '2026-10-20 – 2026-10-23', updated_at: new Date().toISOString() },
+      { id: `${listingId}-202`, listing_id: listingId, price_item_id: 'p-serena-suite', category_name: 'Heritage Presidential Suite', room_number: 'Suite 202', floor: 2, wing: 'Royal Wing', bed_setup: 'King Master + Lounge', status: 'available', updated_at: new Date().toISOString() },
       // Standard Twin (2 keys, Floor 1)
       { id: `${listingId}-110`, listing_id: listingId, price_item_id: 'p-serena-twin', category_name: 'Standard Twin Room', room_number: '110', floor: 1, wing: 'East Wing', bed_setup: '2 Twin Beds', status: 'available', updated_at: new Date().toISOString() },
       { id: `${listingId}-111`, listing_id: listingId, price_item_id: 'p-serena-twin', category_name: 'Standard Twin Room', room_number: '111', floor: 1, wing: 'East Wing', bed_setup: '2 Twin Beds', status: 'available', updated_at: new Date().toISOString() },
@@ -596,4 +596,36 @@ export function calculateAvailableUnitsForDate(
     reservedCount: Math.min(bookedCount, totalCapacity),
     availableUnits: Math.max(0, totalCapacity - bookedCount),
   };
+}
+
+/**
+ * Completely clears all hotel booking assignments, stay states, collected balances,
+ * cleaning statuses, and resets all hotel physical rooms to 'available'.
+ */
+export function clearAllHotelBookingsData(): void {
+  try {
+    localStorage.removeItem('swat_booking_room_assignments');
+    localStorage.removeItem('swat_hotel_stay_states');
+    localStorage.removeItem('swat_hotel_collected_balances');
+    localStorage.removeItem('swat_hotel_cleaning_statuses');
+    localStorage.removeItem('swat_hotel_room_cleaning_status');
+    localStorage.removeItem('swat_hotel_collected_balance');
+    localStorage.setItem('swat_hotel_bookings_cleared', 'true');
+
+    // Reset physical rooms for all hotels to clean & available
+    const all = getAllPhysicalRooms();
+    for (const key of Object.keys(all)) {
+      all[key] = (all[key] || []).map((r) => ({
+        ...r,
+        status: 'available' as const,
+        current_guest_name: undefined,
+        current_booking_id: undefined,
+        stay_dates: undefined,
+        updated_at: new Date().toISOString(),
+      }));
+    }
+    saveAllPhysicalRooms(all);
+  } catch (err) {
+    console.error('Error clearing hotel bookings data:', err);
+  }
 }

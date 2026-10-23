@@ -13,12 +13,14 @@ import {
   Sparkles,
   QrCode,
   Building2,
+  Trash2,
 } from 'lucide-react';
 import { AssignRoomModal } from './AssignRoomModal';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
 import { HotelFolioReceiptModal } from './HotelFolioReceiptModal';
 import { getCurrentWeekDays } from '../../utils/currentWeek';
 import { collectBookingBalance } from '../../api/bookings';
+import { apiRequest } from '../../api/client';
 import {
   getPhysicalRoomsForHotel,
   updatePhysicalRoomStatus,
@@ -26,6 +28,7 @@ import {
   checkInBooking,
   checkOutBooking,
   markRoomCleaned,
+  clearAllHotelBookingsData,
   type PhysicalRoom,
 } from './physicalRooms';
 
@@ -432,67 +435,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     });
   }, [roomTypes, weekDays, physicalRooms, bookings, isDemoSerena]);
 
-  // Primary requests to display as cards for Swat Serena Hotel
-  const demoDefaultRequests: BookingRow[] = [
-    {
-      id: 'b-demo-1',
-      reference: 'BK-2041',
-      tourist: 'Sara Ahmed',
-      touristEmail: 'sara@swat.pk',
-      item: 'Executive Deluxe Room (2 nights)',
-      dates: '2026-10-15 – 2026-10-17',
-      amount: 'Rs 37,000',
-      rawAmount: 37000,
-      status: 'requested',
-      assigned_room_number: '102',
-    },
-    {
-      id: 'b-demo-2',
-      reference: 'BK-2039',
-      tourist: 'Imran Shah',
-      touristEmail: 'imran@swat.pk',
-      item: 'Heritage Presidential Suite (1 night)',
-      dates: '2026-10-16 – 2026-10-17',
-      amount: 'Rs 42,000',
-      rawAmount: 42000,
-      status: 'accepted',
-    },
-    {
-      id: 'b-demo-3',
-      reference: 'BK-2045',
-      tourist: 'Dr. Tariq Khan',
-      touristEmail: 'tariq.khan@swat.pk',
-      item: 'Standard Twin Room (3 nights)',
-      dates: '2026-10-18 – 2026-10-21',
-      amount: 'Rs 36,000',
-      rawAmount: 36000,
-      status: 'confirmed',
-      payment_status: 'deposit_paid',
-      deposit_amount: 9000,
-      assigned_room_number: '204',
-    },
-    {
-      id: 'b-demo-4',
-      reference: 'BK-2048',
-      tourist: 'Ayesha Noor',
-      touristEmail: 'ayesha.noor@swat.pk',
-      item: 'Executive Deluxe Room (1 night)',
-      dates: '2026-10-19 – 2026-10-20',
-      amount: 'Rs 18,500',
-      rawAmount: 18500,
-      status: 'confirmed',
-      payment_status: 'full_paid',
-      deposit_amount: 18500,
-      assigned_room_number: '102',
-    },
-  ];
-
-  const rawList =
-    bookings && bookings.length > 0
-      ? bookings
-      : isDemoSerena
-      ? demoDefaultRequests
-      : [];
+  const rawList = bookings && bookings.length > 0 ? bookings : [];
 
   const displayedRequests = rawList.map((b) => {
     const override = localStatusMap[b.id] || localStatusMap[b.reference];
@@ -808,6 +751,38 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
               Front Desk Online
             </span>
+
+            <button
+              type="button"
+              data-testid="btn-clear-hotel-bookings"
+              onClick={async () => {
+                if (window.confirm('Clear all bookings and booking requests data for all hotels? This resets room rack and balance ledger.')) {
+                  clearAllHotelBookingsData();
+                  try {
+                    await apiRequest('/bookings/clear-hotel-bookings', { method: 'POST' });
+                  } catch {}
+                  window.location.reload();
+                }
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: '#DC2626',
+                fontSize: '12px',
+                fontWeight: 650,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+              }}
+              title="Clear all bookings, booking requests, and stay data for all hotels"
+            >
+              <Trash2 size={13} />
+              Clear All Bookings
+            </button>
           </div>
         </div>
 
