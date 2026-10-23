@@ -896,7 +896,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
   // Master data
   const [areas, setAreas] = useState<Area[]>([]);
-  const [destinations, setDestinations] = useState<Destination[]>(() => isCleanSlate ? [] : DEFAULT_DESTINATIONS);
+  const [destinations, setDestinations] = useState<Destination[]>(DEFAULT_DESTINATIONS);
   const [listings, setListings] = useState<ListingItem[]>(() => isCleanSlate ? [] : DEFAULT_VERIFIED_LISTINGS);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [allTrips, setAllTrips] = useState<Trip[]>([]);
@@ -951,6 +951,11 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
     }
     return allTrips[0] || trip || null;
   }, [allTrips, activeTripId, trip]);
+
+  // Guaranteed fallback for Swat's popular destinations
+  const effectiveDestinations = useMemo(() => {
+    return destinations && destinations.length > 0 ? destinations : DEFAULT_DESTINATIONS;
+  }, [destinations]);
 
   // Auth & Profile state (Group 2 & 3: Tourist Profile management)
   const { user, logout, refreshUser } = useAuth();
@@ -1111,8 +1116,23 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           getAreas().catch(() => []),
           getDestinations().catch(() => []),
         ]);
-        setAreas(areasData);
-        setDestinations(destsData && destsData.length > 0 ? destsData : (isCleanSlate ? [] : DEFAULT_DESTINATIONS));
+        if (areasData && areasData.length > 0) {
+          setAreas(areasData);
+        }
+        if (destsData && destsData.length > 0) {
+          const map = new Map<string, Destination>();
+          for (const d of DEFAULT_DESTINATIONS) {
+            map.set(d.name.toLowerCase().trim(), d);
+          }
+          for (const d of destsData) {
+            const key = d.name.toLowerCase().trim();
+            const existing = map.get(key);
+            map.set(key, { ...existing, ...d });
+          }
+          setDestinations(Array.from(map.values()));
+        } else {
+          setDestinations(DEFAULT_DESTINATIONS);
+        }
 
         // Load local/offline trips if available
         let localTrips: Trip[] = [];
@@ -2667,7 +2687,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   }}
                 >
                   <Sparkles size={14} />
-                  {destinations.length} Approved Swat Spots
+                  {effectiveDestinations.length} Approved Swat Spots
                 </span>
               </div>
 
@@ -2682,12 +2702,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 }}
               >
                 {[
-                  { id: 'all', label: `All Sceneries (${destinations.length})`, icon: <Sparkles size={13} /> },
-                  { id: 'valley', label: 'Alpine Valleys (3)', icon: <Mountain size={13} /> },
-                  { id: 'lake', label: 'Glacial Lakes (2)', icon: <Waves size={13} /> },
-                  { id: 'ski', label: 'Ski & Adventure (1)', icon: <Sparkles size={13} /> },
-                  { id: 'forest', label: 'Cedar Forests (1)', icon: <Trees size={13} /> },
-                  { id: 'heritage', label: 'Royal Heritage (1)', icon: <Landmark size={13} /> },
+                  { id: 'all', label: `All Sceneries (${effectiveDestinations.length})`, icon: <Sparkles size={13} /> },
+                  { id: 'valley', label: `Alpine Valleys (${effectiveDestinations.filter((d) => d.category === 'valley').length || 3})`, icon: <Mountain size={13} /> },
+                  { id: 'lake', label: `Glacial Lakes (${effectiveDestinations.filter((d) => d.category === 'lake').length || 2})`, icon: <Waves size={13} /> },
+                  { id: 'ski', label: `Ski & Adventure (${effectiveDestinations.filter((d) => d.category === 'ski').length || 1})`, icon: <Sparkles size={13} /> },
+                  { id: 'forest', label: `Cedar Forests (${effectiveDestinations.filter((d) => d.category === 'forest').length || 1})`, icon: <Trees size={13} /> },
+                  { id: 'heritage', label: `Royal Heritage (${effectiveDestinations.filter((d) => d.category === 'heritage').length || 1})`, icon: <Landmark size={13} /> },
                 ].map((cat) => {
                   const isActive = destCategoryFilter === cat.id;
                   return (
@@ -2727,18 +2747,61 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 gap: '20px',
               }}
             >
-              {destinations
-                .filter((d) => {
+              {(() => {
+                const filteredDestinations = effectiveDestinations.filter((d) => {
                   const matchesSearch =
                     !searchQuery ||
                     d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     d.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    d.area_name?.toLowerCase().includes(searchQuery.toLowerCase());
+                    (d.area_name && d.area_name.toLowerCase().includes(searchQuery.toLowerCase()));
                   const matchesCategory =
                     destCategoryFilter === 'all' || d.category === destCategoryFilter;
                   return matchesSearch && matchesCategory;
-                })
-                .map((dest) => {
+                });
+
+                if (filteredDestinations.length === 0) {
+                  return (
+                    <div
+                      style={{
+                        gridColumn: '1 / -1',
+                        padding: '40px 20px',
+                        textAlign: 'center',
+                        backgroundColor: 'var(--surface)',
+                        borderRadius: '16px',
+                        border: '1px dashed var(--border)',
+                      }}
+                    >
+                      <Mountain size={36} color="var(--pri)" style={{ margin: '0 auto 12px auto', opacity: 0.8 }} />
+                      <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
+                        No destinations match "{searchQuery}"
+                      </h4>
+                      <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: 'var(--mute)' }}>
+                        Try searching for Kalam, Mahodand, Malam Jabba, or clear your filters to view all Swat spots.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setDestCategoryFilter('all');
+                        }}
+                        style={{
+                          padding: '8px 18px',
+                          borderRadius: '8px',
+                          backgroundColor: 'var(--pri)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset All Filters
+                      </button>
+                    </div>
+                  );
+                }
+
+                return filteredDestinations.map((dest, idx) => {
                   const saved = isSaved('destination', dest.id);
 
                   // Metadata enrichment per destination
@@ -2795,7 +2858,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                   return (
                     <div
-                      key={dest.id}
+                      key={`dest-card-${dest.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${idx}`}
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -3112,7 +3175,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       </div>
                     </div>
                   );
-                })}
+                });
+              })()}
             </div>
           </div>
         </>

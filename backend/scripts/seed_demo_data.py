@@ -123,10 +123,14 @@ async def seed_data():
 
         # 3. Destinations
         destinations_data = [
-            {"name": "Kalam Valley", "area": "Kalam", "category": "valley", "desc": "Rivers, alpine meadows, and fresh mountain climate.", "season": "Summer & Autumn", "lat": 35.4906, "lng": 72.5794},
-            {"name": "Mahodand Lake", "area": "Kalam", "category": "lake", "desc": "Glacial turquoise lake ideal for boating and camping.", "season": "Summer", "lat": 35.7142, "lng": 72.6517},
-            {"name": "Malam Jabba Ski Resort", "area": "Malam Jabba", "category": "ski", "desc": "Famous international ski resort and scenic chairlift viewpoint.", "season": "Winter & Spring", "lat": 34.7997, "lng": 72.5714},
-            {"name": "Ushu Forest", "area": "Ushu", "category": "forest", "desc": "Dense pine and cedar wilderness with nature trails.", "season": "Summer & Autumn", "lat": 35.5342, "lng": 72.6106},
+            {"name": "Kalam Valley", "area": "Kalam", "category": "valley", "desc": "Alpine meadows, pine-clad foothills, and the roaring Swat River with cool summer temperatures.", "season": "May to October", "lat": 35.48, "lng": 72.58},
+            {"name": "Mahodand Lake", "area": "Kalam", "category": "lake", "desc": "Pristine glacial waters, trout fishing, horse riding, and panoramic snow-draped Hindu Kush peaks.", "season": "June to September", "lat": 35.7142, "lng": 72.6486},
+            {"name": "Malam Jabba", "area": "Malam Jabba", "category": "ski", "desc": "Premier high-altitude ski resort with aerial chairlift, 800m zipline, and 360° Karakoram & Hindu Kush vistas.", "season": "Winter & Summer", "lat": 34.7997, "lng": 72.5714},
+            {"name": "Ushu Forest", "area": "Ushu", "category": "forest", "desc": "Magnificent centuries-old deodar cedar forest with tranquil walking trails and views of Mt. Falaksar.", "season": "May to October", "lat": 35.5333, "lng": 72.6333},
+            {"name": "Kundol Lake", "area": "Utror", "category": "lake", "desc": "Sparkling turquoise glacial lake surrounded by sheer snow-capped cliffs and wildflowers in northern Utror.", "season": "June to September", "lat": 35.6111, "lng": 72.4833},
+            {"name": "White Palace Marghuzar", "area": "Swat", "category": "heritage", "desc": "Historic 1940 royal summer residence of the Wali of Swat built from pure white Chiniot marble among royal gardens.", "season": "Year-round (Mar-Nov)", "lat": 34.6933, "lng": 72.3333},
+            {"name": "Bahrain Swat", "area": "Bahrain", "category": "valley", "desc": "Picturesque riverside town at the dramatic confluence of the Swat and Daral rivers, famous for handicrafts and wood carving.", "season": "April to November", "lat": 35.2075, "lng": 72.5475},
+            {"name": "Miandam Valley", "area": "Swat", "category": "valley", "desc": "Serene hillside retreat amidst terraced emerald cornfields, peach and apple orchards, and cascading mountain streams.", "season": "April to October", "lat": 35.0433, "lng": 72.5536},
         ]
         for dest in destinations_data:
             stmt = select(Destination).where(Destination.name == dest["name"])
