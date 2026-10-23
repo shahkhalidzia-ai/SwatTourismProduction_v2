@@ -467,6 +467,22 @@ describe('SwatPay Checkout Modal & Hotel Stay Operations', () => {
     expect(screen.getByText(/Ready for Clean \(2\)/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Ready for Clean/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Mark Cleaned & Ready/i).length).toBeGreaterThan(0);
+
+    // 10. Switch back to All tab to access the folio card
+    fireEvent.click(allTab);
+    const markCleanBtn = screen.getByText(/Mark Room 102 Cleaned & Ready/i);
+    fireEvent.click(markCleanBtn);
+
+    // 11. Verify folio card transitions to cleaned & ready confirmed badge
+    await waitFor(() => {
+      expect(screen.getByText(/✓ Stay Completed • Room 102 Cleaned & Ready for Next Guest/i)).toBeInTheDocument();
+    });
+
+    // 12. Verify the action button is now gone from the folio card
+    expect(screen.queryByText(/Mark Room 102 Cleaned & Ready/i)).toBeNull();
+
+    // 13. Verify Key Rack filter count updated to (1)
+    expect(screen.getByText(/Ready for Clean \(1\)/i)).toBeInTheDocument();
   });
 });
 

@@ -53,6 +53,28 @@ export function seedDefaultRooms(listingId: string, businessName: string, priceI
   const safeName = (businessName || '').toLowerCase();
   const safeListing = (listingId || '').toLowerCase();
   const isSerena = safeName.includes('serena') || safeListing.includes('serena');
+
+  if (isSerena) {
+    return [
+      // Executive Deluxe (5 keys, Floor 1)
+      { id: `${listingId}-101`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '101', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
+      { id: `${listingId}-102`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '102', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'reserved', current_guest_name: 'Sara K.', stay_dates: '2026-10-15 – 2026-10-17', current_booking_id: 'b-demo-1', updated_at: new Date().toISOString() },
+      { id: `${listingId}-103`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '103', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
+      { id: `${listingId}-104`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '104', floor: 1, wing: 'Garden Wing', bed_setup: '2 Twin Beds', status: 'cleaning', updated_at: new Date().toISOString() },
+      { id: `${listingId}-105`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '105', floor: 1, wing: 'River Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
+      // Deluxe Heritage Room (3 keys, Floor 1)
+      { id: `${listingId}-106`, listing_id: listingId, price_item_id: 'p-serena-heritage', category_name: 'Deluxe Heritage Room', room_number: '106', floor: 1, wing: 'Heritage Wing', bed_setup: '1 Queen Bed', status: 'available', updated_at: new Date().toISOString() },
+      { id: `${listingId}-107`, listing_id: listingId, price_item_id: 'p-serena-heritage', category_name: 'Deluxe Heritage Room', room_number: '107', floor: 1, wing: 'Heritage Wing', bed_setup: '1 Queen Bed', status: 'available', updated_at: new Date().toISOString() },
+      { id: `${listingId}-108`, listing_id: listingId, price_item_id: 'p-serena-heritage', category_name: 'Deluxe Heritage Room', room_number: '108', floor: 1, wing: 'Heritage Wing', bed_setup: '1 Queen Bed', status: 'available', updated_at: new Date().toISOString() },
+      // Presidential Suite (2 keys, Floor 2)
+      { id: `${listingId}-201`, listing_id: listingId, price_item_id: 'p-serena-suite', category_name: 'Heritage Presidential Suite', room_number: 'Suite 201', floor: 2, wing: 'Royal Wing', bed_setup: 'King Master + Lounge', status: 'available', updated_at: new Date().toISOString() },
+      { id: `${listingId}-202`, listing_id: listingId, price_item_id: 'p-serena-suite', category_name: 'Heritage Presidential Suite', room_number: 'Suite 202', floor: 2, wing: 'Royal Wing', bed_setup: 'King Master + Lounge', status: 'occupied', current_guest_name: 'VIP Govt Delegation', stay_dates: '2026-10-20 – 2026-10-23', updated_at: new Date().toISOString() },
+      // Standard Twin (2 keys, Floor 1)
+      { id: `${listingId}-110`, listing_id: listingId, price_item_id: 'p-serena-twin', category_name: 'Standard Twin Room', room_number: '110', floor: 1, wing: 'East Wing', bed_setup: '2 Twin Beds', status: 'available', updated_at: new Date().toISOString() },
+      { id: `${listingId}-111`, listing_id: listingId, price_item_id: 'p-serena-twin', category_name: 'Standard Twin Room', room_number: '111', floor: 1, wing: 'East Wing', bed_setup: '2 Twin Beds', status: 'available', updated_at: new Date().toISOString() },
+    ];
+  }
+
   const categories = (priceItems || []).filter((p) => !p.category || p.category === 'room' || p.category === 'hotel_room');
 
   if (categories.length > 0) {
@@ -85,27 +107,6 @@ export function seedDefaultRooms(listingId: string, businessName: string, priceI
     return generated;
   }
 
-  if (isSerena) {
-    return [
-      // Executive Deluxe (5 keys, Floor 1)
-      { id: `${listingId}-101`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '101', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
-      { id: `${listingId}-102`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '102', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'reserved', current_guest_name: 'Sara K.', stay_dates: '2026-10-20 – 2026-10-22', current_booking_id: 'b-demo-1', updated_at: new Date().toISOString() },
-      { id: `${listingId}-103`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '103', floor: 1, wing: 'Garden Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
-      { id: `${listingId}-104`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '104', floor: 1, wing: 'Garden Wing', bed_setup: '2 Twin Beds', status: 'cleaning', updated_at: new Date().toISOString() },
-      { id: `${listingId}-105`, listing_id: listingId, price_item_id: 'p-serena-deluxe', category_name: 'Executive Deluxe Room', room_number: '105', floor: 1, wing: 'River Wing', bed_setup: '1 King Bed', status: 'available', updated_at: new Date().toISOString() },
-      // Deluxe Heritage Room (3 keys, Floor 1)
-      { id: `${listingId}-106`, listing_id: listingId, price_item_id: 'p-serena-heritage', category_name: 'Deluxe Heritage Room', room_number: '106', floor: 1, wing: 'Heritage Wing', bed_setup: '1 Queen Bed', status: 'available', updated_at: new Date().toISOString() },
-      { id: `${listingId}-107`, listing_id: listingId, price_item_id: 'p-serena-heritage', category_name: 'Deluxe Heritage Room', room_number: '107', floor: 1, wing: 'Heritage Wing', bed_setup: '1 Queen Bed', status: 'available', updated_at: new Date().toISOString() },
-      { id: `${listingId}-108`, listing_id: listingId, price_item_id: 'p-serena-heritage', category_name: 'Deluxe Heritage Room', room_number: '108', floor: 1, wing: 'Heritage Wing', bed_setup: '1 Queen Bed', status: 'available', updated_at: new Date().toISOString() },
-      // Presidential Suite (2 keys, Floor 2)
-      { id: `${listingId}-201`, listing_id: listingId, price_item_id: 'p-serena-suite', category_name: 'Heritage Presidential Suite', room_number: 'Suite 201', floor: 2, wing: 'Royal Wing', bed_setup: 'King Master + Lounge', status: 'available', updated_at: new Date().toISOString() },
-      { id: `${listingId}-202`, listing_id: listingId, price_item_id: 'p-serena-suite', category_name: 'Heritage Presidential Suite', room_number: 'Suite 202', floor: 2, wing: 'Royal Wing', bed_setup: 'King Master + Lounge', status: 'occupied', current_guest_name: 'VIP Govt Delegation', stay_dates: '2026-10-20 – 2026-10-23', updated_at: new Date().toISOString() },
-      // Standard Twin (2 keys, Floor 1)
-      { id: `${listingId}-110`, listing_id: listingId, price_item_id: 'p-serena-twin', category_name: 'Standard Twin Room', room_number: '110', floor: 1, wing: 'East Wing', bed_setup: '2 Twin Beds', status: 'available', updated_at: new Date().toISOString() },
-      { id: `${listingId}-111`, listing_id: listingId, price_item_id: 'p-serena-twin', category_name: 'Standard Twin Room', room_number: '111', floor: 1, wing: 'East Wing', bed_setup: '2 Twin Beds', status: 'available', updated_at: new Date().toISOString() },
-    ];
-  }
-
   return [];
 }
 
@@ -115,11 +116,31 @@ export function seedDefaultRooms(listingId: string, businessName: string, priceI
 export function getPhysicalRoomsForHotel(listingId?: string, businessName?: string, priceItems: any[] = []): PhysicalRoom[] {
   if (!listingId) return [];
   const all = getAllPhysicalRooms();
-  const existing = all[listingId];
+  const safeName = (businessName || '').toLowerCase();
+  const safeListing = (listingId || '').toLowerCase();
+  const isSerena = safeName.includes('serena') || safeListing.includes('serena');
+
+  let existing = all[listingId];
+
+  // If not found in all[listingId], check if rooms exist under an alias key (e.g. serena-hotel-swat, swat-serena-hotel)
+  if (!existing || existing.length === 0) {
+    const aliasKey = Object.keys(all).find((k) => {
+      const kl = k.toLowerCase();
+      if (isSerena && kl.includes('serena')) return true;
+      if (safeName && kl.includes(safeName.replace(/[^a-z0-9]/g, ''))) return true;
+      return false;
+    });
+    if (aliasKey && all[aliasKey] && all[aliasKey].length > 0) {
+      existing = all[aliasKey];
+      all[listingId] = existing;
+      saveAllPhysicalRooms(all, false);
+    }
+  }
+
   const categories = (priceItems || []).filter((p) => !p.category || p.category === 'room' || p.category === 'hotel_room');
 
-  if (existing !== undefined) {
-    if (existing.length > 0 && categories.length > 0) {
+  if (existing !== undefined && existing.length > 0) {
+    if (categories.length > 0) {
       let hasMissing = false;
       const updated = [...existing];
       let maxFloor = Math.max(...existing.map((r) => Number(r.floor) || 1), 1);
@@ -355,69 +376,66 @@ export function checkInBooking(listingId: string, bookingId: string): { success:
  * Checks out a guest for a booking, transitioning their physical room to 'cleaning'
  */
 export function checkOutBooking(
-  listingId: string,
+  _listingId: string,
   bookingId: string,
   roomIdOrNumber?: string
 ): { success: boolean; room?: PhysicalRoom } {
   const all = getAllPhysicalRooms();
-  let targetListingKey = listingId;
-
-  // If rooms not found under specified listingId, search across all listing stores
-  if (
-    !all[targetListingKey] ||
-    !all[targetListingKey].some(
-      (r) =>
-        r.current_booking_id === bookingId ||
-        (roomIdOrNumber && (r.id === roomIdOrNumber || r.room_number === roomIdOrNumber))
-    )
-  ) {
-    const foundKey = Object.keys(all).find((k) =>
-      all[k].some(
-        (r) =>
-          r.current_booking_id === bookingId ||
-          (roomIdOrNumber && (r.id === roomIdOrNumber || r.room_number === roomIdOrNumber))
-      )
-    );
-    if (foundKey) targetListingKey = foundKey;
-  }
-
-  const rooms = all[targetListingKey] || [];
   let vacatedRoom: PhysicalRoom | undefined;
 
-  const updatedRooms = rooms.map((r) => {
-    const isTarget =
-      r.current_booking_id === bookingId ||
-      (roomIdOrNumber && (r.id === roomIdOrNumber || r.room_number === roomIdOrNumber));
+  // Search and update across all listing stores to guarantee sync across all aliases
+  for (const listKey of Object.keys(all)) {
+    const rooms = all[listKey] || [];
+    const updatedRooms = rooms.map((r) => {
+      const isTarget =
+        r.current_booking_id === bookingId ||
+        (roomIdOrNumber && (
+          r.id === roomIdOrNumber ||
+          r.room_number === roomIdOrNumber ||
+          r.id.endsWith(`-${roomIdOrNumber}`) ||
+          (r.room_number && (r.room_number.includes(roomIdOrNumber) || roomIdOrNumber.includes(r.room_number)))
+        ));
 
-    if (isTarget) {
-      vacatedRoom = {
-        ...r,
-        status: 'cleaning' as const,
-        notes: `Vacated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Ready for clean`,
-        current_booking_id: undefined,
-        current_guest_name: undefined,
-        stay_dates: undefined,
-        last_booking_id: bookingId,
-        updated_at: new Date().toISOString(),
-      };
-      return vacatedRoom;
-    }
-    return r;
-  });
+      if (isTarget) {
+        vacatedRoom = {
+          ...r,
+          status: 'cleaning' as const,
+          notes: `Vacated at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Ready for clean`,
+          current_booking_id: undefined,
+          current_guest_name: undefined,
+          stay_dates: undefined,
+          last_booking_id: bookingId,
+          updated_at: new Date().toISOString(),
+        };
+        return vacatedRoom;
+      }
+      return r;
+    });
+    all[listKey] = updatedRooms;
+  }
 
   if (vacatedRoom) {
-    all[targetListingKey] = updatedRooms;
     saveAllPhysicalRooms(all);
     try {
       const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
       if (storedMap[bookingId]) {
         storedMap[bookingId].status = 'cleaning';
-        localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
+        storedMap[bookingId].roomId = vacatedRoom.id;
+        storedMap[bookingId].roomNumber = vacatedRoom.room_number;
+      } else {
+        storedMap[bookingId] = {
+          roomId: vacatedRoom.id,
+          roomNumber: vacatedRoom.room_number,
+          category: vacatedRoom.category_name,
+          floor: vacatedRoom.floor,
+          wing: vacatedRoom.wing,
+          status: 'cleaning',
+        };
       }
       if (roomIdOrNumber && storedMap[roomIdOrNumber]) {
         storedMap[roomIdOrNumber].status = 'cleaning';
-        localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
       }
+      localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
     } catch {}
     return { success: true, room: vacatedRoom };
   }
@@ -427,51 +445,75 @@ export function checkOutBooking(
 /**
  * Housekeeping action: Marks a room in 'cleaning' status as 'available'
  */
-export function markRoomCleaned(listingId: string, roomId: string): boolean {
-  return updatePhysicalRoomStatus(listingId, roomId, 'available', 'Cleaned & sanitized by housekeeping');
+export function markRoomCleaned(listingId: string, roomId: string, roomNumber?: string): boolean {
+  return updatePhysicalRoomStatus(
+    listingId,
+    roomId,
+    'available',
+    'Cleaned & sanitized by housekeeping • Ready for next guest',
+    roomNumber
+  );
 }
 
 /**
  * Updates an individual physical room's status (e.g. available, occupied, maintenance, cleaning)
  */
 export function updatePhysicalRoomStatus(
-  listingId: string,
+  _listingId: string,
   roomId: string,
   newStatus: PhysicalRoom['status'],
-  notes?: string
+  notes?: string,
+  roomNumber?: string
 ): boolean {
   const all = getAllPhysicalRooms();
-  let targetListingKey = listingId;
-
-  // If not found in current listing, check all listing stores
-  if (
-    !all[targetListingKey] ||
-    !all[targetListingKey].some((r) => r.id === roomId || r.room_number === roomId)
-  ) {
-    const foundKey = Object.keys(all).find((k) =>
-      all[k].some((r) => r.id === roomId || r.room_number === roomId)
-    );
-    if (foundKey) targetListingKey = foundKey;
-  }
-
-  const rooms = all[targetListingKey] || [];
   let found = false;
 
-  const updated = rooms.map((r) => {
-    if (r.id === roomId || r.room_number === roomId) {
-      found = true;
-      return {
-        ...r,
-        status: newStatus,
-        notes: notes !== undefined ? notes : r.notes,
-        updated_at: new Date().toISOString(),
-      };
+  for (const listKey of Object.keys(all)) {
+    const rooms = all[listKey] || [];
+    const updated = rooms.map((r) => {
+      const matches =
+        r.id === roomId ||
+        r.room_number === roomId ||
+        r.id.endsWith(`-${roomId}`) ||
+        (roomNumber && (
+          r.room_number === roomNumber ||
+          r.id === roomNumber ||
+          r.id.endsWith(`-${roomNumber}`) ||
+          (r.room_number && (r.room_number.includes(roomNumber) || roomNumber.includes(r.room_number)))
+        ));
+
+      if (matches) {
+        found = true;
+        return {
+          ...r,
+          status: newStatus,
+          notes: notes !== undefined ? notes : r.notes,
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return r;
+    });
+    all[listKey] = updated;
+  }
+
+  // Update swat_booking_room_assignments if this room was referenced
+  try {
+    const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+    for (const bKey of Object.keys(storedMap)) {
+      const entry = storedMap[bKey];
+      if (
+        entry &&
+        (entry.roomId === roomId ||
+          entry.roomNumber === roomId ||
+          (roomNumber && (entry.roomNumber === roomNumber || entry.roomId === roomNumber)))
+      ) {
+        entry.status = newStatus;
+      }
     }
-    return r;
-  });
+    localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
+  } catch {}
 
   if (found) {
-    all[targetListingKey] = updated;
     saveAllPhysicalRooms(all);
   }
   return found;
