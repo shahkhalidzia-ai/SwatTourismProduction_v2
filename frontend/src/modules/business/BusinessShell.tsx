@@ -530,6 +530,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       ? 'KP-ADV-SWAT-017'
       : 'KP-HOTEL-SERENA-001';
   const currentBizRegNo = user?.business_profile?.registration_no || (isDemoAccount ? defaultRegFallback : 'PENDING');
+  const effectiveAccommodationType = (user?.business_profile as any)?.accommodation_type || 'Hotel';
 
   const categoryPriceItems = useMemo(() => getCategoryPriceItems(currentBizType), [currentBizType]);
 
@@ -770,6 +771,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
   const [editPhone, setEditPhone] = useState(user?.business_profile?.contact_phone || user?.phone || '+92 946 711640');
   const [editWhatsapp, setEditWhatsapp] = useState(user?.business_profile?.whatsapp_number || '+92 300 1234567');
   const [editAddress, setEditAddress] = useState(user?.business_profile?.address_text || 'Saidu Sharif, Swat Valley');
+  const [editAccommodationType, setEditAccommodationType] = useState((user?.business_profile as any)?.accommodation_type || 'Hotel');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
@@ -779,6 +781,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       if (user.business_profile.contact_phone) setEditPhone(user.business_profile.contact_phone);
       if (user.business_profile.whatsapp_number) setEditWhatsapp(user.business_profile.whatsapp_number);
       if (user.business_profile.address_text) setEditAddress(user.business_profile.address_text);
+      if ((user.business_profile as any).accommodation_type) setEditAccommodationType((user.business_profile as any).accommodation_type);
       setVerificationStatus({
         business_id: user.business_profile.id,
         business_name: user.business_profile.business_name,
@@ -800,6 +803,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
           contact_phone: editPhone.trim(),
           whatsapp_number: editWhatsapp.trim(),
           address_text: editAddress.trim(),
+          accommodation_type: currentBizType === 'hotel' ? editAccommodationType : undefined,
         }),
       });
       if (refreshUser) await refreshUser();
@@ -1509,6 +1513,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
         <HotelTodayScreen
           businessName={currentBizName}
           businessAddress={listings[0]?.area || user?.business_profile?.address_text || 'Swat Valley'}
+          accommodationType={effectiveAccommodationType}
           businessStats={businessStats}
           bookings={bookings}
           roomTypes={hotelTodayRoomTypes}
@@ -1889,7 +1894,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                       boxShadow: '0 1px 3px rgba(245, 158, 11, 0.15)',
                     }}
                   >
-                    {isDemoAccount ? '⭐ 5-STAR LUXURY RESORT' : '🏨 REGISTERED HOTEL & SUITES'}
+                    {isDemoAccount ? '⭐ 5-STAR LUXURY RESORT' : `🏨 REGISTERED ${effectiveAccommodationType.toUpperCase()}`}
                   </span>
                   <span
                     style={{
@@ -1964,7 +1969,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                         Live Instant Booking Enabled
                       </span>
                       <span>•</span>
-                      <span>Category: <strong style={{ color: '#0F172A' }}>{currentBizType.toUpperCase()}</strong></span>
+                      <span>Category: <strong style={{ color: '#0F172A' }}>{currentBizType === 'hotel' ? effectiveAccommodationType : currentBizType.toUpperCase()}</strong></span>
                     </div>
                   </div>
                 </div>
@@ -2899,6 +2904,34 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                   }}
                 />
               </div>
+
+              {currentBizType === 'hotel' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                    Accommodation Type *
+                  </label>
+                  <select
+                    value={editAccommodationType}
+                    onChange={(e) => setEditAccommodationType(e.target.value)}
+                    data-testid="select-edit-accommodation-type"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius-button)',
+                      border: '1px solid var(--line)',
+                      backgroundColor: 'var(--bg)',
+                      color: 'var(--ink)',
+                      fontSize: 'var(--font-sm)',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <option value="Hotel">Hotel</option>
+                    <option value="Guest house">Guest house</option>
+                    <option value="Resort">Resort</option>
+                    <option value="Apartment">Apartment</option>
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>

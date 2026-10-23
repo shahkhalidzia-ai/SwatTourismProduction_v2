@@ -35,6 +35,7 @@ import {
 interface HotelTodayScreenProps {
   businessName: string;
   businessAddress?: string;
+  accommodationType?: string;
   businessStats: BusinessBookingSummary;
   bookings: BookingRow[];
   roomTypes?: Array<{ id?: string; name: string; capacity?: number; price?: number; default_units?: number }>;
@@ -51,6 +52,7 @@ interface HotelTodayScreenProps {
 export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   businessName: _businessName,
   businessAddress: _businessAddress,
+  accommodationType = 'Hotel',
   businessStats,
   bookings,
   roomTypes,
@@ -733,7 +735,25 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span
+              data-testid="badge-accommodation-type"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '9999px',
+                background: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                color: '#1D4ED8',
+                fontSize: '12px',
+                fontWeight: 700,
+              }}
+            >
+              🏨 {accommodationType}
+            </span>
+
             <span
               style={{
                 display: 'inline-flex',

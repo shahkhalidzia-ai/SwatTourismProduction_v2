@@ -34,6 +34,7 @@ class BusinessProfileSchema(BaseModel):
     area_id: Optional[uuid.UUID] = None
     verification_status: str
     rejection_reason: Optional[str] = None
+    accommodation_type: Optional[str] = "Hotel"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -104,6 +105,7 @@ class RegisterRequest(BaseModel):
     # Business
     business_name: Optional[str] = None
     primary_type: Optional[PrimaryBusinessType] = "hotel"
+    accommodation_type: Optional[str] = "Hotel"
     contact_phone: Optional[str] = None
     whatsapp_number: Optional[str] = None
     registration_no: Optional[str] = None
@@ -204,6 +206,7 @@ class UpdateProfileRequest(BaseModel):
 
     # Business
     business_name: Optional[str] = None
+    accommodation_type: Optional[str] = None
     contact_phone: Optional[str] = None
     whatsapp_number: Optional[str] = None
     address_text: Optional[str] = None

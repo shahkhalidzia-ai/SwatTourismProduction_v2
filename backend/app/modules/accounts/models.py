@@ -74,6 +74,7 @@ class BusinessProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     owner_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     business_name: Mapped[str] = mapped_column(String(150), nullable=False)
     primary_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    accommodation_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default="Hotel")
     registration_no: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
     contact_phone: Mapped[str] = mapped_column(String(20), nullable=False)
     whatsapp_number: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)

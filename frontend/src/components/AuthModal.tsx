@@ -37,6 +37,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Business
   const [businessName, setBusinessName] = useState('');
   const [primaryType, setPrimaryType] = useState('hotel');
+  const [accommodationType, setAccommodationType] = useState('Hotel');
   // Community
   const [bio, setBio] = useState('');
 
@@ -76,6 +77,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         } else if (selectedRole === 'business') {
           payload.business_name = businessName.trim() || `${trimmedName}'s Business`;
           payload.primary_type = primaryType;
+          if (primaryType === 'hotel') {
+            payload.accommodation_type = accommodationType;
+          }
           payload.contact_phone = trimmedPhone || '+923000000000';
         } else if (selectedRole === 'community') {
           payload.bio = bio.trim() || undefined;
@@ -500,6 +504,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <option value="shop">Local Shop / Crafts</option>
                 </select>
               </div>
+              {primaryType === 'hotel' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--mute)' }}>Accommodation Type</label>
+                  <select
+                    value={accommodationType}
+                    onChange={(e) => setAccommodationType(e.target.value)}
+                    data-testid="select-auth-accommodation-type"
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--line)', borderRadius: 'var(--radius-button)', backgroundColor: 'var(--card)', color: 'var(--ink)' }}
+                  >
+                    <option value="Hotel">Hotel</option>
+                    <option value="Guest house">Guest house</option>
+                    <option value="Resort">Resort</option>
+                    <option value="Apartment">Apartment</option>
+                  </select>
+                </div>
+              )}
             </>
           )}
 

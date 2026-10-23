@@ -144,6 +144,7 @@ class AccountService:
                 owner_id=user.id,
                 business_name=biz_name,
                 primary_type=req.primary_type or "hotel",
+                accommodation_type=req.accommodation_type or ("Hotel" if (req.primary_type or "hotel") == "hotel" else None),
                 contact_phone=phone,
                 whatsapp_number=req.whatsapp_number or phone,
                 registration_no=req.registration_no,
@@ -377,6 +378,8 @@ class AccountService:
             biz = user.business_profiles[0]
             if req.business_name is not None:
                 biz.business_name = req.business_name
+            if req.accommodation_type is not None:
+                biz.accommodation_type = req.accommodation_type
             if req.contact_phone is not None:
                 biz.contact_phone = req.contact_phone
             if req.whatsapp_number is not None:

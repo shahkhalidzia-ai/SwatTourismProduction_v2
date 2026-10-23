@@ -25,6 +25,7 @@ export interface UserProfile {
     id: string;
     business_name: string;
     primary_type: string;
+    accommodation_type?: string;
     registration_no?: string;
     contact_phone: string;
     whatsapp_number?: string;

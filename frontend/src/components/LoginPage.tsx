@@ -39,6 +39,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   // Business specific
   const [businessName, setBusinessName] = useState('');
   const [primaryType, setPrimaryType] = useState('hotel');
+  const [accommodationType, setAccommodationType] = useState('Hotel');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +87,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       if (selectedRole === 'business') {
         payload.business_name = businessName.trim() || `${trimmedName}'s Business`;
         payload.primary_type = primaryType;
+        if (primaryType === 'hotel') {
+          payload.accommodation_type = accommodationType;
+        }
         payload.contact_phone = trimmedPhone || '+923000000000';
       }
 
@@ -560,6 +564,55 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   }}
                   required
                 />
+              </div>
+            )}
+
+            {selectedRole === 'business' && primaryType === 'hotel' && (
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Accommodation Type
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                  {[
+                    { id: 'Hotel', label: 'Hotel' },
+                    { id: 'Guest house', label: 'Guest house' },
+                    { id: 'Resort', label: 'Resort' },
+                    { id: 'Apartment', label: 'Apartment' },
+                  ].map((acc) => {
+                    const isSelected = accommodationType === acc.id;
+                    return (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        data-testid={`btn-acc-type-${acc.id.toLowerCase().replace(/\s+/g, '-')}`}
+                        onClick={() => setAccommodationType(acc.id)}
+                        style={{
+                          padding: '7px 4px',
+                          borderRadius: '8px',
+                          border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(255, 255, 255, 0.2)',
+                          backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                          color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.75)',
+                          fontSize: '11px',
+                          fontWeight: isSelected ? 700 : 500,
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          transition: 'all 0.15s ease',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {acc.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
