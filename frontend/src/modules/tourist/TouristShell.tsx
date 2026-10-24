@@ -2354,22 +2354,24 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
       {/* ========================================================================= */}
       {activeTab === 'home' && (
         <>
-          {/* Top Hero Split Layout: 80% Search Hub & 20% Advisory / Weather Intelligence */}
+          {/* Top Hero Split Layout: 80% Search Hub & Results / 20% Advisory & Weather Intelligence */}
           <div className="tourist-home-hero-split">
-            {/* Left 80% Column: Hero Search & Transport Hub Frame */}
-            <div
-              style={{
-                backgroundColor: 'var(--card)',
-                border: '1px solid rgba(47, 127, 193, 0.16)',
-                borderRadius: '18px',
-                padding: '18px 20px',
-                boxShadow: '0 8px 30px -4px rgba(18, 50, 74, 0.07), 0 2px 10px rgba(0, 0, 0, 0.03)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-                minWidth: 0,
-              }}
-            >
+            {/* Left 80% Column: Search Frame + Direct Search Result Lists */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
+              {/* Hero Search & Transport Hub Frame */}
+              <div
+                style={{
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid rgba(47, 127, 193, 0.16)',
+                  borderRadius: '18px',
+                  padding: '18px 20px',
+                  boxShadow: '0 8px 30px -4px rgba(18, 50, 74, 0.07), 0 2px 10px rgba(0, 0, 0, 0.03)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                  minWidth: 0,
+                }}
+              >
             {/* Header: Title, Subtitle & Mode Switcher */}
             <div
               style={{
@@ -3053,16 +3055,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             )}
             </div>
 
-            {/* Right 20% Column: Active Advisory Frame & This Weekend Weather Frame */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
-              {renderAdvisoryFrame(true)}
-              {renderWeekendWeatherCard()}
-            </div>
-          </div>
-
-          {/* Explore Spotlight (Stays, Dining, Guides) when Explore tab is active in Home Frame */}
-          {homeSearchTab === 'explore' && (
-            <div style={{ marginTop: '22px' }} data-testid="home-explore-showcase">
+            {/* Explore Spotlight (Stays, Dining, Guides) when Explore tab is active in Home Frame */}
+            {homeSearchTab === 'explore' && (
+              <div style={{ marginTop: '0px' }} data-testid="home-explore-showcase">
               <div
                 style={{
                   display: 'flex',
@@ -3238,7 +3233,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           {/* Note: This Weekend in Swat weather is now positioned in the top 80/20 hero intelligence column */}
 
           {/* Popular Destinations Cards */}
-          <div style={{ marginTop: '28px' }}>
+          <div style={{ marginTop: '0px' }}>
             {/* Header & Subtitle */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
@@ -3773,6 +3768,23 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   );
                 });
               })()}
+              </div>
+            </div>
+            </div>
+
+            {/* Right 20% Column: Active Advisory Frame & This Weekend Weather Frame */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                minWidth: 0,
+                position: 'sticky',
+                top: '16px',
+              }}
+            >
+              {renderAdvisoryFrame(true)}
+              {renderWeekendWeatherCard()}
             </div>
           </div>
         </>
