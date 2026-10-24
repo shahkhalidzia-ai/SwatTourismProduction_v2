@@ -2877,11 +2877,13 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   <button
                     type="button"
                     onClick={() => {
-                      setSelectedType('transport');
-                      setTransportSubTab('intercity');
-                      onTabChange?.('explore');
+                      const el = document.getElementById('home-transport-schedules-section');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
                     }}
                     id="btn-home-view-intercity-transport"
+                    data-testid="btn-home-view-intercity-transport"
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -2898,12 +2900,39 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       transition: 'background-color 0.15s ease',
                     }}
                   >
-                    <span>View Bus Timings & Fares ({homeOriginCity.split(' / ')[0]} ➔ Swat) →</span>
+                    <span>View Bus Timings &amp; Fares ({homeOriginCity.split(' / ')[0]} ➔ Swat) ↓</span>
                   </button>
                 </div>
               </div>
             )}
             </div>
+
+            {/* Transport Spotlight (Intercity Bus Timings & Fares) when Transport tab is active on Home */}
+            {homeSearchTab === 'transport' && (
+              <div
+                id="home-transport-schedules-section"
+                style={{ marginTop: '0px' }}
+                data-testid="home-transport-showcase"
+              >
+                <IntercityTransportExplorer
+                  key={`home-intercity-${homeOriginCity}`}
+                  initialOrigin={homeOriginCity}
+                  onAddToTrip={handleAddIntercityTransportToTrip}
+                  onViewRouteMap={(origin, dest, sch) =>
+                    setMapModal({
+                      open: true,
+                      title: `${origin.split(' / ')[0]} ➔ ${dest}`,
+                      lat: 34.7717,
+                      lng: 72.3602,
+                      originCity: origin,
+                      destinationCity: dest,
+                      durationText: sch?.duration_text,
+                      viaHighway: sch?.via_highway,
+                    })
+                  }
+                />
+              </div>
+            )}
 
             {/* Explore Spotlight (Stays, Dining, Guides) when Explore tab is active in Home Frame */}
             {homeSearchTab === 'explore' && (
