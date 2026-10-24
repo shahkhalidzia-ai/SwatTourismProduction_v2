@@ -935,7 +935,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const [transportSubTab, setTransportSubTab] = useState<'intercity' | 'local'>('intercity');
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
   const [destCategoryFilter, setDestCategoryFilter] = useState<string>('all');
-  const [homeSearchTab, setHomeSearchTab] = useState<'valleys' | 'transport'>('valleys');
+  const [homeSearchTab, setHomeSearchTab] = useState<'valleys' | 'explore' | 'transport'>('valleys');
+  const [homeExploreFilter, setHomeExploreFilter] = useState<'all' | 'hotel' | 'restaurant' | 'guide' | 'activity'>('all');
   const [homeOriginCity, setHomeOriginCity] = useState<string>('Islamabad / Rawalpindi');
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -2118,6 +2119,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 <button
                   type="button"
                   onClick={() => setHomeSearchTab('valleys')}
+                  data-testid="tab-home-valleys"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -2140,7 +2142,32 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </button>
                 <button
                   type="button"
+                  data-testid="tab-home-explore"
+                  onClick={() => setHomeSearchTab('explore')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '6px 13px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: homeSearchTab === 'explore' ? 700 : 550,
+                    backgroundColor: homeSearchTab === 'explore' ? '#FFFFFF' : 'transparent',
+                    color: homeSearchTab === 'explore' ? 'var(--pri)' : 'var(--mute)',
+                    border: homeSearchTab === 'explore' ? '1px solid rgba(27, 79, 114, 0.15)' : '1px solid transparent',
+                    boxShadow: homeSearchTab === 'explore' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <CompassIcon size={13} color={homeSearchTab === 'explore' ? 'var(--pri)' : 'var(--mute)'} />
+                  <span>Explore (Stay, Dining, Guide)</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => setHomeSearchTab('transport')}
+                  data-testid="tab-home-transport"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -2328,7 +2355,200 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               </div>
             )}
 
-            {/* TAB CONTENT 2: TRANSPORT & BUSES PLANNER */}
+            {/* TAB CONTENT 2: EXPLORE (STAY, DINING, GUIDE) SEARCH */}
+            {homeSearchTab === 'explore' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} data-testid="home-explore-content">
+                {/* Unified Search Input Container */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: 'var(--bg)',
+                    border: '1.5px solid var(--line)',
+                    borderRadius: '12px',
+                    padding: '4px 6px 4px 14px',
+                    transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
+                    gap: '10px',
+                    minHeight: '46px',
+                  }}
+                >
+                  <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search verified stays, riverside dining, trout cafes, guides..."
+                    data-testid="input-home-explore-search"
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      backgroundColor: 'transparent',
+                      color: 'var(--ink)',
+                      fontSize: '14px',
+                      padding: '8px 4px',
+                    }}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--mute)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Clear search"
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      /* filters active view directly */
+                    }}
+                    style={{
+                      borderRadius: '9px',
+                      padding: '8px 20px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    Search
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (homeExploreFilter !== 'all') {
+                        setSelectedType(homeExploreFilter);
+                      }
+                      onTabChange?.('explore');
+                    }}
+                    data-testid="btn-home-open-explore-dir"
+                    style={{
+                      borderRadius: '9px',
+                      padding: '8px 14px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      backgroundColor: '#EFF6FF',
+                      color: 'var(--pri)',
+                      border: '1.5px solid rgba(27, 79, 114, 0.2)',
+                      flexShrink: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                    }}
+                  >
+                    <CompassIcon size={14} color="var(--pri)" />
+                    <span>View Directory →</span>
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setShowAITripModal(true)}
+                    style={{
+                      borderRadius: '9px',
+                      padding: '8px 14px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      backgroundColor: '#F0FDF4',
+                      color: '#065F46',
+                      border: '1.5px solid #86EFAC',
+                      flexShrink: 0,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Sparkles size={14} color="#059669" />
+                    <span>AI Trip</span>
+                  </Button>
+                </div>
+
+                {/* Explore Category Filter Bar */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--mute)' }}>
+                    <span style={{ fontWeight: 600 }}>Filter Offerings:</span>
+                    {homeExploreFilter !== 'all' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHomeExploreFilter('all');
+                          setSelectedType('all');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--pri)',
+                          fontSize: '11px',
+                          fontWeight: 650,
+                          cursor: 'pointer',
+                          padding: 0,
+                        }}
+                      >
+                        Reset to All Stays &amp; Dining
+                      </button>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '7px',
+                      overflowX: 'auto',
+                      padding: '2px 2px 4px 2px',
+                      scrollbarWidth: 'none',
+                    }}
+                  >
+                    {[
+                      { id: 'all', label: 'All Stays & Dining', icon: '✨' },
+                      { id: 'hotel', label: 'Stays (Hotels & Resorts)', icon: '🏨' },
+                      { id: 'restaurant', label: 'Dining (Riverside & Trout)', icon: '🍽️' },
+                      { id: 'guide', label: 'Guides (Local Experts)', icon: '🧭' },
+                      { id: 'activity', label: 'Adventures & Ski', icon: '⛷️' },
+                    ].map((cat) => {
+                      const isSelected = homeExploreFilter === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            setHomeExploreFilter(cat.id as any);
+                            setSelectedType(cat.id === 'all' ? 'all' : cat.id);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '6px 14px',
+                            borderRadius: '9999px',
+                            fontSize: '11.5px',
+                            fontWeight: isSelected ? 700 : 550,
+                            backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
+                            color: isSelected ? '#FFFFFF' : 'var(--ink)',
+                            border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
+                            boxShadow: isSelected ? '0 2px 6px rgba(47, 127, 193, 0.22)' : '0 1px 3px rgba(0,0,0,0.03)',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <span>{cat.icon}</span>
+                          <span>{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT 3: TRANSPORT & BUSES PLANNER */}
             {homeSearchTab === 'transport' && (
               <div
                 style={{
@@ -2475,6 +2695,181 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               </div>
             )}
           </div>
+
+          {/* Explore Spotlight (Stays, Dining, Guides) when Explore tab is active in Home Frame */}
+          {homeSearchTab === 'explore' && (
+            <div style={{ marginTop: '22px' }} data-testid="home-explore-showcase">
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '16px',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #174C72, #047857)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      boxShadow: '0 4px 12px rgba(23, 76, 114, 0.25)',
+                    }}
+                  >
+                    <CompassIcon size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+                      {homeExploreFilter === 'hotel'
+                        ? 'Verified Stays & Mountain Resorts'
+                        : homeExploreFilter === 'restaurant'
+                        ? 'Riverside Dining & Fresh Trout Cafes'
+                        : homeExploreFilter === 'guide'
+                        ? 'Certified Local Guides & Trackers'
+                        : homeExploreFilter === 'activity'
+                        ? 'Adventure Sports & Activities'
+                        : 'Explore Swat: Stays, Dining & Guides'}
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'var(--mute)', margin: '2px 0 0 0' }}>
+                      Certified hospitality, family dining, and authorized local tour operators
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (homeExploreFilter !== 'all') setSelectedType(homeExploreFilter);
+                    onTabChange?.('explore');
+                  }}
+                  id="btn-home-explore-view-all"
+                  style={{ fontWeight: 700, fontSize: '12.5px' }}
+                >
+                  Open Full Directory →
+                </Button>
+              </div>
+
+              {/* Grid of Verified Listings */}
+              <div className="grid-cards">
+                {(() => {
+                  const filtered = listings.filter((l) => {
+                    const matchesCategory =
+                      homeExploreFilter === 'all'
+                        ? (l.type_code === 'hotel' || l.type_code === 'restaurant' || l.type_code === 'guide' || l.type_code === 'activity')
+                        : l.type_code === homeExploreFilter;
+                    const matchesSearch =
+                      !searchQuery ||
+                      l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (l.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (l.area_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      l.price_items?.some((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                    return matchesCategory && matchesSearch;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div
+                        style={{
+                          gridColumn: '1 / -1',
+                          padding: '36px 20px',
+                          textAlign: 'center',
+                          backgroundColor: 'var(--card)',
+                          borderRadius: '16px',
+                          border: '1px dashed var(--line)',
+                        }}
+                      >
+                        <CompassIcon size={32} color="var(--pri)" style={{ margin: '0 auto 10px auto', opacity: 0.8 }} />
+                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
+                          No verified listings found
+                        </h4>
+                        <p style={{ margin: '4px 0 14px 0', fontSize: '12.5px', color: 'var(--mute)' }}>
+                          Try clearing the search query or exploring all categories.
+                        </p>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setHomeExploreFilter('all');
+                          }}
+                        >
+                          Show All Stays &amp; Dining
+                        </Button>
+                      </div>
+                    );
+                  }
+
+                  return filtered.slice(0, 6).map((l) => {
+                    const primaryPriceItem = l.price_items?.[0];
+                    const priceLine = primaryPriceItem
+                      ? `PKR ${primaryPriceItem.price.toLocaleString()} / ${primaryPriceItem.unit.replace('per_', '')}`
+                      : 'Contact for rates';
+                    const availabilityText = primaryPriceItem?.is_bookable
+                      ? `${primaryPriceItem.default_units || 5} units free`
+                      : 'Open daily';
+
+                    let listingCover = (l as any).cover_image_url || '';
+                    if (!listingCover) {
+                      const titleLower = (l.title || '').toLowerCase();
+                      if (l.type_code === 'hotel') {
+                        listingCover = titleLower.includes('kalam') || titleLower.includes('lodge')
+                          ? '/images/kalam_lodge.jpg'
+                          : '/images/swat_serena.jpg';
+                      } else if (l.type_code === 'restaurant') {
+                        listingCover = '/images/trout_restaurant.jpg';
+                      } else if (l.type_code === 'guide') {
+                        listingCover = '/images/ushu_forest.jpg';
+                      } else {
+                        listingCover = '/images/malam_jabba.jpg';
+                      }
+                    }
+
+                    return (
+                      <ListingCard
+                        key={`home-explore-${l.id}`}
+                        id={l.id}
+                        title={l.title}
+                        type={l.type_code}
+                        areaName={l.area_name || 'Swat Valley'}
+                        isVerified={l.is_verified || l.status === 'published'}
+                        coverImage={listingCover}
+                        tags={l.tags?.map((t) => t.label) || l.price_items?.slice(0, 3).map((p) => p.name) || []}
+                        priceLine={priceLine}
+                        availabilityText={availabilityText}
+                        phone={l.phone || '+92 946 711640'}
+                        addressText={l.address_text || `${l.area_name || 'Saidu Sharif'}, Swat`}
+                        onViewHotelDetails={l.type_code === 'hotel' ? () => setHotelModalListing(l) : undefined}
+                        onViewMenu={l.type_code === 'restaurant' ? () => setRestaurantModalListing(l) : undefined}
+                        onCheckDates={
+                          l.type_code === 'hotel'
+                            ? () =>
+                                setAvailModal({
+                                  open: true,
+                                  listingId: l.id,
+                                  listingTitle: l.title,
+                                  priceItems: l.price_items || [],
+                                })
+                            : undefined
+                        }
+                        onAddToTrip={() => {
+                          handleToggleSave('listing', l.id, l.title);
+                          handleAddStop('listing', l.id, l.title);
+                        }}
+                      />
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
 
           {/* This Weekend in Swat • Live Weather & Road Pulse Smart Card (Phase 2) */}
           <div

@@ -139,6 +139,24 @@ describe('Step 4 Tourist Explore and Trips UI', () => {
     });
   });
 
+  it('renders Explore (Stay, Dining, Guide) search tab and verified listings section on Home screen', async () => {
+    render(<TouristShell activeTab="home" />);
+
+    // Click Explore tab on Home search widget
+    const exploreTabBtn = screen.getByTestId('tab-home-explore');
+    expect(exploreTabBtn).toBeDefined();
+    fireEvent.click(exploreTabBtn);
+
+    // Verify search input for explore
+    expect(screen.getByTestId('input-home-explore-search')).toBeDefined();
+
+    // Verify verified listings section renders on Home
+    await waitFor(() => {
+      expect(screen.getByText(/Explore Swat: Stays, Dining & Guides/i)).toBeDefined();
+      expect(screen.getByText('Kalam River Inn')).toBeDefined();
+    });
+  });
+
   it('renders search and destinations on home screen and opens live weather forecast modal on destination card click', async () => {
     vi.spyOn(bookingsApi, 'fetchMyBookings').mockResolvedValue([]);
 
