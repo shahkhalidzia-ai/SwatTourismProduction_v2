@@ -3,6 +3,8 @@ import {
   Mountain,
   CloudSun,
   MapPin,
+  Compass,
+  Bus,
 } from 'lucide-react';
 
 interface TourismAnimatedBannerProps {
@@ -11,6 +13,8 @@ interface TourismAnimatedBannerProps {
   headerAction?: React.ReactNode;
   activeTab?: string;
   portalBadge?: string;
+  homeSearchTab?: 'valleys' | 'explore' | 'transport';
+  onHomeSearchTabChange?: (tab: 'valleys' | 'explore' | 'transport') => void;
 }
 
 const TOURISM_HIGHLIGHTS = [
@@ -61,6 +65,8 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
   subtitle,
   headerAction,
   portalBadge,
+  homeSearchTab,
+  onHomeSearchTabChange,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -264,31 +270,170 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
         </div>
       </div>
 
-      {/* Bottom Row: Subtitle on Left, Header Action Controls on Right */}
-      {(subtitle || headerAction) && (
+      {/* Bottom Row: 3 Functional Switcher Buttons on Left + Subtitle/HeaderAction on Right */}
+      {(subtitle || headerAction || (homeSearchTab && onHomeSearchTabChange)) && (
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: '8px',
+            gap: '10px',
             position: 'relative',
             zIndex: 2,
             width: '100%',
           }}
         >
-          {subtitle ? (
+          {/* Left: 3 Functional Buttons on Blue Banner (when on tourist home screen) OR Subtitle */}
+          {homeSearchTab && onHomeSearchTabChange ? (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexWrap: 'wrap',
+              }}
+            >
+              {/* 1. Valleys & Places */}
+              <button
+                type="button"
+                onClick={() => onHomeSearchTabChange('valleys')}
+                data-testid="tab-home-valleys"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '30px',
+                  padding: '0 13px',
+                  borderRadius: '20px',
+                  backgroundColor: homeSearchTab === 'valleys' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.16)',
+                  border: homeSearchTab === 'valleys' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.28)',
+                  backdropFilter: 'blur(8px)',
+                  color: homeSearchTab === 'valleys' ? '#0369A1' : '#FFFFFF',
+                  fontSize: '11.5px',
+                  fontWeight: homeSearchTab === 'valleys' ? 800 : 650,
+                  cursor: 'pointer',
+                  boxShadow: homeSearchTab === 'valleys'
+                    ? '0 3px 12px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
+                    : '0 2px 6px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (homeSearchTab !== 'valleys') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (homeSearchTab !== 'valleys') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                <Mountain size={13} color={homeSearchTab === 'valleys' ? '#0369A1' : '#A7F3D0'} />
+                <span>Valleys &amp; Places</span>
+              </button>
+
+              {/* 2. Explore (Stay, Dining, Guide) */}
+              <button
+                type="button"
+                onClick={() => onHomeSearchTabChange('explore')}
+                data-testid="tab-home-explore"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '30px',
+                  padding: '0 13px',
+                  borderRadius: '20px',
+                  backgroundColor: homeSearchTab === 'explore' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.16)',
+                  border: homeSearchTab === 'explore' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.28)',
+                  backdropFilter: 'blur(8px)',
+                  color: homeSearchTab === 'explore' ? '#0369A1' : '#FFFFFF',
+                  fontSize: '11.5px',
+                  fontWeight: homeSearchTab === 'explore' ? 800 : 650,
+                  cursor: 'pointer',
+                  boxShadow: homeSearchTab === 'explore'
+                    ? '0 3px 12px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
+                    : '0 2px 6px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (homeSearchTab !== 'explore') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (homeSearchTab !== 'explore') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                <Compass size={13} color={homeSearchTab === 'explore' ? '#0369A1' : '#FDE047'} />
+                <span>Explore (Stay, Dining, Guide)</span>
+              </button>
+
+              {/* 3. Transport & Buses */}
+              <button
+                type="button"
+                onClick={() => onHomeSearchTabChange('transport')}
+                data-testid="tab-home-transport"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  height: '30px',
+                  padding: '0 13px',
+                  borderRadius: '20px',
+                  backgroundColor: homeSearchTab === 'transport' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.16)',
+                  border: homeSearchTab === 'transport' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.28)',
+                  backdropFilter: 'blur(8px)',
+                  color: homeSearchTab === 'transport' ? '#0369A1' : '#FFFFFF',
+                  fontSize: '11.5px',
+                  fontWeight: homeSearchTab === 'transport' ? 800 : 650,
+                  cursor: 'pointer',
+                  boxShadow: homeSearchTab === 'transport'
+                    ? '0 3px 12px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
+                    : '0 2px 6px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (homeSearchTab !== 'transport') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (homeSearchTab !== 'transport') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                <Bus size={13} color={homeSearchTab === 'transport' ? '#0369A1' : '#93C5FD'} />
+                <span>Transport &amp; Buses</span>
+              </button>
+            </div>
+          ) : subtitle ? (
             <p style={{ margin: 0, fontSize: '11.5px', color: 'rgba(255, 255, 255, 0.85)', lineHeight: 1.25 }}>
               {subtitle}
             </p>
           ) : <div />}
 
-          {headerAction && (
-            <div style={{ marginLeft: 'auto' }}>
-              {headerAction}
-            </div>
-          )}
+          {/* Right: Header Action (User Pill + Logout) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+            {headerAction && (
+              <div>
+                {headerAction}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

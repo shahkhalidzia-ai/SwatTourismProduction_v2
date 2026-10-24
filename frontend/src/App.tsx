@@ -240,7 +240,7 @@ const MainAppContent: React.FC = () => {
 
     switch (role) {
       case 'tourist':
-        return <TouristShell activeTab={activeTab} onTabChange={setActiveTab} />;
+        return <TouristShell activeTab={activeTab} onTabChange={setActiveTab} headerAction={renderHeaderAction()} />;
       case 'business':
         return <BusinessShell activeTab={activeTab} isMobile={isSimulatedMobile} onTabChange={setActiveTab} />;
       case 'community':
@@ -370,6 +370,7 @@ const MainAppContent: React.FC = () => {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         headerAction={renderHeaderAction()}
+        hideTopBanner={role === 'tourist' && activeTab === 'home'}
       >
         {renderActiveShell()}
 

@@ -78,6 +78,7 @@ import { ReviewModal } from './ReviewModal';
 import { WeatherForecastModal } from './WeatherForecastModal';
 import { TouristAIAssistantModal } from './TouristAIAssistantModal';
 import { AITripGeneratorModal } from './AITripGeneratorModal';
+import { TourismAnimatedBanner } from '../../components/TourismAnimatedBanner';
 import {
   fetchActiveAdvisories,
   fetchRoadStatuses,
@@ -890,9 +891,10 @@ const DEFAULT_DESTINATIONS: Destination[] = [
 interface TouristShellProps {
   activeTab: string;
   onTabChange?: (tab: string) => void;
+  headerAction?: React.ReactNode;
 }
 
-export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChange }) => {
+export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChange, headerAction }) => {
   const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
   // Master data
   const [areas, setAreas] = useState<Area[]>([]);
@@ -2354,6 +2356,15 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
       {/* ========================================================================= */}
       {activeTab === 'home' && (
         <>
+          {/* Top Blue Banner on Tourist Home Screen with 3 Functional Buttons */}
+          <TourismAnimatedBanner
+            title="Swat Tourism Platform"
+            subtitle="Discover Pakistan's Switzerland • Stays, Dining & Guides"
+            headerAction={headerAction}
+            homeSearchTab={homeSearchTab}
+            onHomeSearchTabChange={setHomeSearchTab}
+          />
+
           {/* Top Hero Split Layout: 80% Search Hub & Results / 20% Advisory & Weather Intelligence */}
           <div className="tourist-home-hero-split">
             {/* Left 80% Column: Search Frame + Direct Search Result Lists */}
@@ -2424,129 +2435,28 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </div>
               </div>
 
-              {/* High-Contrast Segmented Pill Switcher Dock */}
+              {/* Active Search Mode Indicator Badge */}
               <div
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '12px',
-                  padding: '4px',
-                  border: '1.5px solid rgba(47, 127, 193, 0.24)',
-                  boxShadow: '0 2px 8px rgba(18, 50, 74, 0.06), inset 0 1px 2px rgba(0, 0, 0, 0.02)',
-                  gap: '4px',
-                  maxWidth: '100%',
-                  overflowX: 'auto',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  backgroundColor: 'rgba(47, 127, 193, 0.1)',
+                  border: '1px solid rgba(47, 127, 193, 0.22)',
+                  color: 'var(--pri)',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() => setHomeSearchTab('valleys')}
-                  data-testid="tab-home-valleys"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '7px 15px',
-                    borderRadius: '9px',
-                    fontSize: '12.5px',
-                    fontWeight: homeSearchTab === 'valleys' ? 700 : 600,
-                    background:
-                      homeSearchTab === 'valleys'
-                        ? 'linear-gradient(135deg, #134B73 0%, #20679E 55%, #2A82BC 100%)'
-                        : 'transparent',
-                    color: homeSearchTab === 'valleys' ? '#FFFFFF' : 'var(--ink)',
-                    border:
-                      homeSearchTab === 'valleys'
-                        ? '1px solid rgba(255, 255, 255, 0.25)'
-                        : '1px solid transparent',
-                    boxShadow:
-                      homeSearchTab === 'valleys'
-                        ? '0 3px 10px rgba(19, 75, 115, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.3)'
-                        : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <Mountain
-                    size={14}
-                    color={homeSearchTab === 'valleys' ? '#FFFFFF' : '#0D9488'}
-                  />
-                  <span>Valleys &amp; Places</span>
-                </button>
-                <button
-                  type="button"
-                  data-testid="tab-home-explore"
-                  onClick={() => setHomeSearchTab('explore')}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '7px 15px',
-                    borderRadius: '9px',
-                    fontSize: '12.5px',
-                    fontWeight: homeSearchTab === 'explore' ? 700 : 600,
-                    background:
-                      homeSearchTab === 'explore'
-                        ? 'linear-gradient(135deg, #134B73 0%, #20679E 55%, #2A82BC 100%)'
-                        : 'transparent',
-                    color: homeSearchTab === 'explore' ? '#FFFFFF' : 'var(--ink)',
-                    border:
-                      homeSearchTab === 'explore'
-                        ? '1px solid rgba(255, 255, 255, 0.25)'
-                        : '1px solid transparent',
-                    boxShadow:
-                      homeSearchTab === 'explore'
-                        ? '0 3px 10px rgba(19, 75, 115, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.3)'
-                        : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <CompassIcon
-                    size={14}
-                    color={homeSearchTab === 'explore' ? '#FFFFFF' : '#D97706'}
-                  />
-                  <span>Explore (Stay, Dining, Guide)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHomeSearchTab('transport')}
-                  data-testid="tab-home-transport"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '7px 15px',
-                    borderRadius: '9px',
-                    fontSize: '12.5px',
-                    fontWeight: homeSearchTab === 'transport' ? 700 : 600,
-                    background:
-                      homeSearchTab === 'transport'
-                        ? 'linear-gradient(135deg, #134B73 0%, #20679E 55%, #2A82BC 100%)'
-                        : 'transparent',
-                    color: homeSearchTab === 'transport' ? '#FFFFFF' : 'var(--ink)',
-                    border:
-                      homeSearchTab === 'transport'
-                        ? '1px solid rgba(255, 255, 255, 0.25)'
-                        : '1px solid transparent',
-                    boxShadow:
-                      homeSearchTab === 'transport'
-                        ? '0 3px 10px rgba(19, 75, 115, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.3)'
-                        : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <Bus
-                    size={14}
-                    color={homeSearchTab === 'transport' ? '#FFFFFF' : '#2563EB'}
-                  />
-                  <span>Transport &amp; Buses</span>
-                </button>
+                <span>
+                  {homeSearchTab === 'valleys'
+                    ? '🏔️ Mode: Valleys & Places'
+                    : homeSearchTab === 'explore'
+                    ? '🏨 Mode: Stays & Dining'
+                    : '🚌 Mode: Transport & Buses'}
+                </span>
               </div>
             </div>
 
