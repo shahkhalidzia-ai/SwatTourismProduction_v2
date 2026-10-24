@@ -2383,82 +2383,22 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   minWidth: 0,
                 }}
               >
-            {/* Header: Title, Subtitle & Mode Switcher */}
-            <div
+            {/* Visually hidden heading for screen readers & semantic outline */}
+            <h2
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '14px',
-                padding: '12px 16px',
-                borderRadius: '14px',
-                background: 'linear-gradient(135deg, rgba(232, 241, 250, 0.6) 0%, rgba(248, 250, 252, 0.95) 100%)',
-                border: '1px solid rgba(47, 127, 193, 0.16)',
-                boxShadow: '0 2px 10px rgba(18, 50, 74, 0.04)',
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                padding: 0,
+                margin: '-1px',
+                overflow: 'hidden',
+                clip: 'rect(0, 0, 0, 0)',
+                whiteSpace: 'nowrap',
+                border: 0,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <span
-                  style={{
-                    width: '46px',
-                    height: '46px',
-                    borderRadius: '13px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    background: 'linear-gradient(135deg, #134B73 0%, #20679E 50%, #2980B9 100%)',
-                    color: '#FFFFFF',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    boxShadow: '0 4px 14px rgba(19, 75, 115, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.35)',
-                  }}
-                >
-                  <CompassIcon size={23} color="#FFFFFF" />
-                </span>
-                <div>
-                  <h2
-                    style={{
-                      fontSize: '1.3rem',
-                      fontWeight: 800,
-                      color: 'var(--ink)',
-                      letterSpacing: '-0.02em',
-                      margin: 0,
-                      lineHeight: 1.25,
-                    }}
-                  >
-                    Explore the Beauty of Swat Valley
-                  </h2>
-                  <p style={{ color: 'var(--mute)', fontSize: '12.5px', margin: '3px 0 0 0', fontWeight: 550 }}>
-                    Find verified stays, local guides, riverside dining & adventures
-                  </p>
-                </div>
-              </div>
-
-              {/* Active Search Mode Indicator Badge */}
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  backgroundColor: 'rgba(47, 127, 193, 0.1)',
-                  border: '1px solid rgba(47, 127, 193, 0.22)',
-                  color: 'var(--pri)',
-                  fontSize: '11.5px',
-                  fontWeight: 700,
-                }}
-              >
-                <span>
-                  {homeSearchTab === 'valleys'
-                    ? '🏔️ Mode: Valleys & Places'
-                    : homeSearchTab === 'explore'
-                    ? '🏨 Mode: Stays & Dining'
-                    : '🚌 Mode: Transport & Buses'}
-                </span>
-              </div>
-            </div>
+              Explore the Beauty of Swat Valley
+            </h2>
 
             {/* TAB CONTENT 1: VALLEYS & PLACES SEARCH */}
             {homeSearchTab === 'valleys' && (
