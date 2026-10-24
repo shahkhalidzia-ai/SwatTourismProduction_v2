@@ -278,7 +278,8 @@ describe('Step 4 Tourist Explore and Trips UI', () => {
 
     // Now Intercity departure city picker is visible
     expect(screen.getByText(/Select Your Origin Departure City:/i)).toBeDefined();
-    expect(screen.getByTestId('btn-home-view-intercity-transport')).toBeDefined();
+    expect(screen.queryByTestId('btn-home-view-intercity-transport')).toBeNull();
+    expect(screen.queryByText(/Back to Valleys/i)).toBeNull();
     // Local transport search and grid should now be hidden
     expect(screen.queryByTestId('input-home-local-transport-search')).toBeNull();
     expect(screen.queryByTestId('grid-local-transport-home')).toBeNull();

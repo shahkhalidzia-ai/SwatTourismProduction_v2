@@ -3088,53 +3088,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       </span>
                     </div>
 
-                    {/* Direct Action Button */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setHomeSearchTab('valleys')}
-                        style={{
-                          padding: '8px 14px',
-                          borderRadius: '8px',
-                          backgroundColor: 'transparent',
-                          border: '1px solid rgba(27, 79, 114, 0.2)',
-                          color: 'var(--pri)',
-                          fontSize: '12px',
-                          fontWeight: 650,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Back to Valleys
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const el = document.getElementById('home-intercity-schedules-section');
-                          if (el) {
-                            el.scrollIntoView({ behavior: 'smooth' });
-                          }
-                        }}
-                        id="btn-home-view-intercity-transport"
-                        data-testid="btn-home-view-intercity-transport"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '8px 18px',
-                          borderRadius: '8px',
-                          backgroundColor: 'var(--pri)',
-                          color: '#ffffff',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          border: 'none',
-                          cursor: 'pointer',
-                          boxShadow: '0 2px 8px rgba(47, 127, 193, 0.28)',
-                          transition: 'background-color 0.15s ease',
-                        }}
-                      >
-                        <span>View Bus Timings &amp; Fares ({homeOriginCity.split(' / ')[0]} ➔ Swat) ↓</span>
-                      </button>
-                    </div>
+
                   </>
                 )}
               </div>
