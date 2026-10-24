@@ -2064,56 +2064,64 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
-                gap: '12px',
+                gap: '14px',
+                padding: '12px 16px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, rgba(232, 241, 250, 0.6) 0%, rgba(248, 250, 252, 0.95) 100%)',
+                border: '1px solid rgba(47, 127, 193, 0.16)',
+                boxShadow: '0 2px 10px rgba(18, 50, 74, 0.04)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <span
                   style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '12px',
+                    width: '46px',
+                    height: '46px',
+                    borderRadius: '13px',
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    backgroundColor: 'rgba(47, 127, 193, 0.1)',
-                    border: '1.5px solid rgba(47, 127, 193, 0.22)',
-                    color: 'var(--pri)',
-                    boxShadow: '0 2px 6px rgba(47, 127, 193, 0.08)',
+                    background: 'linear-gradient(135deg, #134B73 0%, #20679E 50%, #2980B9 100%)',
+                    color: '#FFFFFF',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    boxShadow: '0 4px 14px rgba(19, 75, 115, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.35)',
                   }}
                 >
-                  <CompassIcon size={21} color="var(--pri)" />
+                  <CompassIcon size={23} color="#FFFFFF" />
                 </span>
                 <div>
                   <h2
                     style={{
-                      fontSize: '1.25rem',
+                      fontSize: '1.3rem',
                       fontWeight: 800,
-                      color: 'var(--pri)',
-                      letterSpacing: '-0.015em',
+                      color: 'var(--ink)',
+                      letterSpacing: '-0.02em',
                       margin: 0,
                       lineHeight: 1.25,
                     }}
                   >
                     Explore the Beauty of Swat Valley
                   </h2>
-                  <p style={{ color: 'var(--mute)', fontSize: '12px', margin: '3px 0 0 0', fontWeight: 500 }}>
+                  <p style={{ color: 'var(--mute)', fontSize: '12.5px', margin: '3px 0 0 0', fontWeight: 550 }}>
                     Find verified stays, local guides, riverside dining & adventures
                   </p>
                 </div>
               </div>
 
-              {/* Dual-Mode Segmented Pill Switcher */}
+              {/* High-Contrast Segmented Pill Switcher Dock */}
               <div
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  backgroundColor: '#F1F5F9',
-                  borderRadius: '10px',
-                  padding: '3px',
-                  border: '1px solid rgba(27, 79, 114, 0.12)',
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: '12px',
+                  padding: '4px',
+                  border: '1.5px solid rgba(47, 127, 193, 0.24)',
+                  boxShadow: '0 2px 8px rgba(18, 50, 74, 0.06), inset 0 1px 2px rgba(0, 0, 0, 0.02)',
                   gap: '4px',
+                  maxWidth: '100%',
+                  overflowX: 'auto',
                 }}
               >
                 <button
@@ -2123,22 +2131,34 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px',
-                    padding: '6px 13px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: homeSearchTab === 'valleys' ? 700 : 550,
-                    backgroundColor: homeSearchTab === 'valleys' ? '#FFFFFF' : 'transparent',
-                    color: homeSearchTab === 'valleys' ? 'var(--pri)' : 'var(--mute)',
-                    border: homeSearchTab === 'valleys' ? '1px solid rgba(27, 79, 114, 0.15)' : '1px solid transparent',
-                    boxShadow: homeSearchTab === 'valleys' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                    gap: '6px',
+                    padding: '7px 15px',
+                    borderRadius: '9px',
+                    fontSize: '12.5px',
+                    fontWeight: homeSearchTab === 'valleys' ? 700 : 600,
+                    background:
+                      homeSearchTab === 'valleys'
+                        ? 'linear-gradient(135deg, #134B73 0%, #20679E 55%, #2A82BC 100%)'
+                        : 'transparent',
+                    color: homeSearchTab === 'valleys' ? '#FFFFFF' : 'var(--ink)',
+                    border:
+                      homeSearchTab === 'valleys'
+                        ? '1px solid rgba(255, 255, 255, 0.25)'
+                        : '1px solid transparent',
+                    boxShadow:
+                      homeSearchTab === 'valleys'
+                        ? '0 3px 10px rgba(19, 75, 115, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.3)'
+                        : 'none',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  <Mountain size={13} color={homeSearchTab === 'valleys' ? 'var(--pri)' : 'var(--mute)'} />
-                  <span>Valleys & Places</span>
+                  <Mountain
+                    size={14}
+                    color={homeSearchTab === 'valleys' ? '#FFFFFF' : '#0D9488'}
+                  />
+                  <span>Valleys &amp; Places</span>
                 </button>
                 <button
                   type="button"
@@ -2147,21 +2167,33 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px',
-                    padding: '6px 13px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: homeSearchTab === 'explore' ? 700 : 550,
-                    backgroundColor: homeSearchTab === 'explore' ? '#FFFFFF' : 'transparent',
-                    color: homeSearchTab === 'explore' ? 'var(--pri)' : 'var(--mute)',
-                    border: homeSearchTab === 'explore' ? '1px solid rgba(27, 79, 114, 0.15)' : '1px solid transparent',
-                    boxShadow: homeSearchTab === 'explore' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                    gap: '6px',
+                    padding: '7px 15px',
+                    borderRadius: '9px',
+                    fontSize: '12.5px',
+                    fontWeight: homeSearchTab === 'explore' ? 700 : 600,
+                    background:
+                      homeSearchTab === 'explore'
+                        ? 'linear-gradient(135deg, #134B73 0%, #20679E 55%, #2A82BC 100%)'
+                        : 'transparent',
+                    color: homeSearchTab === 'explore' ? '#FFFFFF' : 'var(--ink)',
+                    border:
+                      homeSearchTab === 'explore'
+                        ? '1px solid rgba(255, 255, 255, 0.25)'
+                        : '1px solid transparent',
+                    boxShadow:
+                      homeSearchTab === 'explore'
+                        ? '0 3px 10px rgba(19, 75, 115, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.3)'
+                        : 'none',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  <CompassIcon size={13} color={homeSearchTab === 'explore' ? 'var(--pri)' : 'var(--mute)'} />
+                  <CompassIcon
+                    size={14}
+                    color={homeSearchTab === 'explore' ? '#FFFFFF' : '#D97706'}
+                  />
                   <span>Explore (Stay, Dining, Guide)</span>
                 </button>
                 <button
@@ -2171,22 +2203,34 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px',
-                    padding: '6px 13px',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    fontWeight: homeSearchTab === 'transport' ? 700 : 550,
-                    backgroundColor: homeSearchTab === 'transport' ? '#FFFFFF' : 'transparent',
-                    color: homeSearchTab === 'transport' ? 'var(--pri)' : 'var(--mute)',
-                    border: homeSearchTab === 'transport' ? '1px solid rgba(27, 79, 114, 0.15)' : '1px solid transparent',
-                    boxShadow: homeSearchTab === 'transport' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                    gap: '6px',
+                    padding: '7px 15px',
+                    borderRadius: '9px',
+                    fontSize: '12.5px',
+                    fontWeight: homeSearchTab === 'transport' ? 700 : 600,
+                    background:
+                      homeSearchTab === 'transport'
+                        ? 'linear-gradient(135deg, #134B73 0%, #20679E 55%, #2A82BC 100%)'
+                        : 'transparent',
+                    color: homeSearchTab === 'transport' ? '#FFFFFF' : 'var(--ink)',
+                    border:
+                      homeSearchTab === 'transport'
+                        ? '1px solid rgba(255, 255, 255, 0.25)'
+                        : '1px solid transparent',
+                    boxShadow:
+                      homeSearchTab === 'transport'
+                        ? '0 3px 10px rgba(19, 75, 115, 0.32), inset 0 1px 1px rgba(255, 255, 255, 0.3)'
+                        : 'none',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease',
+                    transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  <Bus size={13} color={homeSearchTab === 'transport' ? 'var(--pri)' : 'var(--mute)'} />
-                  <span>Transport & Buses</span>
+                  <Bus
+                    size={14}
+                    color={homeSearchTab === 'transport' ? '#FFFFFF' : '#2563EB'}
+                  />
+                  <span>Transport &amp; Buses</span>
                 </button>
               </div>
             </div>
