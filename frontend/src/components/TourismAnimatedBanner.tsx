@@ -290,7 +290,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 flexWrap: 'wrap',
               }}
             >
@@ -302,37 +302,41 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  height: '30px',
-                  padding: '0 13px',
-                  borderRadius: '20px',
-                  backgroundColor: homeSearchTab === 'valleys' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.16)',
-                  border: homeSearchTab === 'valleys' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.28)',
-                  backdropFilter: 'blur(8px)',
+                  gap: '5px',
+                  height: '24px',
+                  boxSizing: 'border-box',
+                  padding: '0 10px',
+                  borderRadius: '9999px',
+                  backgroundColor: homeSearchTab === 'valleys' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.14)',
+                  border: homeSearchTab === 'valleys' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.24)',
+                  backdropFilter: 'blur(6px)',
                   color: homeSearchTab === 'valleys' ? '#0369A1' : '#FFFFFF',
-                  fontSize: '11.5px',
-                  fontWeight: homeSearchTab === 'valleys' ? 800 : 650,
+                  fontSize: '11px',
+                  fontWeight: homeSearchTab === 'valleys' ? 750 : 600,
+                  letterSpacing: '0.01em',
                   cursor: 'pointer',
                   boxShadow: homeSearchTab === 'valleys'
-                    ? '0 3px 12px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
-                    : '0 2px 6px rgba(0, 0, 0, 0.08)',
-                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                    ? '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
+                    : '0 1px 4px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
                   whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={(e) => {
                   if (homeSearchTab !== 'valleys') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.26)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.38)';
                     e.currentTarget.style.transform = 'translateY(-1px)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (homeSearchTab !== 'valleys') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.14)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.24)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }
                 }}
               >
-                <Mountain size={13} color={homeSearchTab === 'valleys' ? '#0369A1' : '#A7F3D0'} />
+                <Mountain size={12} color={homeSearchTab === 'valleys' ? '#0369A1' : '#A7F3D0'} />
                 <span>Valleys &amp; Places</span>
               </button>
 
@@ -344,37 +348,41 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  height: '30px',
-                  padding: '0 13px',
-                  borderRadius: '20px',
-                  backgroundColor: homeSearchTab === 'explore' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.16)',
-                  border: homeSearchTab === 'explore' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.28)',
-                  backdropFilter: 'blur(8px)',
+                  gap: '5px',
+                  height: '24px',
+                  boxSizing: 'border-box',
+                  padding: '0 10px',
+                  borderRadius: '9999px',
+                  backgroundColor: homeSearchTab === 'explore' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.14)',
+                  border: homeSearchTab === 'explore' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.24)',
+                  backdropFilter: 'blur(6px)',
                   color: homeSearchTab === 'explore' ? '#0369A1' : '#FFFFFF',
-                  fontSize: '11.5px',
-                  fontWeight: homeSearchTab === 'explore' ? 800 : 650,
+                  fontSize: '11px',
+                  fontWeight: homeSearchTab === 'explore' ? 750 : 600,
+                  letterSpacing: '0.01em',
                   cursor: 'pointer',
                   boxShadow: homeSearchTab === 'explore'
-                    ? '0 3px 12px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
-                    : '0 2px 6px rgba(0, 0, 0, 0.08)',
-                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                    ? '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
+                    : '0 1px 4px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
                   whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={(e) => {
                   if (homeSearchTab !== 'explore') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.26)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.38)';
                     e.currentTarget.style.transform = 'translateY(-1px)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (homeSearchTab !== 'explore') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.14)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.24)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }
                 }}
               >
-                <Compass size={13} color={homeSearchTab === 'explore' ? '#0369A1' : '#FDE047'} />
+                <Compass size={12} color={homeSearchTab === 'explore' ? '#0369A1' : '#FDE047'} />
                 <span>Explore (Stay, Dining, Guide)</span>
               </button>
 
@@ -386,37 +394,41 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  height: '30px',
-                  padding: '0 13px',
-                  borderRadius: '20px',
-                  backgroundColor: homeSearchTab === 'transport' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.16)',
-                  border: homeSearchTab === 'transport' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.28)',
-                  backdropFilter: 'blur(8px)',
+                  gap: '5px',
+                  height: '24px',
+                  boxSizing: 'border-box',
+                  padding: '0 10px',
+                  borderRadius: '9999px',
+                  backgroundColor: homeSearchTab === 'transport' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.14)',
+                  border: homeSearchTab === 'transport' ? '1px solid #FFFFFF' : '1px solid rgba(255, 255, 255, 0.24)',
+                  backdropFilter: 'blur(6px)',
                   color: homeSearchTab === 'transport' ? '#0369A1' : '#FFFFFF',
-                  fontSize: '11.5px',
-                  fontWeight: homeSearchTab === 'transport' ? 800 : 650,
+                  fontSize: '11px',
+                  fontWeight: homeSearchTab === 'transport' ? 750 : 600,
+                  letterSpacing: '0.01em',
                   cursor: 'pointer',
                   boxShadow: homeSearchTab === 'transport'
-                    ? '0 3px 12px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
-                    : '0 2px 6px rgba(0, 0, 0, 0.08)',
-                  transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                    ? '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
+                    : '0 1px 4px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
                   whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={(e) => {
                   if (homeSearchTab !== 'transport') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.26)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.38)';
                     e.currentTarget.style.transform = 'translateY(-1px)';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (homeSearchTab !== 'transport') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.14)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.24)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }
                 }}
               >
-                <Bus size={13} color={homeSearchTab === 'transport' ? '#0369A1' : '#93C5FD'} />
+                <Bus size={12} color={homeSearchTab === 'transport' ? '#0369A1' : '#93C5FD'} />
                 <span>Transport &amp; Buses</span>
               </button>
             </div>
