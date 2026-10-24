@@ -1857,6 +1857,468 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
     return savedItems.some((s) => s.item_type === type && s.item_id === id);
   };
 
+  const renderAdvisoryFrame = (isSidebar: boolean = false) => {
+    const primaryAdv = (advisories && advisories.length > 0)
+      ? (advisories.find((a) => a.severity === 'danger') || advisories.find((a) => a.severity === 'warning') || advisories[0])
+      : null;
+
+    const isDanger = primaryAdv?.severity === 'danger';
+    const advTitle = primaryAdv?.title
+      ? (primaryAdv.title.toLowerCase().includes('advisory') ? primaryAdv.title : `Weather Advisory: ${primaryAdv.title}`)
+      : 'Weather Advisory: Light snow expected at Malam Jabba & Kalam';
+    const advMessage = primaryAdv?.message || 'Main arterial roads remain fully open. 4x4 vehicles advised for Mahodand Lake track. Rescue 1122 active.';
+
+    if (isSidebar) {
+      return (
+        <div
+          id="active-advisory-banner"
+          data-testid="active-advisory-banner"
+          style={{
+            backgroundColor: 'var(--card)',
+            background: isDanger
+              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(220, 38, 38, 0.08) 100%)'
+              : 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.08) 100%)',
+            border: isDanger ? '1.5px solid rgba(239, 68, 68, 0.6)' : '1.5px solid rgba(245, 158, 11, 0.65)',
+            borderLeft: isDanger ? '5px solid #DC2626' : '5px solid #D97706',
+            borderRadius: '16px',
+            padding: '14px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            boxShadow: isDanger
+              ? '0 6px 20px -2px rgba(220, 38, 38, 0.20), 0 2px 8px rgba(0, 0, 0, 0.04)'
+              : '0 6px 20px -2px rgba(217, 119, 6, 0.18), 0 2px 8px rgba(0, 0, 0, 0.04)',
+            backdropFilter: 'blur(8px)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header pill & badge */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '3px 8px',
+                borderRadius: '9999px',
+                backgroundColor: isDanger ? '#DC2626' : '#D97706',
+                color: '#FFFFFF',
+                fontSize: '10px',
+                fontWeight: 800,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
+              }}
+            >
+              <span
+                style={{
+                  width: '5px',
+                  height: '5px',
+                  borderRadius: '50%',
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0 0 5px #FFFFFF',
+                }}
+              />
+              Live Advisory
+            </span>
+            <Tag variant={isDanger ? 'bad' : 'accent'}>Rescue 1122</Tag>
+          </div>
+
+          {/* Title & emblem */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '9px',
+                background: isDanger
+                  ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
+                  : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: isDanger
+                  ? '0 3px 8px rgba(220, 38, 38, 0.3)'
+                  : '0 3px 8px rgba(217, 119, 6, 0.3)',
+              }}
+            >
+              <AlertTriangle color="#FFFFFF" size={18} strokeWidth={2.4} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  color: 'var(--ink)',
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1.35,
+                }}
+              >
+                {advTitle}
+              </div>
+            </div>
+          </div>
+
+          {/* Message */}
+          <div
+            style={{
+              fontSize: '11.5px',
+              color: 'var(--ink)',
+              opacity: 0.88,
+              lineHeight: 1.45,
+              fontWeight: 500,
+            }}
+          >
+            {advMessage}
+          </div>
+
+          {/* Action button */}
+          <button
+            type="button"
+            onClick={() => onTabChange?.('safety')}
+            id="btn-advisory-view-safety"
+            data-testid="btn-advisory-view-safety"
+            style={{
+              width: '100%',
+              padding: '8px 14px',
+              borderRadius: '9px',
+              backgroundColor: isDanger ? '#DC2626' : '#D97706',
+              color: '#FFFFFF',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              border: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>Safety & Roads Details</span>
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      );
+    }
+
+    // Full-width banner for non-home tabs
+    return (
+      <div
+        id="active-advisory-banner"
+        data-testid="active-advisory-banner"
+        style={{
+          backgroundColor: 'var(--card)',
+          background: isDanger
+            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(220, 38, 38, 0.12) 100%)'
+            : 'linear-gradient(135deg, rgba(245, 158, 11, 0.20) 0%, rgba(217, 119, 6, 0.13) 100%)',
+          border: isDanger ? '2px solid rgba(239, 68, 68, 0.7)' : '2px solid rgba(245, 158, 11, 0.75)',
+          borderLeft: isDanger ? '6px solid #DC2626' : '6px solid #D97706',
+          borderRadius: '14px',
+          padding: '14px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          marginBottom: '16px',
+          boxShadow: isDanger
+            ? '0 6px 20px -2px rgba(220, 38, 38, 0.25), 0 2px 8px rgba(0, 0, 0, 0.05)'
+            : '0 6px 20px -2px rgba(217, 119, 6, 0.24), 0 2px 8px rgba(0, 0, 0, 0.05)',
+          backdropFilter: 'blur(8px)',
+          position: 'relative',
+          overflow: 'hidden',
+          flexWrap: 'wrap',
+        }}
+      >
+        {/* Left Content with Alert Emblem */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '260px' }}>
+          <div
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              background: isDanger
+                ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
+                : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: isDanger
+                ? '0 4px 12px rgba(220, 38, 38, 0.35)'
+                : '0 4px 12px rgba(217, 119, 6, 0.35)',
+            }}
+          >
+            <AlertTriangle color="#FFFFFF" size={24} strokeWidth={2.4} />
+          </div>
+
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '2.5px 9px',
+                  borderRadius: '9999px',
+                  backgroundColor: isDanger ? '#DC2626' : '#D97706',
+                  color: '#FFFFFF',
+                  fontSize: '10.5px',
+                  fontWeight: 800,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
+                }}
+              >
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: '0 0 6px #FFFFFF',
+                  }}
+                />
+                Live Alert • KP Tourism Authority
+              </span>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--mute)' }}>
+                Active Bulletin • Rescue 1122
+              </span>
+            </div>
+
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '1.02rem',
+                color: 'var(--ink)',
+                letterSpacing: '-0.015em',
+                lineHeight: 1.3,
+              }}
+            >
+              {advTitle}
+            </div>
+            <div
+              style={{
+                fontSize: '12.5px',
+                color: 'var(--ink)',
+                opacity: 0.88,
+                marginTop: '3px',
+                lineHeight: 1.45,
+                fontWeight: 500,
+              }}
+            >
+              {advMessage}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Action & Tag */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, flexWrap: 'wrap' }}>
+          <Tag variant={isDanger ? 'bad' : 'accent'}>Advisory</Tag>
+          <button
+            type="button"
+            onClick={() => onTabChange?.('safety')}
+            id="btn-advisory-view-safety"
+            data-testid="btn-advisory-view-safety"
+            style={{
+              padding: '7px 14px',
+              borderRadius: '9px',
+              backgroundColor: isDanger ? '#DC2626' : '#D97706',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>Safety & Roads</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderWeekendWeatherCard = () => {
+    const valleyWeatherReports = [
+      {
+        valley: 'Kalam Alpine',
+        temp: '12°C',
+        icon: '⛅',
+        condition: 'Partly Sunny',
+        road: 'Main Road Clear',
+        roadOk: true,
+        query: 'Kalam',
+      },
+      {
+        valley: 'Malam Jabba',
+        temp: '7°C',
+        icon: '❄️',
+        condition: 'Snow Season & Skiing',
+        road: 'Chains required at peak',
+        roadOk: true,
+        query: 'Malam Jabba',
+      },
+      {
+        valley: 'Bahrain & Trout',
+        temp: '16°C',
+        icon: '☀️',
+        condition: 'Clear & Mild',
+        road: 'Direct Riverway Open',
+        roadOk: true,
+        query: 'Bahrain',
+      },
+      {
+        valley: 'Mahodand & Lakes',
+        temp: '6°C',
+        icon: '🏔️',
+        condition: 'Glacial Breeze',
+        road: '4x4 Jeeps Operating',
+        roadOk: true,
+        query: 'Mahodand',
+      },
+    ];
+
+    return (
+      <div
+        id="live-swat-weather-road-pulse"
+        data-testid="live-swat-weather-road-pulse"
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '16px',
+          border: '1px solid rgba(27, 79, 114, 0.12)',
+          boxShadow: '0 4px 20px rgba(18, 50, 74, 0.06)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '12px 14px',
+            background: 'linear-gradient(135deg, rgba(27, 79, 114, 0.05) 0%, rgba(16, 185, 129, 0.08) 100%)',
+            borderBottom: '1px solid rgba(27, 79, 114, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <div
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '7px',
+                  background: 'var(--pri)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                }}
+              >
+                🌤️
+              </div>
+              <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--ink)' }}>
+                This Weekend in Swat
+              </h4>
+            </div>
+
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: '#059669',
+                backgroundColor: '#ECFDF5',
+                padding: '2.5px 7px',
+                borderRadius: '5px',
+                border: '1px solid #A7F3D0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+              M-16 Open
+            </span>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--mute)' }}>
+            Real-time mountain weather, snow & road clearance
+          </div>
+        </div>
+
+        {/* Micro Weather Cards Stack */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '12px 14px',
+          }}
+        >
+          {valleyWeatherReports.map((c) => (
+            <button
+              key={c.valley}
+              type="button"
+              onClick={() => setSearchQuery(c.query)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '9px 11px',
+                borderRadius: '10px',
+                border: '1px solid rgba(27, 79, 114, 0.1)',
+                backgroundColor: '#F8FAFD',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s ease',
+                width: '100%',
+              }}
+              title={`Click to filter ${c.valley} offerings`}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 750, color: 'var(--ink)' }}>
+                  {c.valley}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--pri)' }}>
+                  {c.icon} {c.temp}
+                </span>
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--mute)', marginTop: '2px' }}>
+                {c.condition}
+              </div>
+              <div
+                style={{
+                  marginTop: '4px',
+                  fontSize: '10px',
+                  fontWeight: 650,
+                  color: c.roadOk ? '#047857' : '#D97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span>🚗 {c.road}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {/* Toast Feedback */}
@@ -1884,179 +2346,30 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         </div>
       )}
 
-      {/* Active Advisory Banner (Section 6) */}
-      {(() => {
-        const primaryAdv = (advisories && advisories.length > 0)
-          ? (advisories.find((a) => a.severity === 'danger') || advisories.find((a) => a.severity === 'warning') || advisories[0])
-          : null;
-
-        const isDanger = primaryAdv?.severity === 'danger';
-        const advTitle = primaryAdv?.title
-          ? (primaryAdv.title.toLowerCase().includes('advisory') ? primaryAdv.title : `Weather Advisory: ${primaryAdv.title}`)
-          : 'Weather Advisory: Light snow expected at Malam Jabba & Kalam';
-        const advMessage = primaryAdv?.message || 'Main arterial roads remain fully open. 4x4 vehicles advised for Mahodand Lake track. Rescue 1122 active.';
-
-        return (
-          <div
-            id="active-advisory-banner"
-            data-testid="active-advisory-banner"
-            style={{
-              backgroundColor: 'var(--card)',
-              background: isDanger
-                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(220, 38, 38, 0.12) 100%)'
-                : 'linear-gradient(135deg, rgba(245, 158, 11, 0.20) 0%, rgba(217, 119, 6, 0.13) 100%)',
-              border: isDanger ? '2px solid rgba(239, 68, 68, 0.7)' : '2px solid rgba(245, 158, 11, 0.75)',
-              borderLeft: isDanger ? '6px solid #DC2626' : '6px solid #D97706',
-              borderRadius: '14px',
-              padding: '14px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '16px',
-              marginBottom: 0,
-              boxShadow: isDanger
-                ? '0 6px 20px -2px rgba(220, 38, 38, 0.25), 0 2px 8px rgba(0, 0, 0, 0.05)'
-                : '0 6px 20px -2px rgba(217, 119, 6, 0.24), 0 2px 8px rgba(0, 0, 0, 0.05)',
-              backdropFilter: 'blur(8px)',
-              position: 'relative',
-              overflow: 'hidden',
-              flexWrap: 'wrap',
-            }}
-          >
-            {/* Left Content with Alert Emblem */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '260px' }}>
-              <div
-                style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: '12px',
-                  background: isDanger
-                    ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
-                    : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                  color: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  boxShadow: isDanger
-                    ? '0 4px 12px rgba(220, 38, 38, 0.35)'
-                    : '0 4px 12px rgba(217, 119, 6, 0.35)',
-                }}
-              >
-                <AlertTriangle color="#FFFFFF" size={24} strokeWidth={2.4} />
-              </div>
-
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '2.5px 9px',
-                      borderRadius: '9999px',
-                      backgroundColor: isDanger ? '#DC2626' : '#D97706',
-                      color: '#FFFFFF',
-                      fontSize: '10.5px',
-                      fontWeight: 800,
-                      letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
-                      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        backgroundColor: '#FFFFFF',
-                        boxShadow: '0 0 6px #FFFFFF',
-                      }}
-                    />
-                    Live Alert • KP Tourism Authority
-                  </span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--mute)' }}>
-                    Active Bulletin • Rescue 1122
-                  </span>
-                </div>
-
-                <div
-                  style={{
-                    fontWeight: 800,
-                    fontSize: '1.02rem',
-                    color: 'var(--ink)',
-                    letterSpacing: '-0.015em',
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {advTitle}
-                </div>
-                <div
-                  style={{
-                    fontSize: '12.5px',
-                    color: 'var(--ink)',
-                    opacity: 0.88,
-                    marginTop: '3px',
-                    lineHeight: 1.45,
-                    fontWeight: 500,
-                  }}
-                >
-                  {advMessage}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Action & Tag */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, flexWrap: 'wrap' }}>
-              <Tag variant={isDanger ? 'bad' : 'accent'}>Advisory</Tag>
-              <button
-                type="button"
-                onClick={() => onTabChange?.('safety')}
-                id="btn-advisory-view-safety"
-                data-testid="btn-advisory-view-safety"
-                style={{
-                  padding: '7px 14px',
-                  borderRadius: '9px',
-                  backgroundColor: isDanger ? '#DC2626' : '#D97706',
-                  color: '#FFFFFF',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  border: 'none',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <span>Safety & Roads</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Active Advisory Banner on non-home tabs */}
+      {activeTab !== 'home' && renderAdvisoryFrame(false)}
 
       {/* ========================================================================= */}
       {/* TAB 1: HOME */}
       {/* ========================================================================= */}
       {activeTab === 'home' && (
         <>
-          {/* Hero Search & Transport Hub Frame */}
-          <div
-            style={{
-              backgroundColor: 'var(--card)',
-              border: '1px solid var(--line)',
-              borderRadius: '16px',
-              padding: '18px 20px',
-              boxShadow: '0 4px 20px -2px rgba(18, 50, 74, 0.06)',
-              marginBottom: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-            }}
-          >
+          {/* Top Hero Split Layout: 80% Search Hub & 20% Advisory / Weather Intelligence */}
+          <div className="tourist-home-hero-split">
+            {/* Left 80% Column: Hero Search & Transport Hub Frame */}
+            <div
+              style={{
+                backgroundColor: 'var(--card)',
+                border: '1px solid rgba(47, 127, 193, 0.16)',
+                borderRadius: '18px',
+                padding: '18px 20px',
+                boxShadow: '0 8px 30px -4px rgba(18, 50, 74, 0.07), 0 2px 10px rgba(0, 0, 0, 0.03)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+                minWidth: 0,
+              }}
+            >
             {/* Header: Title, Subtitle & Mode Switcher */}
             <div
               style={{
@@ -2738,6 +3051,13 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </div>
               </div>
             )}
+            </div>
+
+            {/* Right 20% Column: Active Advisory Frame & This Weekend Weather Frame */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
+              {renderAdvisoryFrame(true)}
+              {renderWeekendWeatherCard()}
+            </div>
           </div>
 
           {/* Explore Spotlight (Stays, Dining, Guides) when Explore tab is active in Home Frame */}
@@ -2915,170 +3235,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             </div>
           )}
 
-          {/* This Weekend in Swat • Live Weather & Road Pulse Smart Card (Phase 2) */}
-          <div
-            style={{
-              marginTop: '22px',
-              backgroundColor: '#FFFFFF',
-              borderRadius: '16px',
-              border: '1px solid rgba(27, 79, 114, 0.12)',
-              boxShadow: '0 4px 20px rgba(18, 50, 74, 0.06)',
-              overflow: 'hidden',
-            }}
-            data-testid="live-swat-weather-road-pulse"
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 18px',
-                background: 'linear-gradient(135deg, rgba(27, 79, 114, 0.05) 0%, rgba(16, 185, 129, 0.08) 100%)',
-                borderBottom: '1px solid rgba(27, 79, 114, 0.08)',
-                flexWrap: 'wrap',
-                gap: '8px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '8px',
-                    background: 'var(--pri)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                  }}
-                >
-                  🌤️
-                </div>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: 'var(--ink)' }}>
-                    This Weekend in Swat • Live Valley Conditions
-                  </h4>
-                  <span style={{ fontSize: '11px', color: 'var(--mute)' }}>
-                    Real-time mountain weather, snow status, and road clearance
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    color: '#059669',
-                    backgroundColor: '#ECFDF5',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid #A7F3D0',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
-                  M-16 Expressway Open
-                </span>
-              </div>
-            </div>
-
-            {/* 4 Micro Weather & Road Cards Grid */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-                gap: '12px',
-                padding: '14px 18px',
-              }}
-            >
-              {[
-                {
-                  valley: 'Kalam Alpine',
-                  temp: '12°C',
-                  icon: '⛅',
-                  condition: 'Partly Sunny',
-                  road: 'Main Road Clear',
-                  roadOk: true,
-                  query: 'Kalam',
-                },
-                {
-                  valley: 'Malam Jabba',
-                  temp: '7°C',
-                  icon: '❄️',
-                  condition: 'Snow Season & Skiing',
-                  road: 'Chains required at peak',
-                  roadOk: true,
-                  query: 'Malam Jabba',
-                },
-                {
-                  valley: 'Bahrain & Trout',
-                  temp: '16°C',
-                  icon: '☀️',
-                  condition: 'Clear & Mild',
-                  road: 'Direct Riverway Open',
-                  roadOk: true,
-                  query: 'Bahrain',
-                },
-                {
-                  valley: 'Mahodand & Lakes',
-                  temp: '6°C',
-                  icon: '🏔️',
-                  condition: 'Glacial Breeze',
-                  road: '4x4 Jeeps Operating',
-                  roadOk: true,
-                  query: 'Mahodand',
-                },
-              ].map((c) => (
-                <button
-                  key={c.valley}
-                  type="button"
-                  onClick={() => setSearchQuery(c.query)}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: '1px solid rgba(27, 79, 114, 0.1)',
-                    backgroundColor: '#F8FAFD',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s ease',
-                  }}
-                  title={`Click to filter ${c.valley} offerings`}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 750, color: 'var(--ink)' }}>
-                      {c.valley}
-                    </span>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--pri)' }}>
-                      {c.icon} {c.temp}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--mute)', marginTop: '2px' }}>
-                    {c.condition}
-                  </div>
-                  <div
-                    style={{
-                      marginTop: '6px',
-                      fontSize: '10.5px',
-                      fontWeight: 650,
-                      color: c.roadOk ? '#047857' : '#D97706',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <span>🚗 {c.road}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Note: This Weekend in Swat weather is now positioned in the top 80/20 hero intelligence column */}
 
           {/* Popular Destinations Cards */}
           <div style={{ marginTop: '28px' }}>
