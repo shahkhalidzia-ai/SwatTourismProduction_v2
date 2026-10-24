@@ -4168,90 +4168,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               </div>
             </div>
           </div>
-
-          {/* If Transport is selected, show mode toggle */}
-          {selectedType === 'transport' && (
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                padding: '6px',
-                backgroundColor: 'rgba(23, 76, 114, 0.06)',
-                borderRadius: '10px',
-                border: '1px solid var(--line)',
-                marginBottom: '12px',
-              }}
-              data-testid="transport-mode-toggle"
-            >
-              <button
-                type="button"
-                onClick={() => setTransportSubTab('intercity')}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '9px 16px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: transportSubTab === 'intercity' ? 'var(--pri)' : 'transparent',
-                  color: transportSubTab === 'intercity' ? '#ffffff' : 'var(--ink)',
-                  fontWeight: transportSubTab === 'intercity' ? 700 : 500,
-                  fontSize: 'var(--font-sm)',
-                  cursor: 'pointer',
-                  transition: 'all 0.18s ease',
-                }}
-                data-testid="tab-transport-intercity"
-              >
-                <Bus size={16} />
-                <span>Intercity Coaches & Cabs (Pakistan ➔ Swat)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTransportSubTab('local')}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  padding: '9px 16px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: transportSubTab === 'local' ? 'var(--pri)' : 'transparent',
-                  color: transportSubTab === 'local' ? '#ffffff' : 'var(--ink)',
-                  fontWeight: transportSubTab === 'local' ? 700 : 500,
-                  fontSize: 'var(--font-sm)',
-                  cursor: 'pointer',
-                  transition: 'all 0.18s ease',
-                }}
-                data-testid="tab-transport-local"
-              >
-                <span>🚙 Local Valley 4x4 Mountain Jeeps & Rentals</span>
-              </button>
-            </div>
-          )}
-
-          {selectedType === 'transport' && transportSubTab === 'intercity' ? (
-            <IntercityTransportExplorer
-              onAddToTrip={handleAddIntercityTransportToTrip}
-              onViewRouteMap={(origin, dest, sch) =>
-                setMapModal({
-                  open: true,
-                  title: `${origin.split(' / ')[0]} ➔ ${dest}`,
-                  lat: 34.7717,
-                  lng: 72.3602,
-                  originCity: origin,
-                  destinationCity: dest,
-                  durationText: sch?.duration_text,
-                  viaHighway: sch?.via_highway,
-                })
-              }
-            />
-          ) : (
-            <>
-              {/* Listings Count & Visibility Gate Indicator */}
+          {/* Listings Count & Visibility Gate Indicator */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
                 <span>
                   Showing {listings.length} verified listings
@@ -4566,8 +4483,6 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   </div>
                 </aside>
               </div>
-            </>
-          )}
             </>
           )}
         </>
