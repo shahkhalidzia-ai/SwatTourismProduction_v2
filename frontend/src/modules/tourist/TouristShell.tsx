@@ -2634,32 +2634,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   >
                     Search
                   </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      if (homeExploreFilter !== 'all') {
-                        setSelectedType(homeExploreFilter);
-                      }
-                      onTabChange?.('explore');
-                    }}
-                    data-testid="btn-home-open-explore-dir"
-                    style={{
-                      borderRadius: '9px',
-                      padding: '8px 14px',
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      backgroundColor: '#EFF6FF',
-                      color: 'var(--pri)',
-                      border: '1.5px solid rgba(27, 79, 114, 0.2)',
-                      flexShrink: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                    }}
-                  >
-                    <CompassIcon size={14} color="var(--pri)" />
-                    <span>View Directory →</span>
-                  </Button>
+
                   <Button
                     variant="secondary"
                     onClick={() => setShowAITripModal(true)}
