@@ -2359,7 +2359,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           {/* Top Blue Banner on Tourist Home Screen with 3 Functional Buttons */}
           <TourismAnimatedBanner
             title="Swat Tourism Platform"
-            subtitle="Discover Pakistan's Switzerland • Stays, Dining & Guides"
+            subtitle="Discover valleys, book stays, and explore safely"
             headerAction={headerAction}
             homeSearchTab={homeSearchTab}
             onHomeSearchTabChange={setHomeSearchTab}

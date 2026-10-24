@@ -161,64 +161,54 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
           >
             <Mountain size={18} color="#FFFFFF" />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <h1
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 800,
-                color: '#FFFFFF',
-                margin: 0,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.2,
-                textShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
-              }}
-            >
-              {title || 'Swat Tourism Platform'}
-            </h1>
-            {portalBadge && (
-              <span
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h1
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '2px 8px',
-                  borderRadius: '9999px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  fontSize: '9.5px',
-                  fontWeight: 700,
+                  fontSize: '1.25rem',
+                  fontWeight: 800,
                   color: '#FFFFFF',
-                  letterSpacing: '0.03em',
-                  textTransform: 'uppercase',
+                  margin: 0,
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.2,
+                  textShadow: '0 1px 3px rgba(0, 0, 0, 0.25)',
                 }}
               >
-                {portalBadge}
-              </span>
-            )}
-            <span
+                {title || 'Swat Tourism Platform'}
+              </h1>
+              {portalBadge && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    fontSize: '9.5px',
+                    fontWeight: 700,
+                    color: '#FFFFFF',
+                    letterSpacing: '0.03em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {portalBadge}
+                </span>
+              )}
+            </div>
+            <p
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-                backgroundColor: 'rgba(16, 185, 129, 0.24)',
-                border: '1px solid rgba(52, 211, 153, 0.4)',
-                fontSize: '9.5px',
-                fontWeight: 700,
-                color: '#A7F3D0',
+                margin: 0,
+                fontSize: '11px',
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontWeight: 500,
+                letterSpacing: '-0.01em',
+                lineHeight: 1.25,
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.2)',
               }}
             >
-              <span
-                style={{
-                  width: '5px',
-                  height: '5px',
-                  borderRadius: '50%',
-                  backgroundColor: '#34D399',
-                  boxShadow: '0 0 6px #34D399',
-                }}
-              />
-              <span>Published and verified</span>
-            </span>
+              {subtitle || 'Discover valleys, book stays, and explore safely'}
+            </p>
           </div>
         </div>
 
@@ -270,8 +260,8 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
         </div>
       </div>
 
-      {/* Bottom Row: 3 Functional Switcher Buttons on Left + Subtitle/HeaderAction on Right */}
-      {(subtitle || headerAction || (homeSearchTab && onHomeSearchTabChange)) && (
+      {/* Bottom Row: 3 Functional Switcher Buttons on Left + HeaderAction on Right */}
+      {(headerAction || (homeSearchTab && onHomeSearchTabChange)) && (
         <div
           style={{
             display: 'flex',
@@ -438,10 +428,6 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 <span>Transport &amp; Buses</span>
               </button>
             </div>
-          ) : subtitle ? (
-            <p style={{ margin: 0, fontSize: '11.5px', color: 'rgba(255, 255, 255, 0.85)', lineHeight: 1.25 }}>
-              {subtitle}
-            </p>
           ) : <div />}
 
           {/* Right: Header Action (User Pill + Logout) */}
