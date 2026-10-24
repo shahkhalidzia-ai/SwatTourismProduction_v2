@@ -95,6 +95,10 @@ export interface BookingRow {
   rawBooking?: Booking;
   assigned_room_number?: string;
   assigned_room_id?: string;
+  roomType?: string;
+  roomsCount?: number;
+  nights?: number;
+  specialRequests?: string;
 }
 
 interface ListingRow {
@@ -939,12 +943,39 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
               const payment_status = isCollected ? 'paid' : b.payment_status;
               const deposit_amount = isCollected ? Number(b.total_amount) : b.deposit_amount;
+
+              // Parse room details for accommodation listings
+              const primaryItem = b.items && b.items.length > 0 ? b.items[0] : null;
+              const roomType =
+                primaryItem?.price_item_name ||
+                (b.items && b.items.length > 0
+                  ? b.items.map((it) => it.price_item_name).filter(Boolean).join(', ')
+                  : '') ||
+                (currentBizType === 'hotel' ? 'Executive Deluxe Room' : b.listing?.title || 'Booking Service');
+
+              const roomsCount =
+                b.items && b.items.length > 0
+                  ? b.items.reduce(
+                      (sum, it) => sum + (Number(it.quantity || (it as any).units || (it as any).default_units) || 1),
+                      0
+                    )
+                  : 1;
+
+              let nights = 1;
+              if (b.start_date && b.end_date) {
+                const d1 = new Date(b.start_date);
+                const d2 = new Date(b.end_date);
+                if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+                  nights = Math.max(1, Math.round(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
+                }
+              }
+
               return {
                 id: b.id,
                 reference: b.reference,
                 tourist: b.tourist?.full_name || 'Tourist',
                 touristEmail: b.tourist?.email,
-                item: b.listing?.title || (b.items && b.items[0]?.price_item_name) || 'Booking Service',
+                item: currentBizType === 'hotel' && roomType ? roomType : (b.listing?.title || roomType || 'Booking Service'),
                 dates: b.end_date ? `${b.start_date} – ${b.end_date}` : b.start_date,
                 amount: `Rs ${Number(b.total_amount).toLocaleString()}`,
                 rawAmount: Number(b.total_amount),
@@ -952,6 +983,10 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                 payment_status,
                 deposit_amount,
                 declineReason: b.decline_reason,
+                roomType,
+                roomsCount,
+                nights,
+                specialRequests: b.special_requests,
                 rawBooking: {
                   ...b,
                   payment_status,
@@ -1338,7 +1373,26 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
   const bookingColumns: Column<BookingRow>[] = [
     { key: 'reference', header: 'Ref #', sortable: true },
     { key: 'tourist', header: 'Tourist', sortable: true },
-    { key: 'item', header: 'Booked Item' },
+    {
+      key: 'item',
+      header: currentBizType === 'hotel' ? 'Room Type & Quantity' : 'Booked Item',
+      render: (item) => {
+        if (currentBizType === 'hotel' || item.roomType || (item.roomsCount && item.roomsCount > 0)) {
+          return (
+            <div>
+              <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{item.roomType || item.item}</div>
+              <div style={{ fontSize: '11.5px', color: 'var(--mute)', display: 'flex', gap: '8px', marginTop: '2px', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, color: '#088395' }}>
+                  🚪 {item.roomsCount || 1} {(item.roomsCount || 1) === 1 ? 'Room' : 'Rooms'}
+                </span>
+                {item.nights ? <span>• 🌙 {item.nights} {item.nights === 1 ? 'Night' : 'Nights'}</span> : null}
+              </div>
+            </div>
+          );
+        }
+        return <span>{item.item}</span>;
+      },
+    },
     { key: 'dates', header: 'Service Dates' },
     { key: 'amount', header: 'Total (PKR)', sortable: true },
     {

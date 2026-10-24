@@ -211,4 +211,70 @@ describe('Hotel Today Screen Responsiveness & Action Controls', () => {
       expect(screen.getByText('Room & Inventory Availability')).toBeInTheDocument();
     });
   });
+
+  it('prominently displays requested room type and number of rooms requested on cards and modal', async () => {
+    const onAcceptMock = vi.fn();
+    const onDeclineMock = vi.fn();
+
+    render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessAddress="Saidu Sharif Road, Mingora, Swat"
+        bookings={[
+          {
+            id: 'b-req-card-test',
+            reference: 'BK-SPEC-101',
+            tourist: 'Zia Khan',
+            touristEmail: 'zia@swattourism.pk',
+            item: 'Heritage Presidential Suite (2 nights)',
+            roomType: 'Heritage Presidential Suite',
+            roomsCount: 2,
+            nights: 2,
+            dates: '24 Oct 2026 - 26 Oct 2026',
+            amount: 'Rs 74,000',
+            rawAmount: 74000,
+            status: 'requested',
+          },
+        ]}
+        roomTypes={[
+          { id: 'p-suite', name: 'Heritage Presidential Suite', default_units: 3 },
+        ]}
+        onAcceptBooking={onAcceptMock}
+        onDeclineBooking={onDeclineMock}
+        isDemoUser={true}
+        listingId="serena-hotel-swat"
+      />
+    );
+
+    // Folio header badges for room type and number of rooms requested
+    const roomTypeBadge = screen.getByTestId('badge-room-type-BK-SPEC-101');
+    expect(roomTypeBadge).toBeInTheDocument();
+    expect(roomTypeBadge).toHaveTextContent('Heritage Presidential Suite');
+
+    const roomsCountBadge = screen.getByTestId('badge-rooms-count-BK-SPEC-101');
+    expect(roomsCountBadge).toBeInTheDocument();
+    expect(roomsCountBadge).toHaveTextContent('2 Rooms');
+
+    // Dedicated Booking Request Specification Callout
+    const callout = screen.getByTestId('callout-request-spec-BK-SPEC-101');
+    expect(callout).toBeInTheDocument();
+    expect(callout).toHaveTextContent('Heritage Presidential Suite');
+    expect(callout).toHaveTextContent('2 Rooms Requested');
+
+    // Room key allocation panel and badges display requested specs
+    expect(screen.getAllByText(/Requested:/).length).toBeGreaterThanOrEqual(2);
+
+    // Click accept to open AssignRoomModal
+    const acceptBtn = screen.getByTestId('btn-accept-BK-SPEC-101');
+    fireEvent.click(acceptBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assign-room-modal')).toBeInTheDocument();
+    });
+
+    // Check modal displays room type and number of rooms requested
+    expect(screen.getByTestId('assign-modal-room-type')).toHaveTextContent('Heritage Presidential Suite');
+    expect(screen.getByTestId('assign-modal-rooms-count')).toHaveTextContent('2 Rooms Requested');
+  });
 });
+

@@ -29,6 +29,7 @@ import {
   checkOutBooking,
   markRoomCleaned,
   clearAllHotelBookingsData,
+  getBookingRoomDetails,
   type PhysicalRoom,
 } from './physicalRooms';
 
@@ -53,9 +54,14 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   businessName: _businessName,
   businessAddress: _businessAddress,
   accommodationType = 'Hotel',
-  businessStats,
-  bookings,
-  roomTypes,
+  businessStats = {
+    bookings_today: 0,
+    earnings_week: 0,
+    pending_requests: 0,
+    confirmed_count: 0,
+  },
+  bookings = [],
+  roomTypes = [],
   activeTab: _activeTab,
   onTabChange,
   onAcceptBooking,
@@ -1011,6 +1017,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                   r.last_booking_id === booking.reference
               );
 
+              const roomDetails = getBookingRoomDetails(booking);
+
               return (
                 <div
                   key={booking.id || booking.reference}
@@ -1087,16 +1095,54 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: '13px', color: '#475569', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <strong>{booking.item}</strong>
-                          <span style={{ color: '#CBD5E1' }}>•</span>
-                          <span>📅 {booking.dates}</span>
-                          {(booking as any).nights && (
-                            <>
-                              <span style={{ color: '#CBD5E1' }}>•</span>
-                              <span>🌙 {(booking as any).nights} night{Number((booking as any).nights) > 1 ? 's' : ''}</span>
-                            </>
-                          )}
+
+                        {/* Room Type Requested & Number of Rooms Requested Specs */}
+                        <div style={{ fontSize: '13px', color: '#475569', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span
+                            data-testid={`badge-room-type-${booking.reference}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              background: '#EFF6FF',
+                              color: '#1E40AF',
+                              border: '1px solid #BFDBFE',
+                              padding: '3px 9px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            <Bed size={13} color="#2563EB" />
+                            <span>Room Type: <strong>{roomDetails.roomType}</strong></span>
+                          </span>
+
+                          <span
+                            data-testid={`badge-rooms-count-${booking.reference}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              background: isPendingOrRequested ? '#FEF3C7' : '#F1F5F9',
+                              color: isPendingOrRequested ? '#92400E' : '#334155',
+                              border: isPendingOrRequested ? '1px solid #FCD34D' : '1px solid #CBD5E1',
+                              padding: '3px 9px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            <Building2 size={13} color={isPendingOrRequested ? '#D97706' : '#64748B'} />
+                            <span>Requested: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'}</strong></span>
+                          </span>
+
+                          <span style={{ fontSize: '12px', color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <span>📅 {booking.dates}</span>
+                            <span style={{ color: '#CBD5E1' }}>•</span>
+                            <span>🌙 {roomDetails.nights} {roomDetails.nights === 1 ? 'night' : 'nights'}</span>
+                            <span style={{ color: '#CBD5E1' }}>•</span>
+                            <span>👥 {roomDetails.travellers} {roomDetails.travellers === 1 ? 'Guest' : 'Guests'}</span>
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1130,6 +1176,76 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* Booking Request Specification Callout (When status is pending / requested) */}
+                  {isPendingOrRequested && (
+                    <div
+                      data-testid={`callout-request-spec-${booking.reference}`}
+                      style={{
+                        backgroundColor: '#FFFDF5',
+                        border: '1.5px dashed #F59E0B',
+                        borderRadius: '12px',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '10px',
+                            backgroundColor: '#FEF3C7',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#D97706',
+                            fontSize: '18px',
+                          }}
+                        >
+                          🛎️
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#B45309', letterSpacing: '0.5px' }}>
+                            New Booking Request Specification
+                          </div>
+                          <div style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>
+                              Room Type: <strong style={{ color: '#1E40AF' }}>{roomDetails.roomType}</strong>
+                            </span>
+                            <span style={{ color: '#CBD5E1' }}>•</span>
+                            <span>
+                              Quantity: <strong style={{ color: '#B45309' }}>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'} Requested</strong>
+                            </span>
+                            <span style={{ color: '#CBD5E1' }}>•</span>
+                            <span style={{ color: '#64748B', fontWeight: 600 }}>
+                              Stay: {roomDetails.nights} {roomDetails.nights === 1 ? 'Night' : 'Nights'} ({booking.dates})
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#92400E',
+                          background: '#FEF3C7',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #FDE68A',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span>⚡ Action: Accept to allocate {roomDetails.roomsCount} physical {roomDetails.roomsCount === 1 ? 'room & key' : 'rooms & keys'}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Mid-Section: Unified Room Key & Financial Ledger Grid */}
                   <div
@@ -1203,10 +1319,26 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                             <span style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>
                               ({assignedRoom.category_name})
                             </span>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                background: '#E0F2FE',
+                                color: '#0369A1',
+                                padding: '1px 6px',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              {roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'} allocated
+                            </span>
                           </div>
                         ) : (
-                          <div style={{ fontSize: '12.5px', color: '#D97706', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ fontSize: '12.5px', color: '#D97706', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <span>⚠️ Physical key not assigned yet</span>
+                            <span style={{ color: '#94A3B8' }}>•</span>
+                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+                              Requested: <strong style={{ color: '#1E40AF' }}>{roomDetails.roomType}</strong> ({roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'})
+                            </span>
                           </div>
                         )}
                       </div>

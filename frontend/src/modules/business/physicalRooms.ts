@@ -629,3 +629,102 @@ export function clearAllHotelBookingsData(): void {
     console.error('Error clearing hotel bookings data:', err);
   }
 }
+
+export interface BookingRoomDetails {
+  roomType: string;
+  roomsCount: number;
+  nights: number;
+  travellers: number;
+}
+
+/**
+ * Extracts and normalizes the requested room type and number of rooms requested
+ * from any booking or booking request record.
+ */
+export function getBookingRoomDetails(booking: any): BookingRoomDetails {
+  if (!booking) {
+    return {
+      roomType: 'Executive Deluxe Room',
+      roomsCount: 1,
+      nights: 1,
+      travellers: 2,
+    };
+  }
+
+  // 1. Direct fields if present
+  let roomType = booking.roomType || booking.room_type;
+  let roomsCount = Number(booking.roomsCount || booking.rooms_count);
+
+  // 2. Extract from items array if available
+  const items = booking.rawBooking?.items || booking.items;
+  if (items && Array.isArray(items) && items.length > 0) {
+    if (!roomType) {
+      const names = items.map((it: any) => it.price_item_name || it.name).filter(Boolean);
+      if (names.length > 0) {
+        roomType = names.join(', ');
+      }
+    }
+    if (!roomsCount || isNaN(roomsCount)) {
+      roomsCount = items.reduce(
+        (sum: number, it: any) => sum + (Number(it.quantity || it.units || it.default_units) || 1),
+        0
+      );
+    }
+  }
+
+  // 3. Extract from booking.item if it contains category name
+  if (!roomType && booking.item) {
+    const rawItem = String(booking.item);
+    const itemClean = rawItem.split('(')[0].trim();
+    if (
+      itemClean &&
+      !itemClean.toLowerCase().includes('hotel') &&
+      !itemClean.toLowerCase().includes('resort')
+    ) {
+      roomType = itemClean;
+    }
+  }
+
+  // 4. Default fallback room type
+  if (!roomType) {
+    roomType = 'Executive Deluxe Room';
+  }
+
+  // 5. Default fallback roomsCount or parse from text like "(2 rooms)"
+  if (!roomsCount || isNaN(roomsCount) || roomsCount < 1) {
+    const match = String(booking.item || '').match(/(\d+)\s*rooms?/i);
+    if (match) {
+      roomsCount = parseInt(match[1], 10);
+    } else {
+      roomsCount = 1;
+    }
+  }
+
+  // 6. Nights calculation
+  let nights = Number(booking.nights);
+  if (!nights || isNaN(nights)) {
+    const startStr =
+      booking.start_date ||
+      (booking.dates ? String(booking.dates).split('–')[0].split('•')[0].trim() : '');
+    const endStr =
+      booking.end_date ||
+      (booking.dates && String(booking.dates).includes('–')
+        ? String(booking.dates).split('–')[1].trim()
+        : '');
+    if (startStr && endStr) {
+      const d1 = new Date(startStr);
+      const d2 = new Date(endStr);
+      if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+        nights = Math.max(1, Math.round(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
+      }
+    }
+  }
+  if (!nights || isNaN(nights) || nights < 1) {
+    nights = 1;
+  }
+
+  // 7. Travellers
+  const travellers = Number(booking.travellers || booking.rawBooking?.travellers) || 2;
+
+  return { roomType, roomsCount, nights, travellers };
+}

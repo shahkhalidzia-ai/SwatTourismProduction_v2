@@ -7,6 +7,7 @@ import {
   getPhysicalRoomsForHotel,
   assignRoomToBooking,
   releaseRoomFromBooking,
+  getBookingRoomDetails,
 } from './physicalRooms';
 
 interface AssignRoomModalProps {
@@ -63,18 +64,20 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
     return Array.from(set);
   }, [allRooms]);
 
+  const roomDetails = useMemo(() => getBookingRoomDetails(booking), [booking]);
+
   // Match room category from booking item string (e.g. "Executive Deluxe Room (2 nights)")
   const matchingCategoryRooms = useMemo(() => {
-    const bookingItemName = (booking?.item || '').toLowerCase();
+    const targetType = (roomDetails.roomType || booking?.item || '').toLowerCase();
     const filtered = allRooms.filter((r) => {
       const catLower = (r.category_name || '').toLowerCase();
       if (!catLower) return false;
-      const baseItem = bookingItemName.split('(')[0].trim();
-      return bookingItemName.includes(catLower) || (baseItem && catLower.includes(baseItem));
+      const baseItem = targetType.split('(')[0].trim();
+      return targetType.includes(catLower) || (baseItem && catLower.includes(baseItem));
     });
     // If no exact category match, fallback to all rooms
     return filtered.length > 0 ? filtered : allRooms;
-  }, [allRooms, booking?.item]);
+  }, [allRooms, roomDetails, booking?.item]);
 
   // Selected filtered rooms
   const displayedRooms = useMemo(() => {
@@ -237,16 +240,54 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
             }}
           >
             <div>
-              <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#64748B' }}>
-                Guest &amp; Requested Category
+              <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#64748B', letterSpacing: '0.4px' }}>
+                Guest &amp; Requested Accommodation
               </div>
-              <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>
-                {booking.tourist} • <span style={{ color: '#2563EB' }}>{booking.item}</span>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#0F172A', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>{booking.tourist}</span>
+                <span style={{ color: '#CBD5E1' }}>•</span>
+                <span
+                  data-testid="assign-modal-room-type"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    color: '#1E40AF',
+                    background: '#EFF6FF',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #BFDBFE',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                  }}
+                >
+                  <Bed size={13} color="#2563EB" />
+                  <span>{roomDetails.roomType}</span>
+                </span>
+                <span
+                  data-testid="assign-modal-rooms-count"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    color: '#92400E',
+                    background: '#FEF3C7',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #FCD34D',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                  }}
+                >
+                  🚪 {roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room Requested' : 'Rooms Requested'}
+                </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#64748B', marginTop: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: '#64748B', marginTop: '6px' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <Calendar size={13} color="#2563EB" /> {booking.dates}
                 </span>
+                <span>•</span>
+                <span>🌙 {roomDetails.nights} {roomDetails.nights === 1 ? 'Night' : 'Nights'}</span>
                 <span>•</span>
                 <span>Ref: <strong>{booking.reference}</strong></span>
               </div>

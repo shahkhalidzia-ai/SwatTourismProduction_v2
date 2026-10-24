@@ -7,6 +7,7 @@ import {
   FileText,
 } from 'lucide-react';
 import type { BookingRow } from './BusinessShell';
+import { getBookingRoomDetails } from './physicalRooms';
 
 export interface HotelFolioReceiptModalProps {
   isOpen: boolean;
@@ -37,12 +38,13 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
 }) => {
   if (!isOpen || !booking) return null;
 
+  const roomDetails = getBookingRoomDetails(booking);
   const rawTotal = Number(booking.rawAmount) || 24000;
   const isDeposit = booking.payment_status === 'deposit_paid' || depositAmount > 0;
   const effectiveDeposit = isDeposit ? (depositAmount || Math.round(rawTotal * 0.25)) : (booking.payment_status === 'paid' ? rawTotal : 0);
   const remainingDue = isBalanceSettled ? 0 : (balanceDue > 0 ? balanceDue : Math.max(0, rawTotal - effectiveDeposit));
   const effectiveRoom = roomNumber || booking.assigned_room_number || 'Room 204 (Pine Wing)';
-  const effectiveCategory = roomCategory || booking.item.split('(')[0].trim() || 'Executive Deluxe Room';
+  const effectiveCategory = roomCategory || roomDetails.roomType || booking.item.split('(')[0].trim() || 'Executive Deluxe Room';
   const receiptNo = `SWT-${receiptType === 'arrival_pass' ? 'ARR' : 'FOL'}-${booking.reference || '8841'}`;
   const currentDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -197,8 +199,14 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
               <div style={{ fontSize: '17px', fontWeight: 800, color: '#1E3A8A' }}>
                 🛏️ {effectiveRoom}
               </div>
-              <div style={{ fontSize: '12px', color: '#3B82F6' }}>
-                {effectiveCategory} • {booking.dates}
+              <div style={{ fontSize: '12px', color: '#3B82F6', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span>{effectiveCategory}</span>
+                <span>•</span>
+                <span style={{ fontWeight: 700, color: '#1E40AF' }}>
+                  {roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'}
+                </span>
+                <span>•</span>
+                <span>{booking.dates} ({roomDetails.nights} {roomDetails.nights === 1 ? 'Night' : 'Nights'})</span>
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -226,7 +234,9 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
               <tbody>
                 <tr style={{ borderBottom: '1px solid #E2E8F0' }}>
                   <td style={{ padding: '8px 10px' }}>
-                    {booking.item}
+                    <div style={{ fontWeight: 700, color: '#0F172A' }}>
+                      {roomDetails.roomType} ({roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'}, {roomDetails.nights} {roomDetails.nights === 1 ? 'Night' : 'Nights'})
+                    </div>
                     <div style={{ fontSize: '10.5px', color: '#64748B' }}>Room Nights Tariff & Luxury Lodging</div>
                   </td>
                   <td style={{ textAlign: 'right', padding: '8px 10px', fontWeight: 700 }}>
