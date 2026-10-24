@@ -275,6 +275,23 @@ describe('Hotel Today Screen Responsiveness & Action Controls', () => {
     // Check modal displays room type and number of rooms requested
     expect(screen.getByTestId('assign-modal-room-type')).toHaveTextContent('Heritage Presidential Suite');
     expect(screen.getByTestId('assign-modal-rooms-count')).toHaveTextContent('2 Rooms Requested');
+
+    // System automatically selects that quantity of rooms (2 rooms) which was requested in the booking
+    const counterBadge = screen.getByTestId('selection-counter-badge');
+    expect(counterBadge).toHaveTextContent('2 of 2 Rooms Selected');
+
+    // Confirm button displays 2 room keys
+    const confirmBtn = screen.getByTestId('btn-confirm-assign-room');
+    expect(confirmBtn).toHaveTextContent('Confirm 2 Room Keys');
+    expect(confirmBtn).not.toBeDisabled();
+
+    // Clicking confirm assigns both rooms
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('assign-room-modal')).not.toBeInTheDocument();
+    });
   });
 });
+
 

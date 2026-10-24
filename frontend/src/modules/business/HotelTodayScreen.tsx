@@ -1006,16 +1006,26 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 }
               })();
 
-              const assignedRoom = physicalRooms.find(
+              const assignedRooms = physicalRooms.filter(
                 (r) =>
                   r.current_booking_id === booking.id ||
                   r.current_booking_id === booking.reference ||
                   r.id === (booking as any).assigned_room_id ||
                   r.room_number === (booking as any).assigned_room_number ||
-                  (storedAssignment && (r.id === storedAssignment.roomId || r.room_number === storedAssignment.roomNumber)) ||
+                  (storedAssignment && (
+                    r.id === storedAssignment.roomId ||
+                    r.room_number === storedAssignment.roomNumber ||
+                    (storedAssignment.roomIds && storedAssignment.roomIds.includes(r.id)) ||
+                    (storedAssignment.roomNumbers && storedAssignment.roomNumbers.includes(r.room_number))
+                  )) ||
                   r.last_booking_id === booking.id ||
                   r.last_booking_id === booking.reference
               );
+
+              const assignedRoom = assignedRooms[0];
+              const assignedRoomsLabel = assignedRooms.length > 0
+                ? (assignedRooms.length === 1 ? `Room ${assignedRooms[0].room_number}` : `Rooms ${assignedRooms.map((r) => r.room_number).join(', ')}`)
+                : (storedAssignment?.roomNumber ? (String(storedAssignment.roomNumber).startsWith('Room') ? storedAssignment.roomNumber : `Rooms ${storedAssignment.roomNumber}`) : null);
 
               const roomDetails = getBookingRoomDetails(booking);
 
@@ -1157,7 +1167,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       ) : stayState === 'checked_in' ? (
                         <span style={{ background: '#D1FAE5', color: '#065F46', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                           <CheckCircle size={13} color="#059669" />
-                          <span>Guest In-House • Room {assignedRoom?.room_number || '204'}</span>
+                          <span>Guest In-House • {assignedRoomsLabel || 'Room 204'}</span>
                         </span>
                       ) : stayState === 'checked_out' ? (
                         <span style={{ background: '#F1F5F9', color: '#475569', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
@@ -1311,13 +1321,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {assignedRoom ? (
+                        {assignedRooms.length > 0 ? (
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '15.5px', fontWeight: 800, color: '#0A4D68' }}>
-                              Room {assignedRoom.room_number}
+                              {assignedRoomsLabel}
                             </span>
                             <span style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>
-                              ({assignedRoom.category_name})
+                              ({assignedRooms[0]?.category_name})
                             </span>
                             <span
                               style={{
@@ -1329,7 +1339,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                                 borderRadius: '4px',
                               }}
                             >
-                              {roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'} allocated
+                              {assignedRooms.length} of {roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'} allocated
                             </span>
                           </div>
                         ) : (
@@ -2239,15 +2249,19 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
           booking={receiptModal.booking}
           hotelName={safeBusinessName}
           hotelAddress={_businessAddress}
-          roomNumber={
-            physicalRooms.find(
+          roomNumber={(() => {
+            const assigned = physicalRooms.filter(
               (r) =>
                 r.current_booking_id === receiptModal.booking?.id ||
                 r.current_booking_id === receiptModal.booking?.reference ||
                 r.id === (receiptModal.booking as any)?.assigned_room_id ||
                 r.room_number === (receiptModal.booking as any)?.assigned_room_number
-            )?.room_number || (receiptModal.booking as any)?.assigned_room_number || '204'
-          }
+            );
+            if (assigned.length > 0) {
+              return assigned.length === 1 ? `Room ${assigned[0].room_number}` : `Rooms ${assigned.map((r) => r.room_number).join(', ')}`;
+            }
+            return (receiptModal.booking as any)?.assigned_room_number || 'Room 204';
+          })()}
           roomCategory={receiptModal.booking.item.split('(')[0].trim()}
           depositAmount={(receiptModal.booking as any).deposit_amount || Math.round((Number(receiptModal.booking.rawAmount) || 24000) * 0.25)}
           balanceDue={

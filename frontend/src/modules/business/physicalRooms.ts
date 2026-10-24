@@ -202,21 +202,21 @@ export function savePhysicalRoomsForHotel(listingId: string, rooms: PhysicalRoom
 }
 
 /**
- * Assigns a specific physical room to a booking
+ * Assigns multiple physical rooms to a booking (for multi-room reservations)
  */
-export function assignRoomToBooking(
+export function assignRoomsToBooking(
   listingId: string,
-  roomId: string,
+  roomIds: string[],
   bookingId: string,
   guestName: string,
   stayDates: string
-): { success: boolean; room?: PhysicalRoom } {
+): { success: boolean; rooms: PhysicalRoom[] } {
   const all = getAllPhysicalRooms();
   const rooms = all[listingId] || [];
 
-  // First release any room previously assigned to this booking
+  // 1. Release any room previously assigned to this booking that is not in roomIds
   const updatedRooms = rooms.map((r) => {
-    if (r.current_booking_id === bookingId) {
+    if (r.current_booking_id === bookingId && !roomIds.includes(r.id) && !roomIds.includes(r.room_number)) {
       return {
         ...r,
         status: 'available' as const,
@@ -229,11 +229,11 @@ export function assignRoomToBooking(
     return r;
   });
 
-  // Assign the new room
-  let assignedRoom: PhysicalRoom | undefined;
+  // 2. Assign the new rooms
+  const assignedRooms: PhysicalRoom[] = [];
   const finalRooms = updatedRooms.map((r) => {
-    if (r.id === roomId || r.room_number === roomId) {
-      assignedRoom = {
+    if (roomIds.includes(r.id) || roomIds.includes(r.room_number)) {
+      const assigned: PhysicalRoom = {
         ...r,
         status: 'reserved' as const,
         current_booking_id: bookingId,
@@ -241,29 +241,47 @@ export function assignRoomToBooking(
         stay_dates: stayDates,
         updated_at: new Date().toISOString(),
       };
-      return assignedRoom;
+      assignedRooms.push(assigned);
+      return assigned;
     }
     return r;
   });
 
-  if (assignedRoom) {
+  if (assignedRooms.length > 0) {
     all[listingId] = finalRooms;
     saveAllPhysicalRooms(all);
     try {
       const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
-      storedMap[bookingId] = {
-        roomId: assignedRoom.id,
-        roomNumber: assignedRoom.room_number,
-        category: assignedRoom.category_name,
-        floor: assignedRoom.floor,
-        wing: assignedRoom.wing,
-        status: assignedRoom.status,
+      const assignmentRecord = {
+        roomId: assignedRooms[0].id,
+        roomIds: assignedRooms.map((r) => r.id),
+        roomNumber: assignedRooms.map((r) => r.room_number).join(', '),
+        roomNumbers: assignedRooms.map((r) => r.room_number),
+        category: assignedRooms.map((r) => r.category_name).filter((v, i, a) => a.indexOf(v) === i).join(', '),
+        floor: assignedRooms.map((r) => r.floor).filter((v, i, a) => a.indexOf(v) === i).join(', '),
+        wing: assignedRooms[0].wing,
+        status: assignedRooms[0].status,
       };
+      storedMap[bookingId] = assignmentRecord;
       localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
     } catch {}
-    return { success: true, room: assignedRoom };
+    return { success: true, rooms: assignedRooms };
   }
-  return { success: false };
+  return { success: false, rooms: [] };
+}
+
+/**
+ * Assigns a specific physical room to a booking
+ */
+export function assignRoomToBooking(
+  listingId: string,
+  roomId: string,
+  bookingId: string,
+  guestName: string,
+  stayDates: string
+): { success: boolean; room?: PhysicalRoom } {
+  const res = assignRoomsToBooking(listingId, [roomId], bookingId, guestName, stayDates);
+  return { success: res.success, room: res.rooms[0] };
 }
 
 /**
