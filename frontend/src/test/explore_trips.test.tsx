@@ -251,4 +251,43 @@ describe('Step 4 Tourist Explore and Trips UI', () => {
     const payBtn = screen.getByTestId('btn-pay-trip');
     expect(payBtn).toBeDefined();
   });
+
+  it('renders mutually exclusive 2-option selector for Local Transport and Intercity Bus Transport on Transport screen', async () => {
+    render(<TouristShell activeTab="home" />);
+
+    // 1. Click Transport & Buses tab in the top banner
+    const transportTabBtn = screen.getByTestId('tab-home-transport');
+    fireEvent.click(transportTabBtn);
+
+    // 2. Both options must be available in the selector
+    const localBtn = screen.getByTestId('btn-home-mode-local');
+    const intercityBtn = screen.getByTestId('btn-home-mode-intercity');
+    expect(localBtn).toBeDefined();
+    expect(intercityBtn).toBeDefined();
+    expect(localBtn.textContent).toContain('Local Transport');
+    expect(intercityBtn.textContent).toContain('Intercity Bus Transport');
+
+    // 3. Default active mode is Local Transport
+    expect(screen.getByTestId('input-home-local-transport-search')).toBeDefined();
+    expect(screen.getByTestId('grid-local-transport-home')).toBeDefined();
+    // Intercity departure planner elements should not be rendered
+    expect(screen.queryByText(/Select Your Origin Departure City:/i)).toBeNull();
+
+    // 4. Switch to Intercity Bus Transport
+    fireEvent.click(intercityBtn);
+
+    // Now Intercity departure city picker is visible
+    expect(screen.getByText(/Select Your Origin Departure City:/i)).toBeDefined();
+    expect(screen.getByTestId('btn-home-view-intercity-transport')).toBeDefined();
+    // Local transport search and grid should now be hidden
+    expect(screen.queryByTestId('input-home-local-transport-search')).toBeNull();
+    expect(screen.queryByTestId('grid-local-transport-home')).toBeNull();
+
+    // 5. Switch back to Local Transport
+    fireEvent.click(localBtn);
+    expect(screen.getByTestId('input-home-local-transport-search')).toBeDefined();
+    expect(screen.getByTestId('grid-local-transport-home')).toBeDefined();
+    expect(screen.queryByText(/Select Your Origin Departure City:/i)).toBeNull();
+  });
 });
+

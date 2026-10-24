@@ -941,6 +941,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const [homeSearchTab, setHomeSearchTab] = useState<'valleys' | 'explore' | 'transport'>('valleys');
   const [homeExploreFilter, setHomeExploreFilter] = useState<'all' | 'hotel' | 'restaurant' | 'transport' | 'guide' | 'activity'>('all');
   const [homeOriginCity, setHomeOriginCity] = useState<string>('Islamabad / Rawalpindi');
+  const [transportMode, setTransportMode] = useState<'local' | 'intercity'>('local');
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showAIAssistantModal, setShowAIAssistantModal] = useState(false);
@@ -2773,298 +2774,369 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 }}
                 data-testid="home-intercity-transport-banner"
               >
-                {/* 1. Local 4x4 Mountain Transport Search Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Car size={18} color="var(--pri)" />
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 750, color: 'var(--ink)' }}>
-                        Local 4x4 Mountain Jeeps, Toyota Prado &amp; Adventure Rentals
-                      </h4>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--mute)' }}>
-                        Verified local mountain cruisers with snow chains &amp; expert drivers for Kalam, Mahodand &amp; Malam Jabba
-                      </p>
-                    </div>
-                  </div>
-                  <Tag variant="ok" style={{ fontWeight: 700, fontSize: '11px' }}>
-                    🌲 High-Altitude Certified
-                  </Tag>
-                </div>
-
-                {/* Local Transport Search Input Box */}
+                {/* 2-Option Mutually Exclusive Selector: Local Transport vs Intercity Bus Transport */}
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    backgroundColor: '#FFFFFF',
-                    border: '1.5px solid var(--line)',
+                    gap: '8px',
+                    padding: '4px',
+                    backgroundColor: 'rgba(27, 79, 114, 0.08)',
                     borderRadius: '12px',
-                    padding: '4px 6px 4px 14px',
-                    gap: '10px',
-                    minHeight: '46px',
+                    width: 'fit-content',
+                    maxWidth: '100%',
                   }}
+                  data-testid="home-transport-mode-selector"
                 >
-                  <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search 4x4 jeeps, Toyota Prado, Land Cruiser, Kalam, Malam Jabba, drivers..."
-                    data-testid="input-home-local-transport-search"
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      outline: 'none',
-                      backgroundColor: 'transparent',
-                      color: 'var(--ink)',
-                      fontSize: '14px',
-                      padding: '8px 4px',
-                    }}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--mute)',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title="Clear search"
-                    >
-                      <X size={15} />
-                    </button>
-                  )}
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      const el = document.getElementById('home-local-transport-section');
-                      if (el) {
-                        el.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}
-                    style={{
-                      borderRadius: '9px',
-                      padding: '8px 20px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                  >
-                    Search Jeeps
-                  </Button>
-                </div>
-
-                {/* Quick Vehicle & Valley Filter Bar */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--mute)' }}>
-                    <span style={{ fontWeight: 600 }}>Quick Vehicle &amp; Valley Filter:</span>
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--pri)',
-                          fontSize: '11px',
-                          fontWeight: 650,
-                          cursor: 'pointer',
-                          padding: 0,
-                        }}
-                      >
-                        Reset to All 4x4 Rides
-                      </button>
-                    )}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '7px',
-                      overflowX: 'auto',
-                      padding: '2px 2px 4px 2px',
-                      scrollbarWidth: 'none',
-                    }}
-                  >
-                    {[
-                      { id: '', label: 'All 4x4 Rides', icon: '🚙' },
-                      { id: 'Prado', label: 'Toyota Prado TX', icon: '🚙' },
-                      { id: 'Cruiser', label: 'Land Cruiser Snow 4x4', icon: '❄️' },
-                      { id: 'Kalam', label: 'Kalam & Mahodand', icon: '🏔️' },
-                      { id: 'Malam Jabba', label: 'Malam Jabba Ski Pass', icon: '⛷️' },
-                      { id: 'Mingora', label: 'Mingora Hub', icon: '🏙️' },
-                    ].map((f) => {
-                      const isSelected = f.id === '' ? !searchQuery : searchQuery.toLowerCase().includes(f.id.toLowerCase());
-                      return (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setSearchQuery(f.id)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '5px',
-                            padding: '6px 12px',
-                            borderRadius: '9999px',
-                            fontSize: '11.5px',
-                            fontWeight: isSelected ? 700 : 550,
-                            backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
-                            color: isSelected ? '#FFFFFF' : 'var(--ink)',
-                            border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <span>{f.icon}</span>
-                          <span>{f.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Divider between Local Transport Search and Intercity Departure Planner */}
-                <div style={{ height: '1px', backgroundColor: 'rgba(27, 79, 114, 0.1)', margin: '2px 0' }} />
-
-                {/* 2. Intercity Coaches & Cabs Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Bus size={18} color="var(--pri)" />
-                    <div>
-                      <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 750, color: 'var(--ink)' }}>
-                        Intercity Coaches &amp; Cabs from <strong>Islamabad, Lahore, Peshawar &amp; Karachi</strong> via M-16 Expressway
-                      </h4>
-                      <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--mute)' }}>
-                        Daily scheduled VIP departures via Swat Motorway tunnel corridor
-                      </p>
-                    </div>
-                  </div>
-                  <Tag variant="accent" style={{ fontWeight: 700, fontSize: '11px' }}>
-                    M-16 Direct Expressway
-                  </Tag>
-                </div>
-
-                {/* Origin City Picker */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontSize: '11.5px', fontWeight: 650, color: 'var(--ink)' }}>
-                    Select Your Origin Departure City:
-                  </span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '8px' }}>
-                    {[
-                      { city: 'Islamabad / Rawalpindi', badge: '3.5 hrs (245 km)', icon: '🏛️' },
-                      { city: 'Lahore', badge: '6.5 hrs (510 km)', icon: '🏰' },
-                      { city: 'Peshawar', badge: '2.5 hrs (180 km)', icon: '🕌' },
-                    ].map((opt) => {
-                      const isSelected = homeOriginCity === opt.city;
-                      return (
-                        <button
-                          key={opt.city}
-                          type="button"
-                          onClick={() => setHomeOriginCity(opt.city as any)}
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-start',
-                            padding: '8px 10px',
-                            borderRadius: '9px',
-                            border: isSelected ? '1.5px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.14)',
-                            backgroundColor: isSelected ? '#FFFFFF' : '#F1F5F9',
-                            boxShadow: isSelected ? '0 2px 8px rgba(47, 127, 193, 0.15)' : 'none',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                            transition: 'all 0.15s ease',
-                          }}
-                        >
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? 'var(--pri)' : 'var(--ink)' }}>
-                            {opt.icon} {opt.city.split(' / ')[0]}
-                          </span>
-                          <span style={{ fontSize: '10.5px', color: 'var(--mute)', marginTop: '2px' }}>
-                            {opt.badge}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Destination & Fleet Overview */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: '#FFFFFF',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(27, 79, 114, 0.08)',
-                    fontSize: '11.5px',
-                    color: 'var(--ink)',
-                    flexWrap: 'wrap',
-                    gap: '6px',
-                  }}
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                    <MapPin size={13} color="var(--pri)" />
-                    Destination: <strong>Mingora / Swat Motorway Bypass Terminal</strong>
-                  </span>
-                  <span style={{ color: 'var(--ok)', fontWeight: 650 }}>
-                    Daewoo, Faisal Movers &amp; VIP Fleets Active
-                  </span>
-                </div>
-
-                {/* Direct Action Button */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                   <button
                     type="button"
-                    onClick={() => setHomeSearchTab('valleys')}
-                    style={{
-                      padding: '8px 14px',
-                      borderRadius: '8px',
-                      backgroundColor: 'transparent',
-                      border: '1px solid rgba(27, 79, 114, 0.2)',
-                      color: 'var(--pri)',
-                      fontSize: '12px',
-                      fontWeight: 650,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Back to Valleys
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const el = document.getElementById('home-intercity-schedules-section');
-                      if (el) {
-                        el.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}
-                    id="btn-home-view-intercity-transport"
-                    data-testid="btn-home-view-intercity-transport"
+                    onClick={() => setTransportMode('local')}
+                    id="btn-home-mode-local"
+                    data-testid="btn-home-mode-local"
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '6px',
+                      gap: '7px',
                       padding: '8px 18px',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--pri)',
-                      color: '#ffffff',
-                      fontSize: '12px',
-                      fontWeight: 700,
+                      borderRadius: '9px',
                       border: 'none',
                       cursor: 'pointer',
-                      boxShadow: '0 2px 8px rgba(47, 127, 193, 0.28)',
-                      transition: 'background-color 0.15s ease',
+                      fontSize: '13px',
+                      fontWeight: transportMode === 'local' ? 750 : 600,
+                      backgroundColor: transportMode === 'local' ? 'var(--pri)' : 'transparent',
+                      color: transportMode === 'local' ? '#FFFFFF' : 'var(--ink)',
+                      boxShadow: transportMode === 'local' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
                     }}
                   >
-                    <span>View Bus Timings &amp; Fares ({homeOriginCity.split(' / ')[0]} ➔ Swat) ↓</span>
+                    <Car size={16} />
+                    <span>Local Transport</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransportMode('intercity')}
+                    id="btn-home-mode-intercity"
+                    data-testid="btn-home-mode-intercity"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '8px 18px',
+                      borderRadius: '9px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: transportMode === 'intercity' ? 750 : 600,
+                      backgroundColor: transportMode === 'intercity' ? 'var(--pri)' : 'transparent',
+                      color: transportMode === 'intercity' ? '#FFFFFF' : 'var(--ink)',
+                      boxShadow: transportMode === 'intercity' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <Bus size={16} />
+                    <span>Intercity Bus Transport</span>
                   </button>
                 </div>
+
+                {/* OPTION 1: Local Transport Header, Search Input & Quick Filter Pills */}
+                {transportMode === 'local' && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Car size={18} color="var(--pri)" />
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 750, color: 'var(--ink)' }}>
+                            Local 4x4 Mountain Jeeps, Toyota Prado &amp; Adventure Rentals
+                          </h4>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--mute)' }}>
+                            Verified local mountain cruisers with snow chains &amp; expert drivers for Kalam, Mahodand &amp; Malam Jabba
+                          </p>
+                        </div>
+                      </div>
+                      <Tag variant="ok" style={{ fontWeight: 700, fontSize: '11px' }}>
+                        🌲 High-Altitude Certified
+                      </Tag>
+                    </div>
+
+                    {/* Local Transport Search Input Box */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: '#FFFFFF',
+                        border: '1.5px solid var(--line)',
+                        borderRadius: '12px',
+                        padding: '4px 6px 4px 14px',
+                        gap: '10px',
+                        minHeight: '46px',
+                      }}
+                    >
+                      <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search 4x4 jeeps, Toyota Prado, Land Cruiser, Kalam, Malam Jabba, drivers..."
+                        data-testid="input-home-local-transport-search"
+                        style={{
+                          flex: 1,
+                          border: 'none',
+                          outline: 'none',
+                          backgroundColor: 'transparent',
+                          color: 'var(--ink)',
+                          fontSize: '14px',
+                          padding: '8px 4px',
+                        }}
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--mute)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Clear search"
+                        >
+                          <X size={15} />
+                        </button>
+                      )}
+                      <Button
+                        variant="primary"
+                        onClick={() => {
+                          const el = document.getElementById('home-local-transport-section');
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }}
+                        style={{
+                          borderRadius: '9px',
+                          padding: '8px 20px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        Search Jeeps
+                      </Button>
+                    </div>
+
+                    {/* Quick Vehicle & Valley Filter Bar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--mute)' }}>
+                        <span style={{ fontWeight: 600 }}>Quick Vehicle &amp; Valley Filter:</span>
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--pri)',
+                              fontSize: '11px',
+                              fontWeight: 650,
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                          >
+                            Reset to All 4x4 Rides
+                          </button>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '7px',
+                          overflowX: 'auto',
+                          padding: '2px 2px 4px 2px',
+                          scrollbarWidth: 'none',
+                        }}
+                      >
+                        {[
+                          { id: '', label: 'All 4x4 Rides', icon: '🚙' },
+                          { id: 'Prado', label: 'Toyota Prado TX', icon: '🚙' },
+                          { id: 'Cruiser', label: 'Land Cruiser Snow 4x4', icon: '❄️' },
+                          { id: 'Kalam', label: 'Kalam & Mahodand', icon: '🏔️' },
+                          { id: 'Malam Jabba', label: 'Malam Jabba Ski Pass', icon: '⛷️' },
+                          { id: 'Mingora', label: 'Mingora Hub', icon: '🏙️' },
+                        ].map((f) => {
+                          const isSelected = f.id === '' ? !searchQuery : searchQuery.toLowerCase().includes(f.id.toLowerCase());
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              onClick={() => setSearchQuery(f.id)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '6px 12px',
+                                borderRadius: '9999px',
+                                fontSize: '11.5px',
+                                fontWeight: isSelected ? 700 : 550,
+                                backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
+                                color: isSelected ? '#FFFFFF' : 'var(--ink)',
+                                border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <span>{f.icon}</span>
+                              <span>{f.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* OPTION 2: Intercity Bus Transport Header, Origin City Selector & Corridor Info */}
+                {transportMode === 'intercity' && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Bus size={18} color="var(--pri)" />
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 750, color: 'var(--ink)' }}>
+                            Intercity Coaches &amp; Cabs from <strong>Islamabad, Lahore, Peshawar &amp; Karachi</strong> via M-16 Expressway
+                          </h4>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--mute)' }}>
+                            Daily scheduled VIP departures via Swat Motorway tunnel corridor
+                          </p>
+                        </div>
+                      </div>
+                      <Tag variant="accent" style={{ fontWeight: 700, fontSize: '11px' }}>
+                        M-16 Direct Expressway
+                      </Tag>
+                    </div>
+
+                    {/* Origin City Picker */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 650, color: 'var(--ink)' }}>
+                        Select Your Origin Departure City:
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '8px' }}>
+                        {[
+                          { city: 'Islamabad / Rawalpindi', badge: '3.5 hrs (245 km)', icon: '🏛️' },
+                          { city: 'Lahore', badge: '6.5 hrs (510 km)', icon: '🏰' },
+                          { city: 'Peshawar', badge: '2.5 hrs (180 km)', icon: '🕌' },
+                        ].map((opt) => {
+                          const isSelected = homeOriginCity === opt.city;
+                          return (
+                            <button
+                              key={opt.city}
+                              type="button"
+                              onClick={() => setHomeOriginCity(opt.city as any)}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                padding: '8px 10px',
+                                borderRadius: '9px',
+                                border: isSelected ? '1.5px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.14)',
+                                backgroundColor: isSelected ? '#FFFFFF' : '#F1F5F9',
+                                boxShadow: isSelected ? '0 2px 8px rgba(47, 127, 193, 0.15)' : 'none',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <span style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? 'var(--pri)' : 'var(--ink)' }}>
+                                {opt.icon} {opt.city.split(' / ')[0]}
+                              </span>
+                              <span style={{ fontSize: '10.5px', color: 'var(--mute)', marginTop: '2px' }}>
+                                {opt.badge}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Destination & Fleet Overview */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor: '#FFFFFF',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(27, 79, 114, 0.08)',
+                        fontSize: '11.5px',
+                        color: 'var(--ink)',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <MapPin size={13} color="var(--pri)" />
+                        Destination: <strong>Mingora / Swat Motorway Bypass Terminal</strong>
+                      </span>
+                      <span style={{ color: 'var(--ok)', fontWeight: 650 }}>
+                        Daewoo, Faisal Movers &amp; VIP Fleets Active
+                      </span>
+                    </div>
+
+                    {/* Direct Action Button */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setHomeSearchTab('valleys')}
+                        style={{
+                          padding: '8px 14px',
+                          borderRadius: '8px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid rgba(27, 79, 114, 0.2)',
+                          color: 'var(--pri)',
+                          fontSize: '12px',
+                          fontWeight: 650,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Back to Valleys
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById('home-intercity-schedules-section');
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }}
+                        id="btn-home-view-intercity-transport"
+                        data-testid="btn-home-view-intercity-transport"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '8px 18px',
+                          borderRadius: '8px',
+                          backgroundColor: 'var(--pri)',
+                          color: '#ffffff',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          border: 'none',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 8px rgba(47, 127, 193, 0.28)',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                      >
+                        <span>View Bus Timings &amp; Fares ({homeOriginCity.split(' / ')[0]} ➔ Swat) ↓</span>
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
             </div>
@@ -3076,185 +3148,189 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 style={{ display: 'flex', flexDirection: 'column', gap: '26px', marginTop: '0px' }}
                 data-testid="home-transport-showcase"
               >
-                {/* 1. Local Valley 4x4 Mountain Jeeps & Rentals Showcase Grid */}
-                <div id="home-local-transport-section">
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '16px',
-                      flexWrap: 'wrap',
-                      gap: '10px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div
-                        style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: '10px',
-                          background: 'linear-gradient(135deg, #134B73, #028AC8)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#ffffff',
-                          boxShadow: '0 4px 12px rgba(19, 75, 115, 0.25)',
-                        }}
-                      >
-                        <Car size={20} />
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
-                          Local Valley 4x4 Mountain Jeeps &amp; Rentals
-                        </h3>
-                        <p style={{ fontSize: '13px', color: 'var(--mute)', margin: '2px 0 0 0' }}>
-                          Verified local 4x4 mountain cruisers, safari jeeps, and drivers for Kalam, Mahodand &amp; Malam Jabba
-                        </p>
-                      </div>
-                    </div>
-
-                    <span
+                {/* 1. Local Valley 4x4 Mountain Jeeps & Rentals Showcase Grid (when transportMode === 'local') */}
+                {transportMode === 'local' && (
+                  <div id="home-local-transport-section">
+                    <div
                       style={{
-                        display: 'inline-flex',
+                        display: 'flex',
+                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        gap: '6px',
-                        padding: '5px 12px',
-                        borderRadius: '20px',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                        border: '1px solid rgba(52, 211, 153, 0.3)',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        color: '#059669',
+                        marginBottom: '16px',
+                        flexWrap: 'wrap',
+                        gap: '10px',
                       }}
                     >
-                      <ShieldCheck size={14} color="#059669" />
-                      <span>Snow Chain &amp; Alpine Certified</span>
-                    </span>
-                  </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '10px',
+                            background: 'linear-gradient(135deg, #134B73, #028AC8)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            boxShadow: '0 4px 12px rgba(19, 75, 115, 0.25)',
+                          }}
+                        >
+                          <Car size={20} />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+                            Local Valley 4x4 Mountain Jeeps &amp; Rentals
+                          </h3>
+                          <p style={{ fontSize: '13px', color: 'var(--mute)', margin: '2px 0 0 0' }}>
+                            Verified local 4x4 mountain cruisers, safari jeeps, and drivers for Kalam, Mahodand &amp; Malam Jabba
+                          </p>
+                        </div>
+                      </div>
 
-                  {/* Grid of Local Transport Listings */}
-                  <div className="grid-cards" data-testid="grid-local-transport-home">
-                    {(() => {
-                      const localVehicles = listings.filter((l) => {
-                        const matchesType = l.type_code === 'transport';
-                        const q = searchQuery.toLowerCase().trim();
-                        const matchesSearch =
-                          !q ||
-                          l.title.toLowerCase().includes(q) ||
-                          (l.description || '').toLowerCase().includes(q) ||
-                          (l.area_name || '').toLowerCase().includes(q) ||
-                          (l.business_name || '').toLowerCase().includes(q) ||
-                          (l.details?.vehicle_model || '').toLowerCase().includes(q) ||
-                          l.price_items?.some((p) => p.name.toLowerCase().includes(q));
-                        return matchesType && matchesSearch;
-                      });
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '5px 12px',
+                          borderRadius: '20px',
+                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(52, 211, 153, 0.3)',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          color: '#059669',
+                        }}
+                      >
+                        <ShieldCheck size={14} color="#059669" />
+                        <span>Snow Chain &amp; Alpine Certified</span>
+                      </span>
+                    </div>
 
-                      if (localVehicles.length === 0) {
-                        return (
-                          <div
-                            style={{
-                              gridColumn: '1 / -1',
-                              padding: '36px 20px',
-                              textAlign: 'center',
-                              backgroundColor: 'var(--card)',
-                              borderRadius: '16px',
-                              border: '1px dashed var(--line)',
-                            }}
-                          >
-                            <Car size={32} color="var(--pri)" style={{ margin: '0 auto 10px auto', opacity: 0.8 }} />
-                            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
-                              No 4x4 mountain jeeps found for "{searchQuery}"
-                            </h4>
-                            <p style={{ margin: '6px 0 14px 0', fontSize: '13px', color: 'var(--mute)' }}>
-                              Try searching for "Kalam", "Prado", or "Cruiser" to view available mountain fleets.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => setSearchQuery('')}
+                    {/* Grid of Local Transport Listings */}
+                    <div className="grid-cards" data-testid="grid-local-transport-home">
+                      {(() => {
+                        const localVehicles = listings.filter((l) => {
+                          const matchesType = l.type_code === 'transport';
+                          const q = searchQuery.toLowerCase().trim();
+                          const matchesSearch =
+                            !q ||
+                            l.title.toLowerCase().includes(q) ||
+                            (l.description || '').toLowerCase().includes(q) ||
+                            (l.area_name || '').toLowerCase().includes(q) ||
+                            (l.business_name || '').toLowerCase().includes(q) ||
+                            (l.details?.vehicle_model || '').toLowerCase().includes(q) ||
+                            l.price_items?.some((p) => p.name.toLowerCase().includes(q));
+                          return matchesType && matchesSearch;
+                        });
+
+                        if (localVehicles.length === 0) {
+                          return (
+                            <div
                               style={{
-                                padding: '6px 14px',
-                                borderRadius: '8px',
-                                backgroundColor: 'var(--pri)',
-                                color: '#FFFFFF',
-                                border: 'none',
-                                fontSize: '12px',
-                                fontWeight: 650,
-                                cursor: 'pointer',
+                                gridColumn: '1 / -1',
+                                padding: '36px 20px',
+                                textAlign: 'center',
+                                backgroundColor: 'var(--card)',
+                                borderRadius: '16px',
+                                border: '1px dashed var(--line)',
                               }}
                             >
-                              View All 4x4 Jeeps
-                            </button>
-                          </div>
-                        );
-                      }
-
-                      return localVehicles.map((l) => {
-                        const priceItem = l.price_items?.[0];
-                        const priceLine = priceItem ? `Rs ${priceItem.price.toLocaleString()} / day` : 'Custom fare';
-                        const availabilityText = l.details?.vehicle_model || '4x4 Mountain Jeep';
-
-                        let listingCover = l.media?.[0]?.url || '/images/places/kalam.jpg';
-                        if (!l.media?.[0]?.url) {
-                          if (l.title.toLowerCase().includes('cruiser') || l.title.toLowerCase().includes('snow')) {
-                            listingCover = '/images/places/malam_jabba.jpg';
-                          } else if (l.title.toLowerCase().includes('prado')) {
-                            listingCover = '/images/places/kalam.jpg';
-                          }
+                              <Car size={32} color="var(--pri)" style={{ margin: '0 auto 10px auto', opacity: 0.8 }} />
+                              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
+                                No 4x4 mountain jeeps found for "{searchQuery}"
+                              </h4>
+                              <p style={{ margin: '6px 0 14px 0', fontSize: '13px', color: 'var(--mute)' }}>
+                                Try searching for "Kalam", "Prado", or "Cruiser" to view available mountain fleets.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                style={{
+                                  padding: '6px 14px',
+                                  borderRadius: '8px',
+                                  backgroundColor: 'var(--pri)',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  fontSize: '12px',
+                                  fontWeight: 650,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                View All 4x4 Jeeps
+                              </button>
+                            </div>
+                          );
                         }
 
-                        return (
-                          <ListingCard
-                            key={`home-transport-${l.id}`}
-                            id={l.id}
-                            title={l.title}
-                            type="transport"
-                            areaName={l.area_name || 'Swat Valley'}
-                            isVerified={l.is_verified || l.status === 'published'}
-                            coverImage={listingCover}
-                            tags={[
-                              l.details?.vehicle_model || '4x4 Jeep',
-                              l.details?.seating_capacity ? `${l.details.seating_capacity} Seats` : '4-5 Seats',
-                              'With Driver',
-                            ]}
-                            priceLine={priceLine}
-                            availabilityText={availabilityText}
-                            phone={l.phone || '+92 946 711640'}
-                            addressText={l.address_text || `${l.area_name || 'Mingora'}, Swat`}
-                            onAddToTrip={() => {
-                              handleToggleSave('listing', l.id, l.title);
-                              handleAddStop('listing', l.id, l.title, `Local 4x4 Transport: ${l.title}`, {
-                                price_item_id: priceItem?.id,
-                                quantity: 1,
-                              });
-                            }}
-                          />
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
+                        return localVehicles.map((l) => {
+                          const priceItem = l.price_items?.[0];
+                          const priceLine = priceItem ? `Rs ${priceItem.price.toLocaleString()} / day` : 'Custom fare';
+                          const availabilityText = l.details?.vehicle_model || '4x4 Mountain Jeep';
 
-                {/* 2. Intercity Coaches Bus Schedules & Timings */}
-                <div id="home-intercity-schedules-section">
-                  <IntercityTransportExplorer
-                    key={`home-intercity-${homeOriginCity}`}
-                    initialOrigin={homeOriginCity}
-                    onAddToTrip={handleAddIntercityTransportToTrip}
-                    onViewRouteMap={(origin, dest, sch) =>
-                      setMapModal({
-                        open: true,
-                        title: `${origin.split(' / ')[0]} ➔ ${dest}`,
-                        lat: 34.7717,
-                        lng: 72.3602,
-                        originCity: origin,
-                        destinationCity: dest,
-                        durationText: sch?.duration_text,
-                        viaHighway: sch?.via_highway,
-                      })
-                    }
-                  />
-                </div>
+                          let listingCover = l.media?.[0]?.url || '/images/places/kalam.jpg';
+                          if (!l.media?.[0]?.url) {
+                            if (l.title.toLowerCase().includes('cruiser') || l.title.toLowerCase().includes('snow')) {
+                              listingCover = '/images/places/malam_jabba.jpg';
+                            } else if (l.title.toLowerCase().includes('prado')) {
+                              listingCover = '/images/places/kalam.jpg';
+                            }
+                          }
+
+                          return (
+                            <ListingCard
+                              key={`home-transport-${l.id}`}
+                              id={l.id}
+                              title={l.title}
+                              type="transport"
+                              areaName={l.area_name || 'Swat Valley'}
+                              isVerified={l.is_verified || l.status === 'published'}
+                              coverImage={listingCover}
+                              tags={[
+                                l.details?.vehicle_model || '4x4 Jeep',
+                                l.details?.seating_capacity ? `${l.details.seating_capacity} Seats` : '4-5 Seats',
+                                'With Driver',
+                              ]}
+                              priceLine={priceLine}
+                              availabilityText={availabilityText}
+                              phone={l.phone || '+92 946 711640'}
+                              addressText={l.address_text || `${l.area_name || 'Mingora'}, Swat`}
+                              onAddToTrip={() => {
+                                handleToggleSave('listing', l.id, l.title);
+                                handleAddStop('listing', l.id, l.title, `Local 4x4 Transport: ${l.title}`, {
+                                  price_item_id: priceItem?.id,
+                                  quantity: 1,
+                                });
+                              }}
+                            />
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Intercity Coaches Bus Schedules & Timings (when transportMode === 'intercity') */}
+                {transportMode === 'intercity' && (
+                  <div id="home-intercity-schedules-section">
+                    <IntercityTransportExplorer
+                      key={`home-intercity-${homeOriginCity}`}
+                      initialOrigin={homeOriginCity}
+                      onAddToTrip={handleAddIntercityTransportToTrip}
+                      onViewRouteMap={(origin, dest, sch) =>
+                        setMapModal({
+                          open: true,
+                          title: `${origin.split(' / ')[0]} ➔ ${dest}`,
+                          lat: 34.7717,
+                          lng: 72.3602,
+                          originCity: origin,
+                          destinationCity: dest,
+                          durationText: sch?.duration_text,
+                          viaHighway: sch?.via_highway,
+                        })
+                      }
+                    />
+                  </div>
+                )}
               </div>
             )}
 
@@ -4060,6 +4136,75 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               ))}
             </div>
 
+            {/* Mutually Exclusive 2-Option Selector for Transport Screen in Explore Tab */}
+            {selectedType === 'transport' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '4px',
+                  backgroundColor: 'rgba(27, 79, 114, 0.08)',
+                  borderRadius: '12px',
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  margin: '2px 0 6px 0',
+                }}
+                data-testid="explore-transport-mode-selector"
+              >
+                <button
+                  type="button"
+                  onClick={() => setTransportMode('local')}
+                  id="btn-explore-mode-local"
+                  data-testid="btn-explore-mode-local"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '7px 16px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '12.5px',
+                    fontWeight: transportMode === 'local' ? 750 : 600,
+                    backgroundColor: transportMode === 'local' ? 'var(--pri)' : 'transparent',
+                    color: transportMode === 'local' ? '#FFFFFF' : 'var(--ink)',
+                    boxShadow: transportMode === 'local' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Car size={15} />
+                  <span>Local Transport</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTransportMode('intercity')}
+                  id="btn-explore-mode-intercity"
+                  data-testid="btn-explore-mode-intercity"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '7px 16px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '12.5px',
+                    fontWeight: transportMode === 'intercity' ? 750 : 600,
+                    backgroundColor: transportMode === 'intercity' ? 'var(--pri)' : 'transparent',
+                    color: transportMode === 'intercity' ? '#FFFFFF' : 'var(--ink)',
+                    boxShadow: transportMode === 'intercity' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Bus size={15} />
+                  <span>Intercity Bus Transport</span>
+                </button>
+              </div>
+            )}
+
             {/* Sub-bar: Area Selector & Search */}
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <select
@@ -4113,8 +4258,28 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </span>
               </div>
 
-              {/* Listings Grid */}
-          {loading ? (
+              {/* Listings Grid or Intercity Transport */}
+          {selectedType === 'transport' && transportMode === 'intercity' ? (
+            <div style={{ marginTop: '12px' }}>
+              <IntercityTransportExplorer
+                key={`explore-intercity-${homeOriginCity}`}
+                initialOrigin={homeOriginCity}
+                onAddToTrip={handleAddIntercityTransportToTrip}
+                onViewRouteMap={(origin, dest, sch) =>
+                  setMapModal({
+                    open: true,
+                    title: `${origin.split(' / ')[0]} ➔ ${dest}`,
+                    lat: 34.7717,
+                    lng: 72.3602,
+                    originCity: origin,
+                    destinationCity: dest,
+                    durationText: sch?.duration_text,
+                    viaHighway: sch?.via_highway,
+                  })
+                }
+              />
+            </div>
+          ) : loading ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--mute)' }}>
               Loading verified listings...
             </div>
