@@ -364,7 +364,13 @@ const MainAppContent: React.FC = () => {
         title={getRoleTitle()}
         subtitle={getRoleSubtitle()}
         portalBadge={role === 'business' ? 'Business Portal' : undefined}
-        navItems={role === 'business' ? getBusinessNavItems(user?.business_profile?.primary_type) : ROLE_NAV_ITEMS[role]}
+        navItems={
+          role === 'business'
+            ? getBusinessNavItems(user?.business_profile?.primary_type)
+            : role === 'tourist'
+            ? ROLE_NAV_ITEMS.tourist.filter((item) => item.id !== 'explore')
+            : ROLE_NAV_ITEMS[role]
+        }
         activeTab={activeTab}
         onTabChange={setActiveTab}
         viewMode={viewMode}
