@@ -16,7 +16,7 @@ export const ThemeSwitchButton: React.FC<ThemeSwitchButtonProps> = ({
       role="group"
       aria-label="Platform Visual Theme"
       style={{
-        display: 'inline-flex',
+        display: 'none',
         alignItems: 'center',
         padding: '2px',
         borderRadius: '22px',
