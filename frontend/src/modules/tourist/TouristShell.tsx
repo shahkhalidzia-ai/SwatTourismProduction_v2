@@ -3324,8 +3324,20 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </Button>
               </div>
 
-              {/* Grid of Verified Listings */}
-              <div className="grid-cards">
+              {/* Grid of Verified Listings (Arranged in 2 Columns on Tourist Home Screen) */}
+              <style>{`
+                @media (max-width: 640px) {
+                  .home-explore-grid-2col {
+                    grid-template-columns: 1fr !important;
+                  }
+                }
+                @media (min-width: 641px) {
+                  .home-explore-grid-2col {
+                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                  }
+                }
+              `}</style>
+              <div className="grid-cards home-explore-grid-2col" data-testid="grid-home-explore-2col">
                 {(() => {
                   const filtered = listings.filter((l) => {
                     const matchesCategory =
