@@ -3489,6 +3489,97 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </button>
               </div>
 
+              {/* Search & Filter Controls for Explore Stays, Dining & Guides */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '14px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {/* Search Text Box */}
+                <div
+                  style={{
+                    flex: 1,
+                    minWidth: '260px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: 'var(--card)',
+                    border: '1.5px solid var(--line)',
+                    borderRadius: '12px',
+                    padding: '6px 14px',
+                    boxShadow: '0 2px 6px rgba(18, 50, 74, 0.04)',
+                    gap: '10px',
+                  }}
+                >
+                  <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search hotels, dining, trout cafes, guides, 4x4 rides..."
+                    data-testid="input-explore-stays-search"
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      backgroundColor: 'transparent',
+                      color: 'var(--ink)',
+                      fontSize: '13.5px',
+                      padding: '4px 0',
+                    }}
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--mute)',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      title="Clear search"
+                      aria-label="Clear search"
+                    >
+                      <X size={15} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Swat Valley / Area Filter */}
+                <select
+                  value={selectedAreaId}
+                  onChange={(e) => setSelectedAreaId(e.target.value)}
+                  data-testid="select-explore-stays-area"
+                  style={{
+                    padding: '9px 14px',
+                    borderRadius: '12px',
+                    border: '1.5px solid var(--line)',
+                    backgroundColor: 'var(--card)',
+                    color: 'var(--ink)',
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    minWidth: '170px',
+                    boxShadow: '0 2px 6px rgba(18, 50, 74, 0.04)',
+                  }}
+                >
+                  <option value="">All Valleys &amp; Areas</option>
+                  {areas.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({a.area_type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Grid of Verified Listings (Arranged in 2 Columns on Tourist Home Screen) */}
               <style>{`
                 @media (max-width: 640px) {
@@ -3515,7 +3606,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       (l.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                       (l.area_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                       l.price_items?.some((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-                    return matchesCategory && matchesSearch;
+                    const matchesArea = !selectedAreaId || l.area_id === selectedAreaId;
+                    return matchesCategory && matchesSearch && matchesArea;
                   });
 
                   if (filtered.length === 0) {
@@ -3542,6 +3634,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           size="sm"
                           onClick={() => {
                             setSearchQuery('');
+                            setSelectedAreaId('');
                             setHomeExploreFilter('all');
                           }}
                         >
@@ -3551,7 +3644,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     );
                   }
 
-                  return filtered.slice(0, 6).map((l) => {
+                  const displayed = searchQuery || selectedAreaId || homeExploreFilter !== 'all'
+                    ? filtered
+                    : filtered.slice(0, 6);
+                  return displayed.map((l) => {
                     const primaryPriceItem = l.price_items?.[0];
                     const priceLine = primaryPriceItem
                       ? `PKR ${primaryPriceItem.price.toLocaleString()} / ${primaryPriceItem.unit.replace('per_', '')}`
