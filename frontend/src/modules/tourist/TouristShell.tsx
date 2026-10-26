@@ -12,7 +12,6 @@ import {
   ShieldAlert,
   MapPin,
   Plus,
-  Bookmark,
   CheckCircle,
   PhoneCall,
   Clock,
@@ -987,7 +986,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   );
   const [currentViewedTrip, setCurrentViewedTrip] = useState<Trip | null>(null);
   const [showTripSwitchModal, setShowTripSwitchModal] = useState(false);
-  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
+  const [, setSavedItems] = useState<SavedItem[]>([]);
   const [reviewModal, setReviewModal] = useState<{
     isOpen: boolean;
     booking: Booking | null;
@@ -1934,10 +1933,6 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   // Backward compatible payment confirmation
   const handleMockPayment = async () => {
     await handleOpenTripPayment();
-  };
-
-  const isSaved = (type: 'listing' | 'destination', id: string) => {
-    return savedItems.some((s) => s.item_type === type && s.item_id === id);
   };
 
   const renderAdvisoryFrame = (isSidebar: boolean = false) => {
@@ -3889,8 +3884,6 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 }
 
                 return filteredDestinations.map((dest, idx) => {
-                  const saved = isSaved('destination', dest.id);
-
                   // Metadata enrichment per destination
                   const n = (dest.name || '').toLowerCase();
                   let destImg = '/images/kalam_valley.jpg';
@@ -4166,98 +4159,25 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                             View Weather Forecast
                           </Button>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() =>
-                                setMapModal({
-                                  open: true,
-                                  title: dest.name,
-                                  lat: dest.latitude || 35.48,
-                                  lng: dest.longitude || 72.58,
-                                  areaName: dest.area_name,
-                                  categoryOrType: dest.category,
-                                  originCity: 'Islamabad / Rawalpindi',
-                                  destinationCity: dest.name,
-                                })
-                              }
-                            >
-                              View Map
-                            </Button>
-                            <Button
-                              variant={saved ? 'primary' : 'accent'}
-                              size="sm"
-                              icon={<Bookmark size={14} />}
-                              onClick={() => {
-                                handleToggleSave('destination', dest.id, dest.name);
-                                handleAddStop('destination', dest.id, dest.name);
-                              }}
-                            >
-                              {saved ? 'In Trip' : 'Save to trip'}
-                            </Button>
-                          </div>
-
-                          {/* 1-Tap Quick Day Add Strip for Destinations (Phase 2) */}
-                          {activeTripDaysList && activeTripDaysList.length > 0 && (
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                marginTop: '8px',
-                                paddingTop: '6px',
-                                borderTop: '1px dashed rgba(27, 79, 114, 0.12)',
-                                overflowX: 'auto',
-                                scrollbarWidth: 'none',
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontSize: '10.5px',
-                                  color: 'var(--mute)',
-                                  fontWeight: 700,
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  whiteSpace: 'nowrap',
-                                }}
-                              >
-                                <Sparkles size={11} color="var(--acc)" /> 1-Tap Add:
-                              </span>
-                              {activeTripDaysList.slice(0, 4).map((d) => (
-                                <button
-                                  key={d}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAddCustomStopDetailed({
-                                      stop_type: 'destination',
-                                      destination_id: dest.id,
-                                      day_number: d,
-                                      time_slot: '11:00 AM',
-                                      custom_title: dest.name,
-                                    });
-                                  }}
-                                  style={{
-                                    fontSize: '11px',
-                                    fontWeight: 700,
-                                    padding: '3px 8px',
-                                    borderRadius: '6px',
-                                    border: '1px solid rgba(47, 127, 193, 0.25)',
-                                    backgroundColor: '#F0F7FF',
-                                    color: 'var(--pri)',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap',
-                                    transition: 'all 0.15s ease',
-                                  }}
-                                  title={`Add ${dest.name} directly to Day ${d}`}
-                                >
-                                  + Day {d}
-                                </button>
-                              ))}
-                            </div>
-                          )}
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            fullWidth
+                            onClick={() =>
+                              setMapModal({
+                                open: true,
+                                title: dest.name,
+                                lat: dest.latitude || 35.48,
+                                lng: dest.longitude || 72.58,
+                                areaName: dest.area_name,
+                                categoryOrType: dest.category,
+                                originCity: 'Islamabad / Rawalpindi',
+                                destinationCity: dest.name,
+                              })
+                            }
+                          >
+                            View Map
+                          </Button>
                         </div>
                       </div>
                     </div>
