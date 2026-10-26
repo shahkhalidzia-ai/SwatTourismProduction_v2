@@ -104,8 +104,9 @@ describe('Public Landing Page and Property Registration Verification', () => {
     expect(instantReserveBtns.length).toBeGreaterThan(0);
 
     // Click Instant Reserve
+    const targetButton = instantReserveBtns[0].closest('button') || instantReserveBtns[0];
     await act(async () => {
-      fireEvent.click(instantReserveBtns[0]);
+      fireEvent.click(targetButton);
     });
 
     // Verify Instant Reservation modal is opened
@@ -113,4 +114,44 @@ describe('Public Landing Page and Property Registration Verification', () => {
     expect(screen.getByText(/Pickup Location \/ Meeting Point in Swat/i)).toBeDefined();
     expect(screen.getByTestId('btn-submit-instant-reservation')).toBeDefined();
   });
+
+  it('disables one-click persona logins when registration mode is active, and enables in login mode', async () => {
+    render(<App />);
+
+    // Open AuthModal in registration mode
+    const registerBtn = await screen.findByTestId('btn-public-register');
+    await act(async () => {
+      fireEvent.click(registerBtn);
+    });
+
+    expect(await screen.findByText('Create an Account')).toBeDefined();
+    expect(screen.getByText(/Disabled for new registration/i)).toBeDefined();
+
+    const touristPersonaBtn = screen.getByTestId('persona-btn-tourist') as HTMLButtonElement;
+    const hotelPersonaBtn = screen.getByTestId('persona-btn-hotel') as HTMLButtonElement;
+    expect(touristPersonaBtn.disabled).toBe(true);
+    expect(hotelPersonaBtn.disabled).toBe(true);
+
+    // Switch to Log In tab
+    const loginTabBtn = screen.getByText('Log In');
+    await act(async () => {
+      fireEvent.click(loginTabBtn);
+    });
+
+    expect(await screen.findByText('Welcome Back')).toBeDefined();
+    expect(screen.getByText(/Click to test portal/i)).toBeDefined();
+    expect(touristPersonaBtn.disabled).toBe(false);
+    expect(hotelPersonaBtn.disabled).toBe(false);
+
+    // Switch back to Sign Up / Register tab
+    const registerTabBtn = screen.getByText('Sign Up / Register');
+    await act(async () => {
+      fireEvent.click(registerTabBtn);
+    });
+
+    expect(await screen.findByText('Create an Account')).toBeDefined();
+    expect(touristPersonaBtn.disabled).toBe(true);
+    expect(hotelPersonaBtn.disabled).toBe(true);
+  });
 });
+

@@ -114,6 +114,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleQuickPersona = async (personaKey: string) => {
+    if (mode === 'register') return;
     setError(null);
     setLoading(true);
     try {
@@ -286,13 +287,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             borderRadius: '12px',
             padding: '12px',
             marginBottom: '16px',
+            opacity: mode === 'register' ? 0.45 : 1,
+            pointerEvents: mode === 'register' ? 'none' : 'auto',
+            filter: mode === 'register' ? 'grayscale(0.6)' : 'none',
+            transition: 'all 0.2s ease',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--pri)', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: mode === 'register' ? 'var(--mute)' : 'var(--pri)', letterSpacing: '0.04em' }}>
               ⚡ One-Click Persona Logins:
             </span>
-            <span style={{ fontSize: '10px', color: 'var(--mute)' }}>Click to test portal</span>
+            <span style={{ fontSize: '10px', color: 'var(--mute)', fontStyle: mode === 'register' ? 'italic' : 'normal' }}>
+              {mode === 'register' ? 'Disabled for new registration (use Log In)' : 'Click to test portal'}
+            </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '6px' }}>
             {[
@@ -307,26 +314,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <button
                 key={btn.key}
                 type="button"
+                data-testid={`persona-btn-${btn.key}`}
                 onClick={() => handleQuickPersona(btn.key)}
-                disabled={loading}
+                disabled={loading || mode === 'register'}
                 style={{
                   padding: '6px 8px',
                   borderRadius: '8px',
                   border: '1px solid var(--line)',
                   backgroundColor: 'var(--card)',
                   color: 'var(--ink)',
-                  cursor: 'pointer',
+                  cursor: mode === 'register' ? 'not-allowed' : 'pointer',
                   textAlign: 'left',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '2px',
                   transition: 'all 0.15s ease',
+                  opacity: mode === 'register' ? 0.7 : 1,
                 }}
                 onMouseEnter={(e) => {
+                  if (mode === 'register') return;
                   e.currentTarget.style.borderColor = 'var(--pri)';
                   e.currentTarget.style.backgroundColor = 'var(--soft)';
                 }}
                 onMouseLeave={(e) => {
+                  if (mode === 'register') return;
                   e.currentTarget.style.borderColor = 'var(--line)';
                   e.currentTarget.style.backgroundColor = 'var(--card)';
                 }}
