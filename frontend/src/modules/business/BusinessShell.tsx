@@ -33,7 +33,6 @@ import { RestaurantMenuManager, DEFAULT_DISHES } from './RestaurantMenuManager';
 import { TransportFleetManager, getFleetVehiclesForProvider } from './TransportFleetManager';
 import { HotelTodayScreen } from './HotelTodayScreen';
 import { getPhysicalRoomsForHotel } from './physicalRooms';
-import { ThemeAppearanceSection } from '../../components/ThemeAppearanceSection';
 import {
   fetchMyListings,
   createListing,
@@ -3371,11 +3370,6 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                 </div>
               ))}
             </div>
-          </Card>
-
-          {/* Visual Appearance & Theme Switcher */}
-          <Card padding="md">
-            <ThemeAppearanceSection />
           </Card>
         </div>
       )}
