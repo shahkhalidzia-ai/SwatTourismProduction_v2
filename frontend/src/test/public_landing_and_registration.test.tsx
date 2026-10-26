@@ -89,4 +89,28 @@ describe('Public Landing Page and Property Registration Verification', () => {
     expect(screen.getByText('Adventures & Ski')).toBeDefined();
     expect(screen.getByText('Crafts & Souvenirs')).toBeDefined();
   });
+
+  it('renders Instant Reserve button on Transport and opens InstantServiceReservationModal', async () => {
+    render(<App />);
+
+    // Switch to Transport tab on Home Screen
+    const transportTabBtn = await screen.findByTestId('tab-home-transport');
+    await act(async () => {
+      fireEvent.click(transportTabBtn);
+    });
+
+    // Find Instant Reserve 4x4 Ride button
+    const instantReserveBtns = await screen.findAllByText(/Instant Reserve 4x4 Ride/i);
+    expect(instantReserveBtns.length).toBeGreaterThan(0);
+
+    // Click Instant Reserve
+    await act(async () => {
+      fireEvent.click(instantReserveBtns[0]);
+    });
+
+    // Verify Instant Reservation modal is opened
+    expect(await screen.findByTestId('instant-service-reservation-modal')).toBeDefined();
+    expect(screen.getByText(/Pickup Location \/ Meeting Point in Swat/i)).toBeDefined();
+    expect(screen.getByTestId('btn-submit-instant-reservation')).toBeDefined();
+  });
 });

@@ -43,6 +43,7 @@ import { apiRequest } from '../../api/client';
 import { MapModal } from './MapModal';
 import { AvailabilityModal } from './AvailabilityModal';
 import { HotelDetailsModal } from './HotelDetailsModal';
+import { InstantServiceReservationModal } from './InstantServiceReservationModal';
 import { RestaurantDetailsModal } from './RestaurantDetailsModal';
 import { IntercityTransportExplorer } from './IntercityTransportExplorer';
 import { ThemeAppearanceSection } from '../../components/ThemeAppearanceSection';
@@ -1144,6 +1145,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
   const [hotelModalListing, setHotelModalListing] = useState<ListingItem | null>(null);
   const [restaurantModalListing, setRestaurantModalListing] = useState<ListingItem | null>(null);
+  const [serviceModalListing, setServiceModalListing] = useState<ListingItem | null>(null);
 
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
   const [paymentBooking, setPaymentBooking] = useState<Booking | null>(null);
@@ -3301,6 +3303,16 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               availabilityText={availabilityText}
                               phone={l.phone || '+92 946 711640'}
                               addressText={l.address_text || `${l.area_name || 'Mingora'}, Swat`}
+                              isCommunityService={Boolean(l.details?.is_community_service)}
+                              onInstantReserve={() => setServiceModalListing(l)}
+                              onCheckDates={() =>
+                                setAvailModal({
+                                  open: true,
+                                  listingId: l.id,
+                                  listingTitle: l.title,
+                                  priceItems: l.price_items || [],
+                                })
+                              }
                               onAddToTrip={() => {
                                 handleToggleSave('listing', l.id, l.title);
                                 handleAddStop('listing', l.id, l.title, `Local 4x4 Transport: ${l.title}`, {
@@ -3582,6 +3594,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         availabilityText={availabilityText}
                         phone={l.phone || '+92 946 711640'}
                         addressText={l.address_text || `${l.area_name || 'Saidu Sharif'}, Swat`}
+                        isCommunityService={Boolean(l.details?.is_community_service)}
+                        onInstantReserve={
+                          (l.type_code === 'transport' || l.type_code === 'guide' || l.details?.is_community_service)
+                            ? () => setServiceModalListing(l)
+                            : undefined
+                        }
                         onViewHotelDetails={l.type_code === 'hotel' ? () => setHotelModalListing(l) : undefined}
                         onViewMenu={l.type_code === 'restaurant' ? () => setRestaurantModalListing(l) : undefined}
                         onCheckDates={
@@ -4518,6 +4536,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           whatsappNumber={l.whatsapp_number}
                           addressText={l.address_text}
                           isSelected={selectedHotelId === l.id}
+                          isCommunityService={Boolean(l.details?.is_community_service)}
+                          onInstantReserve={
+                            (l.type_code === 'transport' || l.type_code === 'guide' || l.details?.is_community_service)
+                              ? () => setServiceModalListing(l)
+                              : undefined
+                          }
                           onSelect={() => {
                             if (l.type_code === 'hotel') {
                               setSelectedHotelId(l.id);
@@ -5923,6 +5947,29 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               listingTitle: h.title,
               priceItems: h.price_items || [],
             });
+          }}
+        />
+      )}
+
+      {/* Modal: Instant Service Reservation (Transport, Guide, Community Services Hiring) */}
+      {serviceModalListing && (
+        <InstantServiceReservationModal
+          listing={serviceModalListing}
+          onClose={() => setServiceModalListing(null)}
+          onBookingSuccess={(booking) => {
+            setMyBookings((prev) => [booking, ...prev]);
+            showToast(`Instant reservation ${booking.reference || ''} confirmed!`);
+          }}
+          onAddToTrip={(priceItem, sDate, eDate) => {
+            handleToggleSave('listing', serviceModalListing.id, serviceModalListing.title);
+            handleAddStop(
+              'listing',
+              serviceModalListing.id,
+              serviceModalListing.title,
+              `${serviceModalListing.title} (${sDate} to ${eDate})`,
+              { price_item_id: priceItem?.id, quantity: 1 }
+            );
+            showToast(`Added ${serviceModalListing.title} to trip itinerary!`);
           }}
         />
       )}

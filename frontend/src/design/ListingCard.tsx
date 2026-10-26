@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, CheckCircle2, Calendar, Plus, Phone, Bed, UtensilsCrossed, Sparkles } from 'lucide-react';
+import { MapPin, CheckCircle2, Calendar, Plus, Phone, Bed, UtensilsCrossed, Sparkles, Car, Compass, Users } from 'lucide-react';
 import { Card } from './Card';
 import { Tag } from './Tag';
 import { Button } from './Button';
@@ -19,12 +19,14 @@ export interface ListingCardProps {
   whatsappNumber?: string;
   addressText?: string;
   isSelected?: boolean;
+  isCommunityService?: boolean;
   onSelect?: () => void;
   onViewHotelDetails?: () => void;
   onViewMenu?: () => void;
   onViewMap?: () => void;
   onCheckDates?: () => void;
   onAddToTrip?: () => void;
+  onInstantReserve?: () => void;
   availableDays?: number[];
   onQuickAddToDay?: (dayNumber: number) => void;
 }
@@ -43,12 +45,14 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   phone,
   addressText,
   isSelected = false,
+  isCommunityService = false,
   onSelect,
   onViewHotelDetails,
   onViewMenu,
   onViewMap,
   onCheckDates,
   onAddToTrip,
+  onInstantReserve,
   availableDays,
   onQuickAddToDay,
 }) => {
@@ -258,8 +262,30 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             </Button>
           )}
 
+          {/* Transport / Guide / Community Service Specific: Instant Reservation Request Button */}
+          {(type === 'transport' || type === 'guide' || isCommunityService) && onInstantReserve && (
+            <Button
+              variant="primary"
+              size="sm"
+              icon={type === 'transport' ? <Car size={14} /> : type === 'guide' ? <Compass size={14} /> : <Users size={14} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onInstantReserve();
+              }}
+              style={{ width: '100%', marginBottom: '2px' }}
+              id={`btn-instant-reserve-${id || type}`}
+              data-testid={`btn-instant-reserve-${id || type}`}
+            >
+              {type === 'transport'
+                ? 'Instant Reserve 4x4 Ride'
+                : type === 'guide'
+                ? 'Instant Reserve Guide'
+                : 'Instant Hire Community Service'}
+            </Button>
+          )}
+
           {/* Standard Action Buttons (Check Dates / Add to Trip) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: type === 'hotel' ? '1fr' : '1fr 1fr', gap: '8px' }}>
             <Button
               variant="secondary"
               size="sm"
@@ -271,17 +297,19 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             >
               Check dates
             </Button>
-            <Button
-              variant="accent"
-              size="sm"
-              icon={<Plus size={14} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onAddToTrip) onAddToTrip();
-              }}
-            >
-              Add to trip
-            </Button>
+            {type !== 'hotel' && (
+              <Button
+                variant="accent"
+                size="sm"
+                icon={<Plus size={14} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onAddToTrip) onAddToTrip();
+                }}
+              >
+                Add to trip
+              </Button>
+            )}
           </div>
 
           {/* 1-Tap Quick Day Add Strip (Less Input, More Output) */}
