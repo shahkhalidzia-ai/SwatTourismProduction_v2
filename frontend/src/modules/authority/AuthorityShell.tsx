@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { UserManagementView } from './UserManagementView';
-import { ThemeAppearanceSection } from '../../components/ThemeAppearanceSection';
 import { Card } from '../../design/Card';
 import { Button } from '../../design/Button';
 import { Tag } from '../../design/Tag';
@@ -1622,10 +1621,6 @@ export const AuthorityShell: React.FC<AuthorityShellProps> = ({ activeTab, isMob
                 </div>
               </div>
             </div>
-          </div>
-
-          <div style={{ marginTop: '20px' }}>
-            <ThemeAppearanceSection />
           </div>
         </>
       )}
