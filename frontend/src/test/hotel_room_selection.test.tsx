@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { HotelDetailsModal } from '../modules/tourist/HotelDetailsModal';
+import { AvailabilityModal } from '../modules/tourist/AvailabilityModal';
 import { TripManagerView } from '../modules/tourist/TripManagerView';
 import type { ListingItem } from '../api/listings';
 import type { Trip } from '../api/trips';
@@ -233,5 +234,43 @@ describe('Hotel Room Selection Flow', () => {
     expect(screen.getByText('Tariq Khan - Certified Mountain Guide')).toBeDefined();
     fireEvent.change(screen.getByTestId('modal-service-search-input'), { target: { value: 'Tariq' } });
     expect(screen.getByText('Tariq Khan - Certified Mountain Guide')).toBeDefined();
+  });
+
+  it('renders Instant Reservation button alongside Add to Trip in AvailabilityModal (Check Dates popup)', async () => {
+    const handleClose = vi.fn();
+    const handleSelectAndAdd = vi.fn();
+
+    render(
+      <AvailabilityModal
+        isOpen={true}
+        onClose={handleClose}
+        listingId={mockHotel.id}
+        listingTitle={mockHotel.title}
+        priceItems={mockHotel.price_items || []}
+        onSelectAndAdd={handleSelectAndAdd}
+      />
+    );
+
+    // Header Check Dates & Rates
+    expect(screen.getByText('Check Dates & Rates')).toBeDefined();
+    expect(screen.getByText(mockHotel.title)).toBeDefined();
+
+    // Verify Add to Trip and Instant Reservation buttons exist
+    const addToTripBtn = screen.getByTestId('btn-availability-add-to-trip');
+    expect(addToTripBtn).toBeDefined();
+
+    const instantReserveBtn = screen.getByTestId('btn-availability-instant-reserve');
+    expect(instantReserveBtn).toBeDefined();
+    expect(instantReserveBtn.textContent).toContain('Instant Reservation');
+
+    // Click Instant Reservation
+    fireEvent.click(instantReserveBtn);
+
+    // Verify success confirmation view
+    const successTitle = await screen.findByText(/Instant Reservation Confirmed!/i);
+    expect(successTitle).toBeDefined();
+    expect(screen.getAllByText('Swat Serena Hotel, Mingora').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Executive Deluxe Room')).toBeDefined();
+    expect(screen.getByText('Done & Return')).toBeDefined();
   });
 });

@@ -5594,6 +5594,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         onSelectAndAdd={(item, date) => {
           handleAddStop('listing', availModal.listingId, availModal.listingTitle, `Selected ${item.name} for ${date}`);
         }}
+        onBookingSuccess={(booking) => {
+          setMyBookings((prev) => [booking, ...prev]);
+          showToast(`Instant reservation ${booking.reference || ''} confirmed!`);
+        }}
       />
 
       {/* SOS Alert Modal */}
