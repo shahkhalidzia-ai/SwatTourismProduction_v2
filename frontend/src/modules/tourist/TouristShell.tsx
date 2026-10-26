@@ -35,7 +35,9 @@ import {
   Trees,
   Waves,
   Landmark,
+  Building2,
 } from 'lucide-react';
+import type { UserRole } from '../../layouts/navItems';
 import { useAuth } from '../../context/AuthContext';
 import { apiRequest } from '../../api/client';
 import { MapModal } from './MapModal';
@@ -773,6 +775,80 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
+  {
+    id: 'listing-demo-activity-1',
+    business_id: 'biz-demo-activity-1',
+    business_name: 'Malam Jabba Adventure Club',
+    type_id: 'type-activity',
+    type_code: 'activity',
+    type_label: 'Adventures & Ski',
+    area_name: 'Malam Jabba',
+    title: 'Malam Jabba Aerial Chairlift & Zipline',
+    description: 'Scenic high-altitude 800m dual zipline and two-seater chairlift across the snow-capped pine valley.',
+    address_text: 'Main Ski Resort Ridge, Malam Jabba, Swat',
+    phone: '+92-946-755010',
+    latitude: 34.7997,
+    longitude: 72.5714,
+    is_verified: true,
+    status: 'published',
+    tags: [
+      { id: 't-act-1', tag_group: 'feature', label: 'Zipline' },
+      { id: 't-act-2', tag_group: 'feature', label: 'Chairlift' },
+      { id: 't-act-3', tag_group: 'facility', label: 'Certified Safety' },
+    ],
+    price_items: [
+      {
+        id: 'pi-activity-1',
+        name: 'Combined Chairlift & Zipline Adventure Pass',
+        price: 2500,
+        unit: 'per_person',
+        capacity: 1,
+        is_bookable: true,
+      },
+    ],
+    details: {},
+    media: [],
+    rating_count: 42,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-shop-1',
+    business_id: 'biz-demo-shop-1',
+    business_name: 'Swat Heritage Gems & Woodcrafts',
+    type_id: 'type-shop',
+    type_code: 'shop',
+    type_label: 'Crafts & Souvenirs',
+    area_name: 'Bahrain',
+    title: 'Swat Heritage Gems, Shawls & Woodcrafts',
+    description: 'Authentic hand-carved deodar walnut woodwork, emerald gemstones, and pure Pashmina and Swati woolen shawls.',
+    address_text: 'River Bazaar, Bahrain, Swat',
+    phone: '+92-946-822450',
+    latitude: 35.2075,
+    longitude: 72.5475,
+    is_verified: true,
+    status: 'published',
+    tags: [
+      { id: 't-sh-1', tag_group: 'feature', label: 'Pashmina' },
+      { id: 't-sh-2', tag_group: 'feature', label: 'Handicrafts' },
+      { id: 't-sh-3', tag_group: 'facility', label: 'Local Artisans' },
+    ],
+    price_items: [
+      {
+        id: 'pi-shop-1',
+        name: 'Pure Handwoven Swati Wool Shawl',
+        price: 4500,
+        unit: 'per_item',
+        capacity: 1,
+        is_bookable: false,
+      },
+    ],
+    details: {},
+    media: [],
+    rating_count: 28,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ];
 
 const DEFAULT_DESTINATIONS: Destination[] = [
@@ -894,9 +970,10 @@ interface TouristShellProps {
   activeTab: string;
   onTabChange?: (tab: string) => void;
   headerAction?: React.ReactNode;
+  onOpenAuth?: (mode?: 'login' | 'register', role?: UserRole, primaryType?: string) => void;
 }
 
-export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChange, headerAction }) => {
+export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChange, headerAction, onOpenAuth }) => {
   const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
   // Master data
   const [areas, setAreas] = useState<Area[]>([]);
@@ -939,7 +1016,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
   const [destCategoryFilter, setDestCategoryFilter] = useState<string>('all');
   const [homeSearchTab, setHomeSearchTab] = useState<'valleys' | 'explore' | 'transport'>('valleys');
-  const [homeExploreFilter, setHomeExploreFilter] = useState<'all' | 'hotel' | 'restaurant' | 'transport' | 'guide' | 'activity'>('all');
+  const [homeExploreFilter, setHomeExploreFilter] = useState<'all' | 'hotel' | 'restaurant' | 'transport' | 'guide' | 'activity' | 'shop'>('all');
   const [homeOriginCity, setHomeOriginCity] = useState<string>('Islamabad / Rawalpindi');
   const [transportMode, setTransportMode] = useState<'local' | 'intercity'>('local');
   const [loading, setLoading] = useState(false);
@@ -2698,6 +2775,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       { id: 'transport', label: 'Local 4x4 & Jeeps', icon: '🚙' },
                       { id: 'guide', label: 'Guides (Local Experts)', icon: '🧭' },
                       { id: 'activity', label: 'Adventures & Ski', icon: '⛷️' },
+                      { id: 'shop', label: 'Crafts & Souvenirs', icon: '🛍️' },
                     ].map((cat) => {
                       const isSelected = homeExploreFilter === cat.id;
                       return (
@@ -3298,10 +3376,14 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         ? 'Verified Stays & Mountain Resorts'
                         : homeExploreFilter === 'restaurant'
                         ? 'Riverside Dining & Fresh Trout Cafes'
+                        : homeExploreFilter === 'transport'
+                        ? 'Local 4x4 Mountain Jeeps & Rentals'
                         : homeExploreFilter === 'guide'
                         ? 'Certified Local Guides & Trackers'
                         : homeExploreFilter === 'activity'
                         ? 'Adventure Sports & Activities'
+                        : homeExploreFilter === 'shop'
+                        ? 'Swat Handicrafts, Shawls & Souvenirs'
                         : 'Explore Swat: Stays, Dining & Guides'}
                     </h3>
                     <p style={{ fontSize: '13px', color: 'var(--mute)', margin: '2px 0 0 0' }}>
@@ -3324,6 +3406,77 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </Button>
               </div>
 
+              {/* Partner Property Onboarding Banner for Business Hosts */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(2, 138, 200, 0.08)',
+                  border: '1px solid rgba(2, 138, 200, 0.22)',
+                  marginBottom: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--acc)',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Building2 size={18} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 750, color: 'var(--ink)' }}>
+                      Own a Hotel, 4x4 Jeep, Restaurant, or Guide Service in Swat?
+                    </h4>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--mute)' }}>
+                      Register your property to accept bookings from thousands of verified travelers.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenAuth?.('register', 'business')}
+                  data-testid="btn-banner-list-property"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '7px 14px',
+                    borderRadius: '8px',
+                    backgroundColor: 'var(--pri)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(47, 127, 193, 0.25)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.filter = 'brightness(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.filter = 'none';
+                  }}
+                >
+                  <Building2 size={13} />
+                  <span>List Your Property</span>
+                </button>
+              </div>
+
               {/* Grid of Verified Listings (Arranged in 2 Columns on Tourist Home Screen) */}
               <style>{`
                 @media (max-width: 640px) {
@@ -3342,7 +3495,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   const filtered = listings.filter((l) => {
                     const matchesCategory =
                       homeExploreFilter === 'all'
-                        ? (l.type_code === 'hotel' || l.type_code === 'restaurant' || l.type_code === 'guide' || l.type_code === 'activity')
+                        ? (l.type_code === 'hotel' || l.type_code === 'restaurant' || l.type_code === 'guide' || l.type_code === 'activity' || l.type_code === 'transport' || l.type_code === 'shop')
                         : l.type_code === homeExploreFilter;
                     const matchesSearch =
                       !searchQuery ||
@@ -3406,6 +3559,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         listingCover = '/images/trout_restaurant.jpg';
                       } else if (l.type_code === 'guide') {
                         listingCover = '/images/ushu_forest.jpg';
+                      } else if (l.type_code === 'shop') {
+                        listingCover = '/images/places/bahrain.jpg';
+                      } else if (l.type_code === 'transport') {
+                        listingCover = '/images/places/kalam.jpg';
                       } else {
                         listingCover = '/images/malam_jabba.jpg';
                       }
@@ -3439,6 +3596,11 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                             : undefined
                         }
                         onAddToTrip={() => {
+                          if (!user && onOpenAuth) {
+                            showToast('Please sign in or register to save to your trip itinerary.');
+                            onOpenAuth('login', 'tourist');
+                            return;
+                          }
                           handleToggleSave('listing', l.id, l.title);
                           handleAddStop('listing', l.id, l.title);
                         }}

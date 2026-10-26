@@ -4,7 +4,6 @@ import { ROLE_NAV_ITEMS, getBusinessNavItems } from './layouts/navItems';
 import { ResponsiveLayout } from './layouts/ResponsiveLayout';
 import { RoleSwitcherBar } from './components/RoleSwitcherBar';
 import { AuthModal } from './components/AuthModal';
-import { LoginPage } from './components/LoginPage';
 import { AuthProvider, useAuth, type UserProfile } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -15,7 +14,7 @@ import { CommunityShell } from './modules/community/CommunityShell';
 import { AuthorityShell } from './modules/authority/AuthorityShell';
 import { DemoTourGuide } from './components/DemoTourGuide';
 
-import { ShieldAlert, LogOut, User as UserIcon } from 'lucide-react';
+import { ShieldAlert, LogOut, User as UserIcon, Building2, UserPlus, LogIn } from 'lucide-react';
 import { Button } from './design/Button';
 
 const isTestEnv =
@@ -41,7 +40,16 @@ const MainAppContent: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<string>('sos');
   const [isDark, setIsDark] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<ViewMode>('auto');
-  const [isAuthOpen, setIsAuthOpen] = useState<boolean>(false);
+  const [authModalConfig, setAuthModalConfig] = useState<{
+    isOpen: boolean;
+    mode: 'login' | 'register';
+    role?: UserRole;
+    primaryType?: string;
+  }>({
+    isOpen: false,
+    mode: 'login',
+    role: 'tourist',
+  });
   const [isTourOpen, setIsTourOpen] = useState<boolean>(false);
   const [isDemoUser, setIsDemoUser] = useState<boolean>(() => {
     return localStorage.getItem('swat_demo_user') === 'true';
@@ -111,11 +119,6 @@ const MainAppContent: React.FC = () => {
       defaultTab = 'overview';
     }
     setActiveTab(defaultTab);
-  };
-
-  const handleLoginSuccess = (authUser: UserProfile, isDemo: boolean) => {
-    setIsDemoUser(isDemo);
-    handleAuthSuccess(authUser);
   };
 
   const handleLogout = () => {
@@ -240,7 +243,21 @@ const MainAppContent: React.FC = () => {
 
     switch (role) {
       case 'tourist':
-        return <TouristShell activeTab={activeTab} onTabChange={setActiveTab} headerAction={renderHeaderAction()} />;
+        return (
+          <TouristShell
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            headerAction={renderHeaderAction()}
+            onOpenAuth={(mode, reqRole, reqType) => {
+              setAuthModalConfig({
+                isOpen: true,
+                mode: mode || 'login',
+                role: reqRole || 'tourist',
+                primaryType: reqType,
+              });
+            }}
+          />
+        );
       case 'business':
         return <BusinessShell activeTab={activeTab} isMobile={isSimulatedMobile} onTabChange={setActiveTab} />;
       case 'community':
@@ -251,13 +268,143 @@ const MainAppContent: React.FC = () => {
     }
   };
 
-  // 1. Browsing the site without authentication: Load Login Screen first!
-  if (!user && !isTestEnv) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  // 2. Render Header Action (User identity + Log Out button)
+  // 2. Render Header Action (User identity + Log Out button OR Public Partner / Sign In / Register buttons)
   const renderHeaderAction = () => {
+    if (!user) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* List Your Property Partner CTA */}
+          <button
+            type="button"
+            onClick={() => {
+              setAuthModalConfig({
+                isOpen: true,
+                mode: 'register',
+                role: 'business',
+              });
+            }}
+            data-testid="btn-public-list-property"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '30px',
+              minHeight: '0px',
+              maxHeight: '30px',
+              boxSizing: 'border-box',
+              padding: '0 12px',
+              borderRadius: '20px',
+              backgroundColor: 'var(--acc)',
+              color: '#FFFFFF',
+              border: 'none',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.filter = 'brightness(1.1)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = 'none';
+              e.currentTarget.style.transform = 'none';
+            }}
+          >
+            <Building2 size={13} />
+            <span>List Your Property</span>
+          </button>
+
+          {/* Register Tourist / Guest */}
+          <button
+            type="button"
+            onClick={() => {
+              setAuthModalConfig({
+                isOpen: true,
+                mode: 'register',
+                role: 'tourist',
+              });
+            }}
+            data-testid="btn-public-register"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '30px',
+              minHeight: '0px',
+              maxHeight: '30px',
+              boxSizing: 'border-box',
+              padding: '0 12px',
+              borderRadius: '20px',
+              backgroundColor: 'var(--header-pill-bg, rgba(255, 255, 255, 0.16))',
+              border: 'var(--header-pill-border, 1px solid rgba(255, 255, 255, 0.28))',
+              backdropFilter: 'blur(6px)',
+              color: 'var(--header-pill-ink, #ffffff)',
+              fontSize: '11.5px',
+              fontWeight: 650,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.filter = 'brightness(1.15)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = 'none';
+              e.currentTarget.style.transform = 'none';
+            }}
+          >
+            <UserPlus size={13} />
+            <span>Register</span>
+          </button>
+
+          {/* Sign In */}
+          <button
+            type="button"
+            onClick={() => {
+              setAuthModalConfig({
+                isOpen: true,
+                mode: 'login',
+              });
+            }}
+            data-testid="btn-public-login"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '30px',
+              minHeight: '0px',
+              maxHeight: '30px',
+              boxSizing: 'border-box',
+              padding: '0 12px',
+              borderRadius: '20px',
+              backgroundColor: '#FFFFFF',
+              color: 'var(--pri)',
+              border: '1px solid rgba(255, 255, 255, 0.8)',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.filter = 'brightness(0.95)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.filter = 'none';
+              e.currentTarget.style.transform = 'none';
+            }}
+          >
+            <LogIn size={13} />
+            <span>Sign In</span>
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
         {user && (
@@ -356,7 +503,7 @@ const MainAppContent: React.FC = () => {
           onToggleTheme={handleToggleTheme}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenAuth={() => setAuthModalConfig({ isOpen: true, mode: 'login', role: 'tourist' })}
         />
       )}
 
@@ -398,8 +545,11 @@ const MainAppContent: React.FC = () => {
         )}
 
         <AuthModal
-          isOpen={isAuthOpen}
-          onClose={() => setIsAuthOpen(false)}
+          isOpen={authModalConfig.isOpen}
+          initialMode={authModalConfig.mode}
+          initialRole={authModalConfig.role}
+          initialPrimaryType={authModalConfig.primaryType}
+          onClose={() => setAuthModalConfig((prev) => ({ ...prev, isOpen: false }))}
           onAuthSuccess={handleAuthSuccess}
         />
       </ResponsiveLayout>

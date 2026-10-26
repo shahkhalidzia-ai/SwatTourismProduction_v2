@@ -11,6 +11,8 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'login' | 'register';
+  initialRole?: UserRole;
+  initialPrimaryType?: string;
   onAuthSuccess?: (user: UserProfile) => void;
 }
 
@@ -18,11 +20,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   initialMode = 'login',
+  initialRole = 'tourist',
+  initialPrimaryType = 'hotel',
   onAuthSuccess,
 }) => {
   const { login, register, demoLogin } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
-  const [selectedRole, setSelectedRole] = useState<UserRole>('tourist');
+  const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -36,10 +40,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [emergencyPhone, setEmergencyPhone] = useState('');
   // Business
   const [businessName, setBusinessName] = useState('');
-  const [primaryType, setPrimaryType] = useState('hotel');
+  const [primaryType, setPrimaryType] = useState(initialPrimaryType);
   const [accommodationType, setAccommodationType] = useState('Hotel');
   // Community
   const [bio, setBio] = useState('');
+
+  // Sync state when modal opens or initial props change
+  React.useEffect(() => {
+    if (isOpen) {
+      if (initialMode) setMode(initialMode);
+      if (initialRole) setSelectedRole(initialRole);
+      if (initialPrimaryType) setPrimaryType(initialPrimaryType);
+      setError(null);
+    }
+  }, [isOpen, initialMode, initialRole, initialPrimaryType]);
 
   if (!isOpen) return null;
 
