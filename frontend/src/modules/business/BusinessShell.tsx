@@ -99,6 +99,7 @@ export interface BookingRow {
   roomsCount?: number;
   nights?: number;
   specialRequests?: string;
+  notes?: string;
 }
 
 interface ListingRow {
@@ -154,7 +155,14 @@ export function loadTransportRideOrders(
     pName.includes('swat_valley_4x4') ||
     pName.includes('swat valley 4x4') ||
     pName.includes('swat_valley_transport') ||
-    pName.includes('swat valley transport');
+    pName.includes('swat valley transport') ||
+    pName.includes('swat 4x4') ||
+    pName.includes('swat_4x4') ||
+    pName.includes('swat mountain transport') ||
+    pName.includes('my business') ||
+    pId === 'biz-transport-1' ||
+    pId === 'biz-demo-trans-snow' ||
+    pId === 'biz-demo-trans-prado';
 
   // Helper: check if a ride order / booking is related to THIS provider
   const isOrderRelated = (order: any): boolean => {
@@ -163,7 +171,16 @@ export function loadTransportRideOrders(
       return true;
     }
 
-    // 2. Business / Operator Name match
+    // 2. Direct listing ID match for default fleet
+    if (
+      order.listing_id &&
+      (order.listing_id === '01d0d59e6bd949c4a29f742c3dd30c63' || order.listing_id === 'ceca7963dc2a40d4a83995ae4f9078ae') &&
+      isDefaultProvider
+    ) {
+      return true;
+    }
+
+    // 3. Business / Operator Name match
     const orderBiz = (
       order.business_name ||
       order.providerName ||
@@ -176,39 +193,54 @@ export function loadTransportRideOrders(
       if (orderBiz === pName || orderBiz.includes(pName) || pName.includes(orderBiz)) {
         return true;
       }
+      // If both represent the default demo fleet / Swat transport ecosystem
+      const isDefaultPName = !pName || pName.includes('swat') || pName.includes('4x4') || pName.includes('transport');
+      const isDefaultOrderBiz =
+        orderBiz.includes('swat') ||
+        orderBiz.includes('4x4') ||
+        orderBiz.includes('transport') ||
+        orderBiz.includes('malam jabba snow');
+      if (isDefaultProvider && isDefaultPName && isDefaultOrderBiz) {
+        return true;
+      }
     }
 
-    // 3. License plate match
+    // 4. License plate match
     const refUpper = (order.reference || order.booking_reference || order.regNumber || '').toUpperCase().trim();
     if (refUpper && providerPlates.has(refUpper)) {
       return true;
     }
 
-    // 4. Item or notes mentioning provider's plate
-    const itemUpper = (order.item || '').toUpperCase();
-    const notesUpper = (order.notes || '').toUpperCase();
+    // 5. Item or notes mentioning provider's plate
+    const itemUpper = (order.item || order.listing?.title || '').toUpperCase();
+    const notesUpper = (order.notes || order.special_requests || '').toUpperCase();
     for (const plate of providerPlates) {
       if (plate && (itemUpper.includes(plate) || notesUpper.includes(plate))) {
         return true;
       }
     }
 
-    // 5. Item mentioning provider's vehicle name
-    const itemLower = (order.item || '').toLowerCase();
+    // 6. Item mentioning provider's vehicle name
+    const itemLower = (order.item || order.listing?.title || '').toLowerCase();
     for (const vName of providerVehicleNames) {
       if (vName && vName.length > 3 && itemLower.includes(vName)) {
         return true;
       }
     }
 
-    // If order is explicitly tagged with a DIFFERENT provider name, reject
+    // If order is explicitly tagged with a DIFFERENT provider name (e.g. Mingora City Cabs vs Kalam 4x4 Union)
     if (orderBiz && pName && orderBiz !== pName && !orderBiz.includes(pName) && !pName.includes(orderBiz)) {
-      return false;
+      // Do not reject if both are default provider variants
+      const isDefaultPName = pName.includes('swat') || pName.includes('4x4');
+      const isDefaultOrderBiz = orderBiz.includes('swat') || orderBiz.includes('4x4') || orderBiz.includes('malam jabba snow');
+      if (!(isDefaultProvider && isDefaultPName && isDefaultOrderBiz)) {
+        return false;
+      }
     }
 
-    // If this is the default provider and order is unassigned, allow default demo orders
-    if (isDefaultProvider && (!order.providerId && !order.business_id && !orderBiz)) {
-      if (refUpper && ['SWT-8080', 'SWT-884A', 'SWT-772B', 'SWT-993C'].includes(refUpper)) {
+    // If this is the default provider and order is unassigned or for transport cars, allow
+    if (isDefaultProvider) {
+      if (!orderBiz || orderBiz.includes('swat') || orderBiz.includes('4x4') || orderBiz.includes('malam jabba')) {
         return true;
       }
     }
@@ -309,6 +341,54 @@ export function loadTransportRideOrders(
                 rawAmount: item.rawAmount || existing?.rawAmount || 12000,
                 status: item.status || existing?.status || 'requested',
                 declineReason: item.declineReason || existing?.declineReason,
+              });
+            }
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // 4b. Local bookings created via Instant Service Reservation Modal or Tourist booking requests ('swat_local_bookings')
+  try {
+    const rawLocalBookings = localStorage.getItem('swat_local_bookings');
+    if (rawLocalBookings) {
+      const parsedBookings = JSON.parse(rawLocalBookings);
+      if (Array.isArray(parsedBookings)) {
+        for (const lb of parsedBookings) {
+          const isTransportBooking =
+            lb.listing?.type_code === 'transport' ||
+            lb.type_code === 'transport' ||
+            (lb.special_requests && lb.special_requests.includes('Pickup:')) ||
+            (lb.listing?.title &&
+              (lb.listing.title.toLowerCase().includes('4x4') ||
+                lb.listing.title.toLowerCase().includes('jeep') ||
+                lb.listing.title.toLowerCase().includes('cruiser') ||
+                lb.listing.title.toLowerCase().includes('transport') ||
+                lb.listing.title.toLowerCase().includes('car')));
+
+          if (isTransportBooking && isOrderRelated(lb)) {
+            const ref = (lb.reference || lb.booking_reference || lb.id || '').toUpperCase();
+            if (ref && !orderMap.has(ref)) {
+              orderMap.set(ref, {
+                id: lb.id || `book-${ref}`,
+                reference: lb.reference || lb.booking_reference || ref,
+                tourist: lb.tourist?.full_name || lb.passenger_name || 'Sara Ahmed',
+                touristEmail: lb.tourist?.email || 'sara@swat.pk',
+                item: lb.listing?.title || lb.item || '4x4 Mountain Jeep Safari',
+                dates:
+                  lb.end_date && lb.end_date !== lb.start_date
+                    ? `${lb.start_date} – ${lb.end_date}`
+                    : lb.start_date || 'Upcoming Service',
+                amount:
+                  lb.total_price || lb.total_amount
+                    ? `Rs ${Number(lb.total_price || lb.total_amount).toLocaleString()}`
+                    : 'Rs 14,000',
+                rawAmount: Number(lb.total_price || lb.total_amount || 14000),
+                status: lb.status || 'requested',
+                notes: lb.special_requests,
+                specialRequests: lb.special_requests,
+                declineReason: lb.decline_reason,
               });
             }
           }
@@ -918,6 +998,28 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       }
       localStorage.setItem('swat_ride_orders', JSON.stringify(updated));
       window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: updated }));
+
+      // Also sync status update to swat_local_bookings
+      try {
+        const rawLocalB = localStorage.getItem('swat_local_bookings');
+        if (rawLocalB) {
+          const parsedB = JSON.parse(rawLocalB);
+          if (Array.isArray(parsedB)) {
+            const updatedB = parsedB.map((b: any) => {
+              if (
+                b.id === bookingId ||
+                b.reference === bookingId ||
+                b.booking_reference === bookingId ||
+                (b.reference && b.reference.toUpperCase() === bookingId.toUpperCase())
+              ) {
+                return { ...b, status, ...(reason ? { decline_reason: reason } : {}) };
+              }
+              return b;
+            });
+            localStorage.setItem('swat_local_bookings', JSON.stringify(updatedB));
+          }
+        }
+      } catch {}
     } catch {}
   };
 
@@ -1080,6 +1182,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       }
     };
     window.addEventListener('swat_ride_orders_updated', handleRideOrdersSync);
+    window.addEventListener('swat_bookings_updated', handleRideOrdersSync);
     window.addEventListener('storage', handleRideOrdersSync);
 
     fetchMyVerificationStatus()
@@ -1095,6 +1198,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
     return () => {
       isMounted = false;
       window.removeEventListener('swat_ride_orders_updated', handleRideOrdersSync);
+      window.removeEventListener('swat_bookings_updated', handleRideOrdersSync);
       window.removeEventListener('storage', handleRideOrdersSync);
     };
   }, []);

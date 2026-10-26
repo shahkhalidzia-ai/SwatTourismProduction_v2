@@ -496,6 +496,36 @@ describe('Transport Portal Enhancements: Tab Removal, Order Confirmation & Fleet
 
       expect(screen.getByText(/Ride order confirmed/i)).toBeDefined();
     });
+
+    it('loads instant reservation requests for cars into Transport Owner portal from swat_local_bookings', async () => {
+      const carBooking = {
+        id: 'book-car-9911',
+        booking_reference: 'SWT-TR-9911',
+        reference: 'SWT-TR-9911',
+        listing_id: '01d0d59e6bd949c4a29f742c3dd30c63',
+        status: 'requested',
+        total_price: 14000,
+        start_date: '2026-10-28',
+        end_date: '2026-10-28',
+        travellers: 3,
+        special_requests: 'Pickup: Kalam Valley (Main Bazaar) • Destination: Mahodand Lake • Time: 08:00 AM',
+        listing: {
+          title: '4x4 Mountain Jeep, Swat Rides',
+          type_code: 'transport',
+          area_name: 'Mingora',
+        },
+      };
+      localStorage.setItem('swat_local_bookings', JSON.stringify([carBooking]));
+
+      await act(async () => {
+        render(<BusinessShell activeTab="today" onTabChange={vi.fn()} />);
+      });
+
+      // Car booking should be displayed in transport owner queue
+      expect(screen.getByText('SWT-TR-9911')).toBeDefined();
+      expect(screen.getByText('4x4 Mountain Jeep, Swat Rides')).toBeDefined();
+      expect(screen.getByText(/Rs 14,000/i)).toBeDefined();
+    });
   });
 
   describe('6. Scoped Ride Orders Filtering: Logged In Transport Provider Sees Related Riders Only', () => {

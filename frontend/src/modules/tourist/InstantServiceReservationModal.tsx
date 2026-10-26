@@ -17,6 +17,7 @@ import { Tag } from '../../design/Tag';
 import { Button } from '../../design/Button';
 import type { ListingItem, PriceItem } from '../../api/listings';
 import { createBookingRequest, type Booking } from '../../api/bookings';
+import { useAuth } from '../../context/AuthContext';
 
 export interface InstantServiceReservationModalProps {
   listing: ListingItem | null;
@@ -31,6 +32,7 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
   onBookingSuccess,
   onAddToTrip,
 }) => {
+  const { user } = useAuth();
   // Dates state
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const tomorrowStr = useMemo(() => {
@@ -163,8 +165,8 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
           booking_reference: refCode,
           reference: refCode,
           listing_id: listing.id,
-          tourist_id: 'tourist-active',
-          status: 'confirmed',
+          tourist_id: user?.id || 'tourist-active',
+          status: 'requested',
           total_price: totalAmount,
           start_date: startDate,
           end_date: isMultiDay ? endDate : startDate,
@@ -178,12 +180,56 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
             area_name: listing.area_name,
           },
         } as unknown as Booking;
+      }
 
-        // Persist to local bookings cache
+      // Persist to local bookings cache
+      try {
+        const stored = JSON.parse(localStorage.getItem('swat_local_bookings') || '[]');
+        const filteredLocal = stored.filter((b: any) => b.reference !== newBooking.reference && b.id !== newBooking.id);
+        const updatedLocal = [newBooking, ...filteredLocal];
+        localStorage.setItem('swat_local_bookings', JSON.stringify(updatedLocal));
+        window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedLocal }));
+      } catch {}
+
+      // If this is transport/car hiring, also seamlessly sync to swat_ride_orders queue for the transport owner
+      if (isTransport || listing.type_code === 'transport') {
         try {
-          const stored = JSON.parse(localStorage.getItem('swat_local_bookings') || '[]');
-          localStorage.setItem('swat_local_bookings', JSON.stringify([newBooking, ...stored]));
-        } catch {}
+          const storedOrders = JSON.parse(localStorage.getItem('swat_ride_orders') || '[]');
+          const regRef =
+            listing.details?.registration_no ||
+            (listing.title.match(/SWT-[0-9A-Z]+/i)?.[0]) ||
+            'SWT-8080';
+          const datesFormatted = isMultiDay
+            ? `${startDate} – ${endDate} (${daysCount} Days)`
+            : `${startDate} • ${pickupTime}`;
+
+          const rideOrder = {
+            id: newBooking.id || `ride-${Date.now()}`,
+            reference: newBooking.reference || (newBooking as any).booking_reference || `SWT-TR-${Math.floor(100000 + Math.random() * 900000)}`,
+            tourist: user?.full_name || (user as any)?.name || 'Sara Ahmed',
+            touristEmail: user?.email || 'sara@swat.pk',
+            item: `${listing.title} (${listing.details?.vehicle_model || selectedPriceItem?.name || '4x4 Vehicle'})`,
+            dates: datesFormatted,
+            amount: `Rs ${Number(totalAmount).toLocaleString()}`,
+            rawAmount: totalAmount,
+            status: 'requested',
+            notes: fullSpecialRequests,
+            specialRequests: fullSpecialRequests,
+            providerId: listing.business_id,
+            providerName: listing.business_name,
+            business_id: listing.business_id,
+            business_name: listing.business_name,
+            regNumber: regRef,
+            listing_id: listing.id,
+          };
+
+          const filteredOrders = storedOrders.filter((o: any) => o.reference !== rideOrder.reference && o.id !== rideOrder.id);
+          const updatedOrders = [rideOrder, ...filteredOrders];
+          localStorage.setItem('swat_ride_orders', JSON.stringify(updatedOrders));
+          window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: updatedOrders }));
+        } catch (e) {
+          console.error('Failed to sync transport ride order:', e);
+        }
       }
 
       setBookingSuccess(newBooking);
