@@ -153,5 +153,57 @@ describe('Public Landing Page and Property Registration Verification', () => {
     expect(touristPersonaBtn.disabled).toBe(true);
     expect(hotelPersonaBtn.disabled).toBe(true);
   });
+
+  it('hides left menu when unauthenticated, and shows role-specific left menu while defaulting to public page upon login', async () => {
+    // 1. Unauthenticated state
+    render(<App />);
+
+    // Left sidebar should NOT be rendered when unauthenticated
+    expect(screen.queryByTestId('web-sidebar')).toBeNull();
+    // Public home screen is loaded
+    expect(await screen.findByText('Swat Tourism Platform')).toBeDefined();
+
+    // 2. Open AuthModal and login as Hotel Owner
+    const loginBtn = await screen.findByTestId('btn-public-login');
+    await act(async () => {
+      fireEvent.click(loginBtn);
+    });
+
+    const hotelPersonaBtn = await screen.findByTestId('persona-btn-hotel');
+    await act(async () => {
+      fireEvent.click(hotelPersonaBtn);
+    });
+
+    // 3. Authenticated state: Left sidebar is now visible
+    expect(await screen.findByTestId('web-sidebar')).toBeDefined();
+
+    // Hotel Owner role-specific items are present in the left menu
+    expect(screen.getByRole('button', { name: /Explore Swat/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Today/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Listings/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Availability/i })).toBeDefined();
+
+    // Public page is still loaded initially upon login
+    expect(screen.getByText('Swat Tourism Platform')).toBeDefined();
+
+    // 4. Click 'Today' in sidebar to access Hotel dashboard
+    const todayNavBtn = screen.getByRole('button', { name: /Today/i });
+    await act(async () => {
+      fireEvent.click(todayNavBtn);
+    });
+
+    // Hotel Today Screen is displayed
+    expect(await screen.findByText(/Bookings today/i)).toBeDefined();
+
+    // 5. Click 'Explore Swat' in sidebar to return to public page
+    const exploreSwatNavBtn = screen.getByRole('button', { name: /Explore Swat/i });
+    await act(async () => {
+      fireEvent.click(exploreSwatNavBtn);
+    });
+
+    // Public page is displayed again
+    expect(await screen.findByText('Swat Tourism Platform')).toBeDefined();
+  });
 });
+
 

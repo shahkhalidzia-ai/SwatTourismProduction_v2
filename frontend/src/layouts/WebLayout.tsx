@@ -17,6 +17,7 @@ interface WebLayoutProps {
   children: React.ReactNode;
   hideTopBanner?: boolean;
   portalBadge?: string;
+  showSidebar?: boolean;
 }
 
 const ITEM_SUBTITLES: Record<string, string> = {
@@ -50,6 +51,7 @@ export const WebLayout: React.FC<WebLayoutProps> = ({
   children,
   hideTopBanner = false,
   portalBadge,
+  showSidebar = true,
 }) => {
   const [hoveredTab, setHoveredTab] = useState<string | null>(null);
 
@@ -65,9 +67,11 @@ export const WebLayout: React.FC<WebLayoutProps> = ({
       }}
     >
       {/* ========================================================================= */}
-      {/* 1. LEFT SIDEBAR / MENU                                                    */}
+      {/* 1. LEFT SIDEBAR / MENU (Visible only when showSidebar is true)           */}
       {/* ========================================================================= */}
-      <aside
+      {showSidebar && (
+        <aside
+          data-testid="web-sidebar"
         style={{
           width: 'var(--sidebar-width)',
           backgroundColor: 'var(--card)',
@@ -420,17 +424,18 @@ export const WebLayout: React.FC<WebLayoutProps> = ({
           </div>
         </div>
       </aside>
+      )}
 
       {/* ========================================================================= */}
       {/* 2. MAIN CONTENT PANE                                                      */}
       {/* ========================================================================= */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' }}>
         {/* Content area with Top Animated Tourism Banner */}
         <main
           style={{
             flex: 1,
-            padding: '10px 32px 32px 32px',
-            maxWidth: 'var(--max-content-width)',
+            padding: showSidebar ? '10px 32px 32px 32px' : '10px 24px 32px 24px',
+            maxWidth: showSidebar ? 'var(--max-content-width)' : '1360px',
             width: '100%',
             margin: '0 auto',
           }}

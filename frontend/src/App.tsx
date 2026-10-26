@@ -76,18 +76,13 @@ const MainAppContent: React.FC = () => {
     }
   }, []);
 
-  // When auth state changes, sync active role
+  // When auth state changes, sync active role and load public page by default
   useEffect(() => {
     if (!isTourOpen && user && user.role) {
       const targetRole = (user.role === 'authority' ? 'admin' : user.role) as UserRole;
       if (targetRole !== role) {
         setRole(targetRole);
-        let defaultTab = ROLE_NAV_ITEMS[targetRole][0]?.id || 'home';
-        if (targetRole === 'business') {
-          const nav = getBusinessNavItems(user.business_profile?.primary_type);
-          defaultTab = nav[0]?.id || 'listings';
-        }
-        setActiveTab(defaultTab);
+        setActiveTab('home');
       }
     }
   }, [user, isTourOpen]);
@@ -107,18 +102,8 @@ const MainAppContent: React.FC = () => {
     }
     const targetRole = (authUser.role === 'authority' ? 'admin' : authUser.role) as UserRole;
     setRole(targetRole);
-    let defaultTab = ROLE_NAV_ITEMS[targetRole]?.[0]?.id || 'home';
-    if (targetRole === 'business') {
-      const bizType = authUser.business_profile?.primary_type;
-      defaultTab = bizType === 'restaurant' ? 'listings' : 'today';
-    } else if (targetRole === 'tourist') {
-      defaultTab = 'home';
-    } else if (targetRole === 'community') {
-      defaultTab = 'feed';
-    } else if (targetRole === 'admin') {
-      defaultTab = 'overview';
-    }
-    setActiveTab(defaultTab);
+    // When any user logs in, load public page by default
+    setActiveTab('home');
   };
 
   const handleLogout = () => {
@@ -239,6 +224,25 @@ const MainAppContent: React.FC = () => {
 
     if (!isTourOpen && !requestedRole && user && user.role && !canAccessRole(user.role, role, isDemoActive)) {
       return renderAccessDenied();
+    }
+
+    // When on 'home' tab, any user (guest or authenticated role) views the public destination screen
+    if (activeTab === 'home') {
+      return (
+        <TouristShell
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          headerAction={renderHeaderAction()}
+          onOpenAuth={(mode, reqRole, reqType) => {
+            setAuthModalConfig({
+              isOpen: true,
+              mode: mode || 'login',
+              role: reqRole || 'tourist',
+              primaryType: reqType,
+            });
+          }}
+        />
+      );
     }
 
     switch (role) {
@@ -511,6 +515,7 @@ const MainAppContent: React.FC = () => {
         title={getRoleTitle()}
         subtitle={getRoleSubtitle()}
         portalBadge={role === 'business' ? 'Business Portal' : undefined}
+        showSidebar={Boolean(user)}
         navItems={
           role === 'business'
             ? getBusinessNavItems(user?.business_profile?.primary_type)
@@ -523,7 +528,7 @@ const MainAppContent: React.FC = () => {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         headerAction={renderHeaderAction()}
-        hideTopBanner={role === 'tourist' && activeTab === 'home'}
+        hideTopBanner={activeTab === 'home'}
       >
         {renderActiveShell()}
 

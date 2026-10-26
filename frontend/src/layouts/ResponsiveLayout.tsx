@@ -15,6 +15,7 @@ interface ResponsiveLayoutProps {
   onViewModeChange?: (mode: ViewMode) => void;
   hideTopBanner?: boolean;
   portalBadge?: string;
+  showSidebar?: boolean;
   children: React.ReactNode;
 }
 
@@ -29,6 +30,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
   onViewModeChange,
   hideTopBanner = false,
   portalBadge,
+  showSidebar = true,
   children,
 }) => {
   const [isDesktop, setIsDesktop] = useState<boolean>(() => {
@@ -60,6 +62,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
         headerAction={headerAction}
         hideTopBanner={hideTopBanner}
         portalBadge={portalBadge}
+        showSidebar={showSidebar}
       >
         {children}
       </WebLayout>
@@ -129,6 +132,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
             headerAction={headerAction}
             hideTopBanner={hideTopBanner}
             portalBadge={portalBadge}
+            showNavigation={showSidebar}
           >
             {children}
           </PhoneLayout>
@@ -147,6 +151,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
       headerAction={headerAction}
       hideTopBanner={hideTopBanner}
       portalBadge={portalBadge}
+      showNavigation={showSidebar}
     >
       {children}
     </PhoneLayout>

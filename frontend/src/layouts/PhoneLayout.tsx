@@ -12,6 +12,7 @@ interface PhoneLayoutProps {
   children: React.ReactNode;
   hideTopBanner?: boolean;
   portalBadge?: string;
+  showNavigation?: boolean;
 }
 
 export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
@@ -24,6 +25,7 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
   children,
   hideTopBanner = false,
   portalBadge,
+  showNavigation = true,
 }) => {
   return (
     <div
@@ -46,7 +48,7 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
         style={{
           flex: 1,
           padding: '10px 16px 16px 16px',
-          paddingBottom: 'calc(var(--bottom-bar-height) + 24px)',
+          paddingBottom: showNavigation ? 'calc(var(--bottom-bar-height) + 24px)' : '16px',
           overflowY: 'auto',
         }}
       >
@@ -62,22 +64,23 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
         {children}
       </main>
 
-      {/* Bottom Bar */}
-      <nav
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: 'var(--bottom-bar-height)',
-          backgroundColor: 'var(--card)',
-          borderTop: '1px solid var(--line)',
-          display: 'grid',
-          gridTemplateColumns: `repeat(${navItems.length}, 1fr)`,
-          zIndex: 50,
-        }}
-        aria-label="Bottom Navigation"
-      >
+      {/* Bottom Bar (rendered only when showNavigation is true) */}
+      {showNavigation && (
+        <nav
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 'var(--bottom-bar-height)',
+            backgroundColor: 'var(--card)',
+            borderTop: '1px solid var(--line)',
+            display: 'grid',
+            gridTemplateColumns: `repeat(${navItems.length}, 1fr)`,
+            zIndex: 50,
+          }}
+          aria-label="Bottom Navigation"
+        >
         {navItems.map((item) => {
           const isActive = item.id === activeTab;
           return (
@@ -107,7 +110,8 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
             </button>
           );
         })}
-      </nav>
+        </nav>
+      )}
     </div>
   );
 };
