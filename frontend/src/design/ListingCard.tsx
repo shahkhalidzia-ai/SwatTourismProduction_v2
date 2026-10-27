@@ -106,7 +106,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               display: 'flex',
               alignItems: 'flex-start',
               justifyContent: 'space-between',
-              padding: '12px',
+              padding: '16px',
               overflow: 'hidden',
             }}
           >
@@ -118,7 +118,22 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                 pointerEvents: 'none',
               }}
             />
+            {/* Top Left: Verified & Selection Badges */}
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+              {isVerified && (
+                <Tag variant="ok" icon={<CheckCircle2 size={12} />}>
+                  Verified
+                </Tag>
+              )}
+              {isSelected && (
+                <Tag variant="accent" icon={<Sparkles size={11} />}>
+                  Selected Stay
+                </Tag>
+              )}
+            </div>
+
+            {/* Top Right: Accommodation Type Badge */}
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', position: 'relative', zIndex: 1, marginLeft: 'auto' }}>
               <Tag
                 variant="neutral"
                 style={{
@@ -129,6 +144,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                   backdropFilter: 'blur(4px)',
                   fontWeight: 700,
                   fontSize: '11px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                 }}
               >
                 {type === 'hotel'
@@ -143,19 +159,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                   ? 'Guide'
                   : type}
               </Tag>
-              {isSelected && (
-                <Tag variant="accent" icon={<Sparkles size={11} />}>
-                  Selected Stay
-                </Tag>
-              )}
             </div>
-            {isVerified && (
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <Tag variant="ok" icon={<CheckCircle2 size={12} />}>
-                  Verified
-                </Tag>
-              </div>
-            )}
           </div>
         );
       })()}
@@ -280,13 +284,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         )}
 
         {/* Tags */}
-        {(tags.length > 0 || (type === 'hotel' && accommodationType)) && (
+        {tags.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
-            {type === 'hotel' && accommodationType && (
-              <Tag variant="pri" style={{ fontWeight: 700 }}>
-                🏨 {accommodationType}
-              </Tag>
-            )}
             {tags.map((tag, idx) => (
               <Tag key={idx} variant="soft">
                 {tag}
