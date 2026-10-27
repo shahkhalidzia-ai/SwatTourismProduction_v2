@@ -64,7 +64,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
 }) => {
   const effectiveRating = rating ?? Number((4.6 + ((title.charCodeAt(0) % 4) * 0.1)).toFixed(1));
   const effectiveReviews = reviewCount ?? (28 + (title.charCodeAt(title.length - 1) % 65));
-  const isAddToTripHidden = type === 'restaurant' || type === 'guide' || type === 'transport';
+  const isAddToTripHidden = type === 'restaurant' || type === 'guide' || type === 'transport' || type === 'activity';
   return (
     <Card
       padding="none"
