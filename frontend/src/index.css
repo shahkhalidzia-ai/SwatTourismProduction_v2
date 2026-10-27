@@ -299,7 +299,17 @@ textarea:focus-visible {
    layouts are strictly single-column mobile, avoiding desktop media query bleed.
    ========================================================================== */
 
-#mobile-phone-frame,
+#mobile-phone-frame {
+  container-type: inline-size;
+  width: 100% !important;
+  max-width: 380px !important;
+  height: 740px !important;
+  max-height: calc(100vh - 56px) !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
 .phone-layout {
   container-type: inline-size;
   overflow-x: hidden !important;
