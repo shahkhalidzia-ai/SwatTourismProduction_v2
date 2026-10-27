@@ -7,7 +7,7 @@ import { AuthModal } from './components/AuthModal';
 import { AuthProvider, useAuth, type UserProfile } from './context/AuthContext';
 import { TranslationProvider } from './context/TranslationContext';
 import { ThemeProvider } from './context/ThemeContext';
-import type { ViewMode } from './design/ViewSwitch';
+import { ViewSwitch, type ViewMode } from './design/ViewSwitch';
 import { TouristShell } from './modules/tourist/TouristShell';
 import { BusinessShell } from './modules/business/BusinessShell';
 import { CommunityShell } from './modules/community/CommunityShell';
@@ -39,7 +39,22 @@ const MainAppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [activeSubTab, setActiveSubTab] = useState<string>('sos');
   const [isDark, setIsDark] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('auto');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('swat_view_mode') as ViewMode | null;
+      if (saved && ['auto', 'phone', 'web'].includes(saved)) {
+        return saved;
+      }
+    }
+    return 'auto';
+  });
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('swat_view_mode', mode);
+    } catch {}
+  };
   const [authModalConfig, setAuthModalConfig] = useState<{
     isOpen: boolean;
     mode: 'login' | 'register';
@@ -277,6 +292,9 @@ const MainAppContent: React.FC = () => {
     if (!user) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Universal Phone / Web View Switcher */}
+          <ViewSwitch currentMode={viewMode} onModeChange={handleViewModeChange} />
+
           {/* List Your Property Partner CTA */}
           <button
             type="button"
@@ -411,6 +429,9 @@ const MainAppContent: React.FC = () => {
 
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        {/* Universal Phone / Web View Switcher */}
+        <ViewSwitch currentMode={viewMode} onModeChange={handleViewModeChange} />
+
         {user && (
           <div
             style={{
@@ -506,7 +527,7 @@ const MainAppContent: React.FC = () => {
           isDark={isDark}
           onToggleTheme={handleToggleTheme}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={handleViewModeChange}
           onOpenAuth={() => setAuthModalConfig({ isOpen: true, mode: 'login', role: 'tourist' })}
         />
       )}
@@ -526,7 +547,7 @@ const MainAppContent: React.FC = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         viewMode={viewMode}
-        onViewModeChange={setViewMode}
+        onViewModeChange={handleViewModeChange}
         headerAction={renderHeaderAction()}
         hideTopBanner={activeTab === 'home'}
       >

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import type { UserRole } from '../layouts/navItems';
-import { ViewSwitch } from '../design/ViewSwitch';
 import type { ViewMode } from '../design/ViewSwitch';
 import { useAuth } from '../context/AuthContext';
 import { Tag } from '../design/Tag';
@@ -12,8 +11,8 @@ interface RoleSwitcherBarProps {
   onRoleChange: (role: UserRole) => void;
   isDark: boolean;
   onToggleTheme: () => void;
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
   onOpenAuth: () => void;
 }
 
@@ -22,8 +21,8 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
   onRoleChange,
   isDark,
   onToggleTheme,
-  viewMode,
-  onViewModeChange,
+  viewMode: _viewMode,
+  onViewModeChange: _onViewModeChange,
   onOpenAuth,
 }) => {
   const { user, isAuthenticated, logout, demoLogin } = useAuth();
@@ -140,11 +139,8 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
         </div>
       </div>
 
-      {/* Right Controls: ViewSwitch, Auth Status, Theme */}
+      {/* Right Controls: Auth Status, Theme */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-        {/* View Switch */}
-        <ViewSwitch currentMode={viewMode} onModeChange={onViewModeChange} />
-
         {/* User Info / Auth Modal Button */}
         {isAuthenticated && user ? (
           <div
