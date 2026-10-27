@@ -260,39 +260,39 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             )}
           </div>
 
-          {/* Hotel Specific: Unified Smart Button for Rooms, Dates & Facilities */}
+          {/* Hotel Specific: Unified Smart Button for Facility */}
           {type === 'hotel' && onViewHotelDetails && (
-            <button
-              type="button"
-              className="btn-smart-hotel-details"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewHotelDetails();
-              }}
-              id={`btn-view-hotel-details-${id || 'hotel'}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '7px',
-                padding: '7px 14px',
-                borderRadius: '9999px',
-                backgroundColor: 'var(--pri)',
-                color: '#FFFFFF',
-                border: 'none',
-                fontSize: '12px',
-                fontWeight: 650,
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(47, 127, 193, 0.22)',
-                transition: 'all 0.18s ease',
-                width: '100%',
-                minHeight: '34px',
-              }}
-            >
-              <Bed size={14} />
-              <span>Rooms, Dates & Facilities</span>
-              <span style={{ fontSize: '11px', opacity: 0.85 }}>➔</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: '2px' }}>
+              <button
+                type="button"
+                className="btn-smart-hotel-details"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewHotelDetails();
+                }}
+                id={`btn-view-hotel-details-${id || 'hotel'}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  backgroundColor: 'rgba(47, 127, 193, 0.12)',
+                  color: 'var(--pri)',
+                  border: '1px solid rgba(47, 127, 193, 0.32)',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.18s ease',
+                  width: 'fit-content',
+                  lineHeight: '18px',
+                }}
+              >
+                <Bed size={13} />
+                <span>Facility</span>
+                <span style={{ fontSize: '10px', opacity: 0.85 }}>➔</span>
+              </button>
+            </div>
           )}
 
           {/* Restaurant Specific: View Menu & Contact Button */}
