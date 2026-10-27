@@ -326,9 +326,64 @@ textarea:focus-visible {
 #mobile-phone-frame .grid-cards-3col,
 .phone-layout .grid-cards-3col,
 #mobile-phone-frame .home-explore-grid-2col,
-.phone-layout .home-explore-grid-2col {
+.phone-layout .home-explore-grid-2col,
+#mobile-phone-frame .destinations-scenery-grid,
+.phone-layout .destinations-scenery-grid {
   grid-template-columns: 1fr !important;
   gap: 14px !important;
+  width: 100% !important;
+}
+
+#mobile-phone-frame .home-explore-search-input,
+.phone-layout .home-explore-search-input,
+#mobile-phone-frame .home-explore-area-select,
+.phone-layout .home-explore-area-select {
+  width: 100% !important;
+  flex: 1 1 100% !important;
+  min-width: 0 !important;
+}
+
+#mobile-phone-frame .header-weather-detail,
+.phone-layout .header-weather-detail {
+  display: none !important;
+}
+
+#mobile-phone-frame #header-weather-destination-pill,
+.phone-layout #header-weather-destination-pill {
+  padding: 3px 10px !important;
+  font-size: 10.5px !important;
+  white-space: nowrap !important;
+  margin-left: auto !important;
+}
+
+#mobile-phone-frame .banner-header-title,
+.phone-layout .banner-header-title {
+  font-size: 1.1rem !important;
+}
+
+#mobile-phone-frame .btn-header-list-property,
+.phone-layout .btn-header-list-property {
+  display: none !important;
+}
+
+#mobile-phone-frame .banner-bottom-row,
+.phone-layout .banner-bottom-row {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+}
+
+#mobile-phone-frame .banner-search-tabs,
+.phone-layout .banner-search-tabs {
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
+
+#mobile-phone-frame .banner-header-action,
+.phone-layout .banner-header-action {
+  width: 100% !important;
+  justify-content: space-between !important;
+  margin-left: 0 !important;
 }
 
 #mobile-phone-frame .split-layout-side,
@@ -362,5 +417,35 @@ textarea:focus-visible {
 .phone-layout .tourism-scenic-banner {
   padding: 12px 14px !important;
   gap: 8px !important;
+}
+
+@media (max-width: 640px) {
+  .destinations-scenery-grid,
+  .home-explore-grid-2col {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+  }
+  .header-weather-detail {
+    display: none !important;
+  }
+  .home-explore-search-input,
+  .home-explore-area-select {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+  }
+  .btn-header-list-property {
+    display: none !important;
+  }
+  .banner-bottom-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .banner-header-action {
+    width: 100% !important;
+    justify-content: space-between !important;
+    margin-left: 0 !important;
+  }
 }
 

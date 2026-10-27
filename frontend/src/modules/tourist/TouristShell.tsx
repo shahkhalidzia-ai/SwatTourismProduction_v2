@@ -3511,9 +3511,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               >
                 {/* Search Text Box */}
                 <div
+                  className="home-explore-search-input"
                   style={{
-                    flex: 1,
-                    minWidth: '260px',
+                    flex: '1 1 200px',
+                    minWidth: 0,
                     display: 'flex',
                     alignItems: 'center',
                     backgroundColor: 'var(--card)',
@@ -3567,6 +3568,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 <select
                   value={selectedAreaId}
                   onChange={(e) => setSelectedAreaId(e.target.value)}
+                  className="home-explore-area-select"
                   data-testid="select-explore-stays-area"
                   style={{
                     padding: '9px 14px',
@@ -3577,7 +3579,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     fontSize: '13px',
                     fontWeight: 500,
                     cursor: 'pointer',
-                    minWidth: '170px',
+                    flex: '1 1 140px',
+                    minWidth: 0,
                     boxShadow: '0 2px 6px rgba(18, 50, 74, 0.04)',
                   }}
                 >
@@ -3592,14 +3595,19 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
               {/* Grid of Verified Listings (Arranged in 2 Columns on Tourist Home Screen) */}
               <style>{`
+                :not(#mobile-phone-frame):not(.phone-layout) .home-explore-grid-2col {
+                  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                }
+                @media (min-width: 641px) {
+                  :not(#mobile-phone-frame):not(.phone-layout) .home-explore-grid-2col {
+                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                  }
+                }
+                #mobile-phone-frame .home-explore-grid-2col,
+                .phone-layout .home-explore-grid-2col,
                 @media (max-width: 640px) {
                   .home-explore-grid-2col {
                     grid-template-columns: 1fr !important;
-                  }
-                }
-                @media (min-width: 641px) {
-                  .home-explore-grid-2col {
-                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
                   }
                 }
               `}</style>
@@ -3838,6 +3846,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
             {/* Destinations Scenery Grid */}
             <div
+              className="destinations-scenery-grid"
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(285px, 1fr))',
@@ -4005,6 +4014,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                             justifyContent: 'space-between',
                             alignItems: 'center',
                             zIndex: 2,
+                            flexWrap: 'wrap',
+                            gap: '6px',
                           }}
                         >
                           <span

@@ -165,6 +165,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <h1
+                className="banner-header-title"
                 style={{
                   fontSize: '1.25rem',
                   fontWeight: 800,
@@ -242,8 +243,8 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
           >
             {currentSpot.spot}
           </span>
-          <span style={{ opacity: 0.5, color: '#FFFFFF' }}>•</span>
-          <span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '10.5px' }}>{currentSpot.title}</span>
+          <span className="header-weather-detail" style={{ opacity: 0.5, color: '#FFFFFF' }}>•</span>
+          <span className="header-weather-detail" style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '10.5px' }}>{currentSpot.title}</span>
           <span style={{ opacity: 0.5, color: '#FFFFFF' }}>•</span>
           <span
             style={{
@@ -264,6 +265,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
       {/* Bottom Row: 3 Functional Switcher Buttons on Left + HeaderAction on Right */}
       {(headerAction || (homeSearchTab && onHomeSearchTabChange)) && (
         <div
+          className="banner-bottom-row"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -435,7 +437,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
           ) : <div />}
 
           {/* Right: Header Action (User Pill + Logout) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+          <div className="banner-header-action" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto', flexWrap: 'wrap' }}>
             {headerAction && (
               <div>
                 {headerAction}

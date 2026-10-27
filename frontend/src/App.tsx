@@ -298,6 +298,7 @@ const MainAppContent: React.FC = () => {
           {/* List Your Property Partner CTA */}
           <button
             type="button"
+            className="btn-header-list-property"
             onClick={() => {
               setAuthModalConfig({
                 isOpen: true,
