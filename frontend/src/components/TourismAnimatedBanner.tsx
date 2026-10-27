@@ -300,7 +300,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
               <button
                 type="button"
                 onClick={() => onHomeSearchTabChange('explore')}
-                title="Explore Stay,Guide and Dinnings"
+                title="Explore Stays, Guide and Dining"
                 data-testid="tab-home-explore"
                 style={{
                   display: 'inline-flex',
@@ -348,7 +348,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
               <button
                 type="button"
                 onClick={() => onHomeSearchTabChange('transport')}
-                title="Local and inter city transport"
+                title="Local and intercity transport"
                 data-testid="tab-home-transport"
                 style={{
                   display: 'inline-flex',
