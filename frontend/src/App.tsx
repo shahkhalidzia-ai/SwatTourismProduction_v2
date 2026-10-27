@@ -307,6 +307,8 @@ const MainAppContent: React.FC = () => {
               });
             }}
             data-testid="btn-public-list-property"
+            title="Register your property to accept bookings from thousands of verified travelers."
+            aria-label="Register your property to accept bookings from thousands of verified travelers."
             style={{
               display: 'inline-flex',
               alignItems: 'center',

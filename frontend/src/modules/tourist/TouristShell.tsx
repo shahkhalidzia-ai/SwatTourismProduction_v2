@@ -3476,6 +3476,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   type="button"
                   onClick={() => onOpenAuth?.('register', 'business')}
                   data-testid="btn-banner-list-property"
+                  title="Register your property to accept bookings from thousands of verified travelers."
+                  aria-label="Register your property to accept bookings from thousands of verified travelers."
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
