@@ -349,25 +349,44 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                   <span style={{ fontSize: '10px', opacity: 0.85, flexShrink: 0 }}>➔</span>
                 </button>
               )}
+              {/* Restaurant Specific: View Menu button next to Open Daily label in the same row, matching size */}
+              {type === 'restaurant' && onViewMenu && (
+                <button
+                  type="button"
+                  className="btn-smart-dining-menu"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewMenu();
+                  }}
+                  id={`btn-view-restaurant-menu-${id || 'restaurant'}`}
+                  data-testid={`btn-view-restaurant-menu-${id || 'restaurant'}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-tag)',
+                    backgroundColor: 'rgba(47, 127, 193, 0.12)',
+                    color: 'var(--pri)',
+                    border: '1px solid rgba(47, 127, 193, 0.32)',
+                    fontSize: 'var(--font-xs)',
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    letterSpacing: '0.02em',
+                    whiteSpace: 'nowrap',
+                    minHeight: 'unset',
+                    height: 'auto',
+                    cursor: 'pointer',
+                    transition: 'all 0.18s ease',
+                  }}
+                >
+                  <UtensilsCrossed size={12} style={{ flexShrink: 0 }} />
+                  <span>View Menu</span>
+                  <span style={{ fontSize: '10px', opacity: 0.85, flexShrink: 0 }}>➔</span>
+                </button>
+              )}
             </div>
           </div>
-
-          {/* Restaurant Specific: View Menu & Contact Button */}
-          {type === 'restaurant' && onViewMenu && (
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<UtensilsCrossed size={14} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewMenu();
-              }}
-              style={{ width: '100%', marginBottom: '2px' }}
-              id={`btn-view-restaurant-menu-${id || 'restaurant'}`}
-            >
-              View Menu & Contact
-            </Button>
-          )}
 
           {/* Transport / Guide / Community Service Specific: Instant Reservation Request Button */}
           {(type === 'transport' || type === 'guide' || isCommunityService) && onInstantReserve && (
@@ -391,8 +410,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             </Button>
           )}
 
-          {/* Standard Action Buttons (Only for non-hotel types, since hotel is unified above) */}
-          {type !== 'hotel' && (
+          {/* Standard Action Buttons (Only for non-hotel types with active buttons) */}
+          {type !== 'hotel' && (onCheckDates || (onAddToTrip && !isAddToTripHidden)) && (
             <div
               className="listing-card-action-row"
               style={{

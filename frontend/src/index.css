@@ -756,8 +756,9 @@ textarea:focus-visible {
   padding: 6px 10px !important;
 }
 
-/* Smart Hotel Details Unified Button (Styled like units free pill badge) */
-.btn-smart-hotel-details {
+/* Smart Hotel Details & Dining Menu Unified Buttons (Styled like units free / open daily pill badge) */
+.btn-smart-hotel-details,
+.btn-smart-dining-menu {
   min-height: unset !important;
   height: auto !important;
   padding: 3px 8px !important;
@@ -772,7 +773,8 @@ textarea:focus-visible {
   transition: all 0.18s ease;
 }
 
-.btn-smart-hotel-details:hover {
+.btn-smart-hotel-details:hover,
+.btn-smart-dining-menu:hover {
   background-color: var(--pri) !important;
   color: #ffffff !important;
   border-color: var(--pri) !important;
