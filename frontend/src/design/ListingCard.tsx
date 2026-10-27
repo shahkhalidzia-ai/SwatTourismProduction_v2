@@ -249,51 +249,52 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         {/* Bottom Actions Area */}
         <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* Price & Availability row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 'var(--font-base)' }}>
               {priceLine || 'Price on request'}
             </span>
-            {availabilityText && (
-              <Tag variant="ok">
-                {availabilityText}
-              </Tag>
-            )}
-          </div>
-
-          {/* Hotel Specific: Unified Smart Button for Facility */}
-          {type === 'hotel' && onViewHotelDetails && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', marginTop: '2px' }}>
-              <button
-                type="button"
-                className="btn-smart-hotel-details"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewHotelDetails();
-                }}
-                id={`btn-view-hotel-details-${id || 'hotel'}`}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  padding: '3px 10px',
-                  borderRadius: '9999px',
-                  backgroundColor: 'rgba(47, 127, 193, 0.12)',
-                  color: 'var(--pri)',
-                  border: '1px solid rgba(47, 127, 193, 0.32)',
-                  fontSize: '11.5px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.18s ease',
-                  width: 'fit-content',
-                  lineHeight: '18px',
-                }}
-              >
-                <Bed size={13} />
-                <span>Facility</span>
-                <span style={{ fontSize: '10px', opacity: 0.85 }}>➔</span>
-              </button>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              {availabilityText && (
+                <Tag variant="ok">
+                  {availabilityText}
+                </Tag>
+              )}
+              {/* Hotel Specific: Unified Smart Button for Facility inline after units free */}
+              {type === 'hotel' && onViewHotelDetails && (
+                <button
+                  type="button"
+                  className="btn-smart-hotel-details"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewHotelDetails();
+                  }}
+                  id={`btn-view-hotel-details-${id || 'hotel'}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-tag)',
+                    backgroundColor: 'rgba(47, 127, 193, 0.12)',
+                    color: 'var(--pri)',
+                    border: '1px solid rgba(47, 127, 193, 0.32)',
+                    fontSize: 'var(--font-xs)',
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    letterSpacing: '0.02em',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    transition: 'all 0.18s ease',
+                  }}
+                >
+                  <Bed size={12} style={{ flexShrink: 0 }} />
+                  <span>Facility</span>
+                  <span style={{ fontSize: '10px', opacity: 0.85, flexShrink: 0 }}>➔</span>
+                </button>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Restaurant Specific: View Menu & Contact Button */}
           {type === 'restaurant' && onViewMenu && (
