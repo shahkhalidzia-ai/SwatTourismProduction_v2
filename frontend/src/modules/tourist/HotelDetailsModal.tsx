@@ -349,7 +349,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
             <div
               className="hotel-modal-cover-photo"
               style={{
-                height: '180px',
+                height: '130px',
+                flexShrink: 0,
                 backgroundImage: `url(${bannerUrl})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
@@ -393,13 +394,14 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
         <div
           className="hotel-modal-header"
           style={{
-            padding: '16px 24px',
+            padding: '14px 20px',
             borderBottom: '1px solid var(--line)',
             background: 'var(--card)',
             display: 'flex',
             alignItems: 'flex-start',
             justifyContent: 'space-between',
-            gap: '16px',
+            gap: '12px',
+            flexShrink: 0,
           }}
         >
           <div>
@@ -472,12 +474,17 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
           className="hotel-modal-tab-nav"
           style={{
             display: 'flex',
-            borderBottom: '1px solid var(--line)',
+            alignItems: 'center',
+            borderBottom: '1.5px solid var(--line)',
             backgroundColor: 'var(--soft)',
-            padding: '0 24px',
-            gap: '6px',
+            padding: '0 16px',
+            gap: '8px',
             overflowX: 'auto',
             scrollbarWidth: 'none',
+            flexShrink: 0,
+            minHeight: '48px',
+            height: '48px',
+            boxSizing: 'border-box',
           }}
         >
           <button
@@ -487,7 +494,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '12px 14px',
+              padding: '0 14px',
+              height: '46px',
+              minHeight: '46px',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'rooms' ? '3px solid var(--pri)' : '3px solid transparent',
@@ -497,6 +506,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
+              boxSizing: 'border-box',
             }}
             id="tab-hotel-rooms"
           >
@@ -512,7 +522,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '12px 14px',
+              padding: '0 14px',
+              height: '46px',
+              minHeight: '46px',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'calendar' ? '3px solid var(--pri)' : '3px solid transparent',
@@ -522,6 +534,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
+              boxSizing: 'border-box',
             }}
             id="tab-hotel-calendar"
           >
@@ -537,7 +550,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '12px 14px',
+              padding: '0 14px',
+              height: '46px',
+              minHeight: '46px',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'facilities' ? '3px solid var(--pri)' : '3px solid transparent',
@@ -547,6 +562,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
+              boxSizing: 'border-box',
             }}
             id="tab-hotel-facilities"
           >
@@ -562,7 +578,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '12px 14px',
+              padding: '0 14px',
+              height: '46px',
+              minHeight: '46px',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'activities' ? '3px solid var(--pri)' : '3px solid transparent',
@@ -572,6 +590,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
+              boxSizing: 'border-box',
             }}
             id="tab-hotel-activities"
           >
@@ -587,7 +606,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
           style={{
             padding: '20px 24px',
             overflowY: 'auto',
-            flex: 1,
+            flex: '1 1 auto',
+            minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
             gap: '20px',
@@ -1453,6 +1473,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
         {/* STICKY BOTTOM ACTION FOOTER FOR ROOM SELECTION & BOOKING */}
         {!bookingSuccess && activeTab === 'rooms' ? (
           <div
+            className="hotel-modal-footer"
             style={{
               padding: '16px 24px',
               borderTop: '1px solid var(--line)',
@@ -1463,6 +1484,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               gap: '16px',
               boxShadow: '0 -4px 16px rgba(0,0,0,0.05)',
               flexWrap: 'wrap',
+              flexShrink: 0,
             }}
             data-testid="hotel-modal-booking-footer"
           >
@@ -1507,6 +1529,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
           </div>
         ) : (
           <div
+            className="hotel-modal-footer"
             style={{
               padding: '14px 24px',
               borderTop: '1px solid var(--line)',
@@ -1515,6 +1538,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: '12px',
+              flexShrink: 0,
             }}
           >
             <div style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
