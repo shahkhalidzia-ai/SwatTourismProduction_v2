@@ -397,34 +397,49 @@ textarea:focus-visible {
   flex-direction: column !important;
 }
 
+#mobile-phone-frame .hero-search-hub-frame,
+.phone-layout .hero-search-hub-frame {
+  padding: 10px 12px !important;
+  border-radius: 14px !important;
+  gap: 10px !important;
+}
+
 #mobile-phone-frame .dest-card-photo,
 .phone-layout .dest-card-photo {
-  height: 160px !important;
+  height: 140px !important;
 }
 
 #mobile-phone-frame .dest-card-top-pill,
 .phone-layout .dest-card-top-pill {
-  padding: 4px 8px !important;
-  font-size: 10px !important;
+  padding: 3px 7px !important;
+  font-size: 9.5px !important;
 }
 
 #mobile-phone-frame .dest-card-action-row,
 .phone-layout .dest-card-action-row {
   grid-template-columns: 1fr 1fr !important;
-  gap: 8px !important;
+  gap: 6px !important;
+}
+
+#mobile-phone-frame .dest-card-action-row button,
+.phone-layout .dest-card-action-row button {
+  padding: 5px 6px !important;
+  min-height: 32px !important;
+  font-size: 11px !important;
 }
 
 #mobile-phone-frame main,
 .phone-layout main {
+  padding: 8px 10px 12px 10px !important;
   padding-bottom: calc(var(--bottom-bar-height, 64px) + 36px) !important;
 }
 
 #mobile-phone-frame #btn-floating-ai-concierge,
 .phone-layout #btn-floating-ai-concierge {
-  bottom: calc(var(--bottom-bar-height, 64px) + 8px) !important;
-  right: 12px !important;
-  padding: 7px 13px !important;
-  font-size: 11px !important;
+  bottom: calc(var(--bottom-bar-height, 64px) + 6px) !important;
+  right: 10px !important;
+  padding: 6px 12px !important;
+  font-size: 10.5px !important;
 }
 
 /* Ensure horizontal scroll on mobile pill bars */
@@ -438,26 +453,35 @@ textarea:focus-visible {
 
 #mobile-phone-frame .tourism-scenic-banner,
 .phone-layout .tourism-scenic-banner {
-  padding: 12px 14px !important;
+  padding: 10px 12px !important;
   gap: 8px !important;
 }
 
 @media (max-width: 640px) {
+  .hero-search-hub-frame {
+    padding: 10px 12px !important;
+    border-radius: 14px !important;
+  }
   .destinations-scenery-grid,
   .home-explore-grid-2col {
     grid-template-columns: 1fr !important;
     width: 100% !important;
   }
   .dest-card-photo {
-    height: 160px !important;
+    height: 140px !important;
   }
   .dest-card-top-pill {
-    padding: 4px 8px !important;
-    font-size: 10px !important;
+    padding: 3px 7px !important;
+    font-size: 9.5px !important;
   }
   .dest-card-action-row {
     grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
+    gap: 6px !important;
+  }
+  .dest-card-action-row button {
+    padding: 5px 6px !important;
+    min-height: 32px !important;
+    font-size: 11px !important;
   }
   .header-weather-detail {
     display: none !important;

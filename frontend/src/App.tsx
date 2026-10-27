@@ -554,8 +554,8 @@ const MainAppContent: React.FC = () => {
       >
         {renderActiveShell()}
 
-        {/* Demo Tour Guide ONLY for Universal Demo User */}
-        {isDemoActive && (
+        {/* Interactive 15-step Demo Tour Guide hidden as requested */}
+        {false && isDemoActive && (
           <DemoTourGuide
             currentRole={role}
             currentTab={activeTab}

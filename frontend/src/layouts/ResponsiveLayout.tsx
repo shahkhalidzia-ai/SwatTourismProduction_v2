@@ -79,7 +79,7 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
           alignItems: 'center',
           backgroundColor: '#0A121A',
           minHeight: '100vh',
-          padding: '16px 0 32px 0',
+          padding: '8px 0 16px 0',
         }}
       >
         {/* Floating Top Control Bar */}
@@ -88,15 +88,15 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            marginBottom: '14px',
-            padding: '6px 16px',
+            marginBottom: '8px',
+            padding: '5px 14px',
             borderRadius: '24px',
             backgroundColor: '#16222F',
             border: '1px solid rgba(255, 255, 255, 0.15)',
             boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
           }}
         >
-          <span style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600 }}>
+          <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600 }}>
             📱 Phone View Active
           </span>
           {onViewModeChange && (
@@ -109,12 +109,12 @@ export const ResponsiveLayout: React.FC<ResponsiveLayoutProps> = ({
           data-testid="phone-frame-container"
           style={{
             width: '100%',
-            maxWidth: '430px',
-            height: '844px',
-            maxHeight: 'calc(100vh - 80px)',
-            borderRadius: '32px',
+            maxWidth: '380px',
+            height: '740px',
+            maxHeight: 'calc(100vh - 56px)',
+            borderRadius: '24px',
             overflow: 'hidden',
-            border: '8px solid #1E293B',
+            border: '6px solid #1E293B',
             boxShadow: '0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1)',
             backgroundColor: 'var(--bg)',
             position: 'relative',

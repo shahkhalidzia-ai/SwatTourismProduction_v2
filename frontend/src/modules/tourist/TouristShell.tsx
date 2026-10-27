@@ -2447,6 +2447,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
               {/* Hero Search & Transport Hub Frame */}
               <div
+                className="hero-search-hub-frame"
                 style={{
                   backgroundColor: 'var(--card)',
                   border: '1px solid rgba(47, 127, 193, 0.16)',
@@ -4173,10 +4174,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         <div
                           className="dest-card-action-row"
                           style={{
-                            marginTop: '12px',
+                            marginTop: '10px',
                             display: 'grid',
                             gridTemplateColumns: '1fr 1fr',
-                            gap: '8px',
+                            gap: '6px',
                             width: '100%',
                           }}
                         >
@@ -4188,24 +4189,24 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
-                              padding: '8px 10px',
-                              borderRadius: '10px',
+                              gap: '5px',
+                              padding: '6px 8px',
+                              borderRadius: '8px',
                               border: '1.5px solid var(--pri)',
                               backgroundColor: 'rgba(16, 185, 129, 0.08)',
                               color: 'var(--ink)',
-                              fontSize: '12px',
+                              fontSize: '11.5px',
                               fontWeight: 700,
                               cursor: 'pointer',
-                              minHeight: '38px',
+                              minHeight: '34px',
                               width: '100%',
                               boxSizing: 'border-box',
                               transition: 'all 0.15s ease',
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            <CloudSun size={15} color="var(--pri)" style={{ flexShrink: 0 }} />
-                            <span>Weather Forecast</span>
+                            <CloudSun size={13} color="var(--pri)" style={{ flexShrink: 0 }} />
+                            <span>Weather</span>
                           </button>
 
                           <button
@@ -4227,23 +4228,23 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '6px',
-                              padding: '8px 10px',
-                              borderRadius: '10px',
+                              gap: '5px',
+                              padding: '6px 8px',
+                              borderRadius: '8px',
                               border: '1.5px solid var(--line)',
                               backgroundColor: 'var(--card)',
                               color: 'var(--ink)',
-                              fontSize: '12px',
+                              fontSize: '11.5px',
                               fontWeight: 700,
                               cursor: 'pointer',
-                              minHeight: '38px',
+                              minHeight: '34px',
                               width: '100%',
                               boxSizing: 'border-box',
                               transition: 'all 0.15s ease',
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            <MapPin size={15} color="var(--pri)" style={{ flexShrink: 0 }} />
+                            <MapPin size={13} color="var(--pri)" style={{ flexShrink: 0 }} />
                             <span>View Map</span>
                           </button>
                         </div>
