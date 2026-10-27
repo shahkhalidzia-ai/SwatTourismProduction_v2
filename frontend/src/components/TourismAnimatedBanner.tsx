@@ -86,7 +86,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
       className="tourism-scenic-banner"
       style={{
         marginTop: 0,
-        marginBottom: '14px',
+        marginBottom: '10px',
         position: 'relative',
         borderRadius: 'var(--radius-card)',
         background: 'var(--header-bg)',

@@ -2364,6 +2364,157 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
     );
   };
 
+  const renderRoadStatusFrame = () => {
+    return (
+      <div
+        id="roads-highway-live-frame"
+        data-testid="roads-highway-live-frame"
+        style={{
+          backgroundColor: 'var(--card)',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.07) 100%)',
+          border: '1.5px solid rgba(16, 185, 129, 0.55)',
+          borderLeft: '5px solid #059669',
+          borderRadius: '16px',
+          padding: '14px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '11px',
+          boxShadow: '0 6px 20px -2px rgba(5, 150, 105, 0.16), 0 2px 8px rgba(0, 0, 0, 0.04)',
+          backdropFilter: 'blur(8px)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header pill & badge */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '3px 8px',
+              borderRadius: '9999px',
+              backgroundColor: '#059669',
+              color: '#FFFFFF',
+              fontSize: '10px',
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
+            }}
+          >
+            <span
+              style={{
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                backgroundColor: '#FFFFFF',
+                boxShadow: '0 0 5px #FFFFFF',
+              }}
+            />
+            Live Road Status
+          </span>
+          <Tag variant="ok">All Clear</Tag>
+        </div>
+
+        {/* Title & emblem */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <div
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '9px',
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 3px 8px rgba(5, 150, 105, 0.3)',
+            }}
+          >
+            <Navigation color="#FFFFFF" size={18} strokeWidth={2.4} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '13px',
+                color: 'var(--ink)',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.35,
+              }}
+            >
+              Roads & Highway Live Status
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 500, marginTop: '1px' }}>
+              Swat Expressway M-16 & N-95 Corridor
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Key Arteries */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          {[
+            { road: 'M-16 Swat Expressway', status: 'Clear & Open', badge: 'All Traffic', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
+            { road: 'N-95 Mingora ↔ Bahrain', status: 'Clear & Open', badge: 'Normal Speed', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
+            { road: 'Bahrain ↔ Kalam Highway', status: 'Open', badge: 'Drive Safe', color: '#D97706', bg: 'rgba(245, 158, 11, 0.09)' },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '4px 8px',
+                borderRadius: '7px',
+                backgroundColor: item.bg,
+                border: `1px solid ${item.color}25`,
+                fontSize: '11px',
+                gap: '4px',
+              }}
+            >
+              <span style={{ fontWeight: 650, color: 'var(--ink)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {item.road}
+              </span>
+              <span style={{ fontWeight: 700, color: item.color, fontSize: '10.5px', flexShrink: 0 }}>
+                {item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Action button matching Advisory button */}
+        <button
+          type="button"
+          onClick={() => onTabChange?.('safety')}
+          id="btn-roads-view-details"
+          data-testid="btn-roads-view-details"
+          style={{
+            width: '100%',
+            padding: '8px 14px',
+            borderRadius: '9px',
+            backgroundColor: '#059669',
+            color: '#FFFFFF',
+            fontSize: '11.5px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            border: 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span>Safety & Highway Updates</span>
+          <ChevronRight size={13} />
+        </button>
+      </div>
+    );
+  };
+
   const renderWeekendWeatherCard = () => {
     const valleyWeatherReports = [
       {
@@ -2577,126 +2728,6 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             homeSearchTab={homeSearchTab}
             onHomeSearchTabChange={setHomeSearchTab}
           />
-
-          {/* Live Road Status & Highway Conditions Bar */}
-          <div
-            className="swat-road-status-bar"
-            style={{
-              backgroundColor: 'var(--card)',
-              border: '1px solid rgba(47, 127, 193, 0.18)',
-              borderRadius: '14px',
-              padding: '10px 14px',
-              boxShadow: '0 2px 10px rgba(18, 50, 74, 0.04)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '12px',
-              flexWrap: 'wrap',
-              minWidth: 0,
-            }}
-          >
-            {/* Live Indicator Title */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              <span
-                style={{
-                  position: 'relative',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '10px',
-                  height: '10px',
-                }}
-              >
-                <span
-                  style={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    backgroundColor: '#10B981',
-                    opacity: 0.75,
-                    animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite',
-                  }}
-                />
-                <span
-                  style={{
-                    width: '7px',
-                    height: '7px',
-                    borderRadius: '50%',
-                    backgroundColor: '#059669',
-                  }}
-                />
-              </span>
-              <span style={{ fontSize: '12px', fontWeight: 750, color: 'var(--ink)', letterSpacing: '-0.01em' }}>
-                Road & Highway Status
-              </span>
-              <span
-                style={{
-                  fontSize: '10px',
-                  fontWeight: 650,
-                  color: '#059669',
-                  backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                  padding: '1px 6px',
-                  borderRadius: '10px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                Live
-              </span>
-            </div>
-
-            {/* Scrollable Badges for key Swat arteries */}
-            <div
-              className="swat-road-pills-scroll"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                overflowX: 'auto',
-                scrollbarWidth: 'none',
-                minWidth: 0,
-                flex: '1 1 auto',
-                padding: '2px 0',
-              }}
-            >
-              {[
-                { road: 'M-16 Swat Expressway', status: 'Clear & Open', badge: 'All Traffic', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
-                { road: 'N-95 Mingora ↔ Bahrain', status: 'Clear & Open', badge: 'Normal Speed', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
-                { road: 'Bahrain ↔ Kalam Highway', status: 'Open — Drive Safe', badge: 'Narrow Stretches', color: '#D97706', bg: 'rgba(245, 158, 11, 0.09)' },
-                { road: 'Kalam ↔ Mahodand Lake', status: '4x4 Jeeps Only', badge: 'Rocky Track', color: '#0284C7', bg: 'rgba(2, 132, 199, 0.09)' },
-                { road: 'Malam Jabba Resort Road', status: 'Open', badge: 'Chains in Snow', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '4px 9px',
-                    borderRadius: '8px',
-                    backgroundColor: item.bg,
-                    border: `1px solid ${item.color}25`,
-                    fontSize: '11px',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Navigation size={11} color={item.color} />
-                  <span style={{ fontWeight: 650, color: 'var(--ink)' }}>{item.road}:</span>
-                  <span style={{ fontWeight: 600, color: item.color }}>{item.status}</span>
-                  <span style={{ fontSize: '9.5px', color: 'var(--mute)', opacity: 0.85 }}>({item.badge})</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Emergency Helpline Pill */}
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--mute)', flexShrink: 0 }}>
-              <span style={{ fontWeight: 600, color: 'var(--pri)' }}>Rescue: 1122</span>
-              <span>•</span>
-              <span style={{ fontWeight: 600, color: 'var(--pri)' }}>Traffic: 1915</span>
-            </div>
-          </div>
 
           {/* Top Hero Split Layout: 80% Search Hub & Results / 20% Advisory & Weather Intelligence */}
           <div className="tourist-home-hero-split">
@@ -4606,7 +4637,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           )}
           </div>
 
-            {/* Right 20% Column: Active Advisory Frame & This Weekend Weather Frame */}
+            {/* Right 20% Column: Live Road Status Frame (over Advisory), Active Advisory Frame & This Weekend Weather Frame */}
             <div
               className="tourist-home-hero-sidebar"
               style={{
@@ -4618,6 +4649,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 top: '16px',
               }}
             >
+              {renderRoadStatusFrame()}
               {renderAdvisoryFrame(true)}
               {renderWeekendWeatherCard()}
             </div>
