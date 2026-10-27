@@ -292,3 +292,75 @@ textarea:focus-visible {
     grid-template-columns: minmax(0, 80%) minmax(0, 20%);
   }
 }
+
+/* ==========================================================================
+   Mobile Phone View Scoped Layout Rules
+   Guarantees that inside Phone View (#mobile-phone-frame or .phone-layout),
+   layouts are strictly single-column mobile, avoiding desktop media query bleed.
+   ========================================================================== */
+
+#mobile-phone-frame,
+.phone-layout {
+  container-type: inline-size;
+}
+
+#mobile-phone-frame .tourist-home-hero-split,
+.phone-layout .tourist-home-hero-split {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: 1fr !important;
+  gap: 16px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#mobile-phone-frame .tourist-home-hero-sidebar,
+.phone-layout .tourist-home-hero-sidebar {
+  position: static !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#mobile-phone-frame .grid-cards,
+.phone-layout .grid-cards,
+#mobile-phone-frame .grid-cards-3col,
+.phone-layout .grid-cards-3col,
+#mobile-phone-frame .home-explore-grid-2col,
+.phone-layout .home-explore-grid-2col {
+  grid-template-columns: 1fr !important;
+  gap: 14px !important;
+}
+
+#mobile-phone-frame .split-layout-side,
+.phone-layout .split-layout-side {
+  display: none !important;
+}
+
+#mobile-phone-frame .split-layout-container,
+.phone-layout .split-layout-container {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Position floating action button above mobile bottom navigation bar */
+#mobile-phone-frame #btn-floating-ai-concierge,
+.phone-layout #btn-floating-ai-concierge {
+  bottom: calc(var(--bottom-bar-height, 64px) + 14px) !important;
+  right: 14px !important;
+}
+
+/* Ensure horizontal scroll on mobile pill bars */
+.banner-search-tabs {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.banner-search-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+#mobile-phone-frame .tourism-scenic-banner,
+.phone-layout .tourism-scenic-banner {
+  padding: 12px 14px !important;
+  gap: 8px !important;
+}
+

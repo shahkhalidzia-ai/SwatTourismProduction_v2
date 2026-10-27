@@ -83,6 +83,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
   // Theme 1 (Swat Lake): Crisp, clean elevated header card with rich cerulean-to-navy gradient
   return (
     <div
+      className="tourism-scenic-banner"
       style={{
         marginTop: 0,
         marginBottom: '14px',
@@ -277,6 +278,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
           {/* Left: 3 Functional Buttons on Blue Banner (when on tourist home screen) OR Subtitle */}
           {homeSearchTab && onHomeSearchTabChange ? (
             <div
+              className="banner-search-tabs"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -287,7 +289,9 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 border: '1px solid rgba(255, 255, 255, 0.18)',
                 backdropFilter: 'blur(10px)',
                 boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.15)',
-                flexWrap: 'wrap',
+                maxWidth: '100%',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
               }}
             >
               {/* 1. Valleys & Places */}

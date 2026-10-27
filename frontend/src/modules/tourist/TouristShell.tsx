@@ -2481,6 +2481,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {/* Unified Search Input Container */}
                 <div
+                  className="hero-search-input-box"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2489,81 +2490,88 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     borderRadius: '12px',
                     padding: '4px 6px 4px 14px',
                     transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
-                    gap: '10px',
+                    gap: '8px',
                     minHeight: '46px',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search Kalam, Mahodand, Malam Jabba, stays, or guides..."
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      outline: 'none',
-                      backgroundColor: 'transparent',
-                      color: 'var(--ink)',
-                      fontSize: '14px',
-                      padding: '8px 4px',
-                    }}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }}>
+                    <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search Kalam, Mahodand, Malam Jabba, stays, or guides..."
                       style={{
-                        background: 'transparent',
+                        flex: 1,
                         border: 'none',
-                        color: 'var(--mute)',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        outline: 'none',
+                        backgroundColor: 'transparent',
+                        color: 'var(--ink)',
+                        fontSize: '13.5px',
+                        padding: '8px 4px',
+                        minWidth: 0,
                       }}
-                      title="Clear search"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--mute)',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                        title="Clear search"
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexShrink: 0 }}>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        /* search query filters view directly */
+                      }}
+                      style={{
+                        borderRadius: '9px',
+                        padding: '7px 16px',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
                     >
-                      <X size={15} />
-                    </button>
-                  )}
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      /* search query filters view directly */
-                    }}
-                    style={{
-                      borderRadius: '9px',
-                      padding: '8px 20px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                  >
-                    Search
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setShowAITripModal(true)}
-                    data-testid="btn-home-ai-trip"
-                    style={{
-                      borderRadius: '9px',
-                      padding: '8px 14px',
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      backgroundColor: '#F0FDF4',
-                      color: '#065F46',
-                      border: '1.5px solid #86EFAC',
-                      flexShrink: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <Sparkles size={14} color="#059669" />
-                    <span>AI Trip</span>
-                  </Button>
+                      Search
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowAITripModal(true)}
+                      data-testid="btn-home-ai-trip"
+                      style={{
+                        borderRadius: '9px',
+                        padding: '7px 12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        backgroundColor: '#F0FDF4',
+                        color: '#065F46',
+                        border: '1.5px solid #86EFAC',
+                        flexShrink: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Sparkles size={14} color="#059669" />
+                      <span>AI Trip</span>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Popular Valleys Quick-Pills Filter Bar */}
@@ -2645,6 +2653,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} data-testid="home-explore-content">
                 {/* Unified Search Input Container */}
                 <div
+                  className="hero-search-input-box"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2653,82 +2662,88 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     borderRadius: '12px',
                     padding: '4px 6px 4px 14px',
                     transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
-                    gap: '10px',
+                    gap: '8px',
                     minHeight: '46px',
+                    flexWrap: 'wrap',
                   }}
                 >
-                  <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search verified stays, riverside dining, trout cafes, guides..."
-                    data-testid="input-home-explore-search"
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      outline: 'none',
-                      backgroundColor: 'transparent',
-                      color: 'var(--ink)',
-                      fontSize: '14px',
-                      padding: '8px 4px',
-                    }}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }}>
+                    <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search verified stays, riverside dining, trout cafes, guides..."
+                      data-testid="input-home-explore-search"
                       style={{
-                        background: 'transparent',
+                        flex: 1,
                         border: 'none',
-                        color: 'var(--mute)',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        outline: 'none',
+                        backgroundColor: 'transparent',
+                        color: 'var(--ink)',
+                        fontSize: '13.5px',
+                        padding: '8px 4px',
+                        minWidth: 0,
                       }}
-                      title="Clear search"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--mute)',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                        title="Clear search"
+                      >
+                        <X size={15} />
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexShrink: 0 }}>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        /* filters active view directly */
+                      }}
+                      style={{
+                        borderRadius: '9px',
+                        padding: '7px 16px',
+                        fontSize: '12.5px',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
                     >
-                      <X size={15} />
-                    </button>
-                  )}
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      /* filters active view directly */
-                    }}
-                    style={{
-                      borderRadius: '9px',
-                      padding: '8px 20px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}
-                  >
-                    Search
-                  </Button>
-
-                  <Button
-                    variant="secondary"
-                    onClick={() => setShowAITripModal(true)}
-                    style={{
-                      borderRadius: '9px',
-                      padding: '8px 14px',
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      backgroundColor: '#F0FDF4',
-                      color: '#065F46',
-                      border: '1.5px solid #86EFAC',
-                      flexShrink: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                  >
-                    <Sparkles size={14} color="#059669" />
-                    <span>AI Trip</span>
-                  </Button>
+                      Search
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowAITripModal(true)}
+                      style={{
+                        borderRadius: '9px',
+                        padding: '7px 12px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        backgroundColor: '#F0FDF4',
+                        color: '#065F46',
+                        border: '1.5px solid #86EFAC',
+                        flexShrink: 0,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <Sparkles size={14} color="#059669" />
+                      <span>AI Trip</span>
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Explore Category Filter Bar */}
@@ -4190,6 +4205,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
             {/* Right 20% Column: Active Advisory Frame & This Weekend Weather Frame */}
             <div
+              className="tourist-home-hero-sidebar"
               style={{
                 display: 'flex',
                 flexDirection: 'column',

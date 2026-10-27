@@ -29,6 +29,7 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
 }) => {
   return (
     <div
+      className="phone-layout"
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -47,7 +48,7 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
       <main
         style={{
           flex: 1,
-          padding: '10px 16px 16px 16px',
+          padding: '10px 14px 16px 14px',
           paddingBottom: showNavigation ? 'calc(var(--bottom-bar-height) + 24px)' : '16px',
           overflowY: 'auto',
         }}
@@ -78,6 +79,7 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
             display: 'grid',
             gridTemplateColumns: `repeat(${navItems.length}, 1fr)`,
             zIndex: 50,
+            boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)',
           }}
           aria-label="Bottom Navigation"
         >
@@ -99,12 +101,23 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
                 background: 'none',
                 border: 'none',
                 minHeight: '44px',
-                padding: '4px',
+                padding: '4px 2px',
                 transition: 'color var(--transition-fast)',
+                overflow: 'hidden',
               }}
             >
               <span style={{ display: 'inline-flex' }}>{item.icon}</span>
-              <span style={{ fontSize: '11px', fontWeight: isActive ? 600 : 500 }}>
+              <span
+                style={{
+                  fontSize: navItems.length > 5 ? '9.5px' : '11px',
+                  fontWeight: isActive ? 700 : 500,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '100%',
+                  letterSpacing: '-0.02em',
+                }}
+              >
                 {item.label}
               </span>
             </button>
