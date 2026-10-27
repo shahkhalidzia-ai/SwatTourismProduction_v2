@@ -296,57 +296,11 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 scrollbarWidth: 'none',
               }}
             >
-              {/* 1. Valleys & Places */}
-              <button
-                type="button"
-                onClick={() => onHomeSearchTabChange('valleys')}
-                data-testid="tab-home-valleys"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  height: '24px',
-                  minHeight: '0px',
-                  maxHeight: '24px',
-                  lineHeight: '1',
-                  boxSizing: 'border-box',
-                  padding: '0 11px',
-                  borderRadius: '9999px',
-                  backgroundColor: homeSearchTab === 'valleys' ? '#FFFFFF' : 'transparent',
-                  border: homeSearchTab === 'valleys' ? '1px solid #FFFFFF' : '1px solid transparent',
-                  color: homeSearchTab === 'valleys' ? '#0369A1' : 'rgba(255, 255, 255, 0.92)',
-                  fontSize: '11px',
-                  fontWeight: homeSearchTab === 'valleys' ? 800 : 600,
-                  letterSpacing: '0.01em',
-                  cursor: 'pointer',
-                  boxShadow: homeSearchTab === 'valleys'
-                    ? '0 2px 6px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
-                    : 'none',
-                  transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
-                  whiteSpace: 'nowrap',
-                }}
-                onMouseEnter={(e) => {
-                  if (homeSearchTab !== 'valleys') {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)';
-                    e.currentTarget.style.color = '#FFFFFF';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (homeSearchTab !== 'valleys') {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.92)';
-                  }
-                }}
-              >
-                <Mountain size={12} color={homeSearchTab === 'valleys' ? '#0369A1' : '#A7F3D0'} />
-                <span className="banner-tab-text-full">Valleys &amp; Places</span>
-                <span className="banner-tab-text-short">Valleys</span>
-              </button>
-
-              {/* 2. Explore (Stay, Dining, Guide) */}
+              {/* 1. Stays (formerly Explore) */}
               <button
                 type="button"
                 onClick={() => onHomeSearchTabChange('explore')}
+                title="Explore Stay,Guide and Dinnings"
                 data-testid="tab-home-explore"
                 style={{
                   display: 'inline-flex',
@@ -386,14 +340,15 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 }}
               >
                 <Compass size={12} color={homeSearchTab === 'explore' ? '#0369A1' : '#FDE047'} />
-                <span className="banner-tab-text-full">Explore (Stay, Dining, Guide)</span>
-                <span className="banner-tab-text-short">Explore</span>
+                <span className="banner-tab-text-full">Stays</span>
+                <span className="banner-tab-text-short">Stays</span>
               </button>
 
-              {/* 3. Transport & Buses */}
+              {/* 2. Transport */}
               <button
                 type="button"
                 onClick={() => onHomeSearchTabChange('transport')}
+                title="Local and inter city transport"
                 data-testid="tab-home-transport"
                 style={{
                   display: 'inline-flex',
@@ -433,8 +388,56 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 }}
               >
                 <Bus size={12} color={homeSearchTab === 'transport' ? '#0369A1' : '#93C5FD'} />
-                <span className="banner-tab-text-full">Transport &amp; Buses</span>
+                <span className="banner-tab-text-full">Transport</span>
                 <span className="banner-tab-text-short">Transport</span>
+              </button>
+
+              {/* 3. Destinations (formerly Valleys & Places) */}
+              <button
+                type="button"
+                onClick={() => onHomeSearchTabChange('valleys')}
+                title="Destinations"
+                data-testid="tab-home-valleys"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  height: '24px',
+                  minHeight: '0px',
+                  maxHeight: '24px',
+                  lineHeight: '1',
+                  boxSizing: 'border-box',
+                  padding: '0 11px',
+                  borderRadius: '9999px',
+                  backgroundColor: homeSearchTab === 'valleys' ? '#FFFFFF' : 'transparent',
+                  border: homeSearchTab === 'valleys' ? '1px solid #FFFFFF' : '1px solid transparent',
+                  color: homeSearchTab === 'valleys' ? '#0369A1' : 'rgba(255, 255, 255, 0.92)',
+                  fontSize: '11px',
+                  fontWeight: homeSearchTab === 'valleys' ? 800 : 600,
+                  letterSpacing: '0.01em',
+                  cursor: 'pointer',
+                  boxShadow: homeSearchTab === 'valleys'
+                    ? '0 2px 6px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.8)'
+                    : 'none',
+                  transition: 'all 0.16s cubic-bezier(0.16, 1, 0.3, 1)',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={(e) => {
+                  if (homeSearchTab !== 'valleys') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.18)';
+                    e.currentTarget.style.color = '#FFFFFF';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (homeSearchTab !== 'valleys') {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.92)';
+                  }
+                }}
+              >
+                <Mountain size={12} color={homeSearchTab === 'valleys' ? '#0369A1' : '#A7F3D0'} />
+                <span className="banner-tab-text-full">Destinations</span>
+                <span className="banner-tab-text-short">Destinations</span>
               </button>
             </div>
           ) : <div />}
