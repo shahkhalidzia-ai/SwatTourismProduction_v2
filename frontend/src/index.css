@@ -293,6 +293,20 @@ textarea:focus-visible {
   }
 }
 
+/* Home Explore 2-Column Grid on Web */
+.home-explore-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (min-width: 641px) {
+  .home-explore-grid-2col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* ==========================================================================
    Mobile Phone View Scoped Layout Rules
    Guarantees that inside Phone View (#mobile-phone-frame or .phone-layout),
@@ -359,11 +373,46 @@ textarea:focus-visible {
 #mobile-phone-frame .dest-scenery-card,
 .phone-layout .dest-scenery-card,
 #mobile-phone-frame .destinations-scenery-grid > div,
-.phone-layout .destinations-scenery-grid > div {
+.phone-layout .destinations-scenery-grid > div,
+#mobile-phone-frame .listing-card-frame,
+.phone-layout .listing-card-frame,
+#mobile-phone-frame .home-explore-grid-2col > div,
+.phone-layout .home-explore-grid-2col > div {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box !important;
+}
+
+#mobile-phone-frame .listing-card-cover,
+.phone-layout .listing-card-cover {
+  height: 140px !important;
+  padding: 8px 10px !important;
+}
+
+#mobile-phone-frame .listing-card-action-row,
+.phone-layout .listing-card-action-row {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 6px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+#mobile-phone-frame .listing-card-action-row button,
+.phone-layout .listing-card-action-row button {
+  padding: 5px 6px !important;
+  min-height: 32px !important;
+  font-size: 11px !important;
+  gap: 3px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 #mobile-phone-frame .home-explore-search-input,
@@ -611,6 +660,22 @@ textarea:focus-visible {
     gap: 6px !important;
   }
   .dest-card-action-row button {
+    padding: 5px 6px !important;
+    min-height: 32px !important;
+    font-size: 11px !important;
+  }
+  .listing-card-frame {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .listing-card-cover {
+    height: 140px !important;
+  }
+  .listing-card-action-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+  }
+  .listing-card-action-row button {
     padding: 5px 6px !important;
     min-height: 32px !important;
     font-size: 11px !important;

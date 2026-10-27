@@ -3597,25 +3597,17 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </select>
               </div>
 
-              {/* Grid of Verified Listings (Arranged in 2 Columns on Tourist Home Screen) */}
-              <style>{`
-                :not(#mobile-phone-frame):not(.phone-layout) .home-explore-grid-2col {
-                  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-                }
-                @media (min-width: 641px) {
-                  :not(#mobile-phone-frame):not(.phone-layout) .home-explore-grid-2col {
-                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                  }
-                }
-                #mobile-phone-frame .home-explore-grid-2col,
-                .phone-layout .home-explore-grid-2col,
-                @media (max-width: 640px) {
-                  .home-explore-grid-2col {
-                    grid-template-columns: 1fr !important;
-                  }
-                }
-              `}</style>
-              <div className="grid-cards home-explore-grid-2col" data-testid="grid-home-explore-2col">
+              {/* Grid of Verified Listings (Arranged in 2 Columns on Web, Single Column on Phone) */}
+              <div
+                className="grid-cards home-explore-grid-2col"
+                data-testid="grid-home-explore-2col"
+                style={{
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
                 {(() => {
                   const filtered = listings.filter((l) => {
                     const matchesCategory =

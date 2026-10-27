@@ -59,12 +59,17 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   return (
     <Card
       padding="none"
+      className="listing-card-frame"
       style={{
         position: 'relative',
         border: isSelected ? '2px solid var(--pri)' : '1px solid var(--line)',
         boxShadow: isSelected ? '0 4px 16px rgba(23, 76, 114, 0.18)' : undefined,
         transition: 'all 0.2s ease',
         cursor: onSelect ? 'pointer' : 'default',
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
       }}
       onClick={onSelect}
     >
@@ -82,6 +87,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
 
         return (
           <div
+            className="listing-card-cover"
             style={{
               height: '160px',
               backgroundColor: 'var(--soft)',
@@ -285,14 +291,34 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           )}
 
           {/* Standard Action Buttons (Check Dates / Add to Trip) */}
-          <div style={{ display: 'grid', gridTemplateColumns: type === 'hotel' ? '1fr' : '1fr 1fr', gap: '8px' }}>
+          <div
+            className="listing-card-action-row"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: type === 'hotel' ? '1fr' : '1fr 1fr',
+              gap: '8px',
+              width: '100%',
+              maxWidth: '100%',
+              minWidth: 0,
+              boxSizing: 'border-box',
+            }}
+          >
             <Button
               variant="secondary"
               size="sm"
-              icon={<Calendar size={14} />}
+              icon={<Calendar size={13} />}
               onClick={(e) => {
                 e.stopPropagation();
                 if (onCheckDates) onCheckDates();
+              }}
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
             >
               Check dates
@@ -301,10 +327,19 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               <Button
                 variant="accent"
                 size="sm"
-                icon={<Plus size={14} />}
+                icon={<Plus size={13} />}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onAddToTrip) onAddToTrip();
+                }}
+                style={{
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
                 Add to trip
