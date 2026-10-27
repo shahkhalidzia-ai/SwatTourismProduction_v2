@@ -767,3 +767,90 @@ textarea:focus-visible {
   transform: translateY(0);
 }
 
+/* Responsive Hotel Details Modal for Phone View & Small Screens */
+.hotel-modal-tab-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.hotel-tab-text-short {
+  display: none;
+}
+
+.hotel-tab-text-full {
+  display: inline;
+}
+
+@media (max-width: 640px) {
+  .hotel-modal-overlay {
+    padding: 6px !important;
+  }
+  .hotel-details-modal-dialog {
+    max-height: 96vh !important;
+    border-radius: 14px !important;
+  }
+  .hotel-modal-cover-photo {
+    height: 95px !important;
+  }
+  .hotel-modal-header {
+    padding: 10px 14px !important;
+  }
+  .hotel-modal-header h2 {
+    font-size: 1.05rem !important;
+  }
+  .hotel-modal-tab-nav {
+    padding: 0 6px !important;
+    gap: 3px !important;
+  }
+  .hotel-tab-btn {
+    padding: 9px 8px !important;
+    font-size: 11px !important;
+    gap: 4px !important;
+  }
+  .hotel-tab-text-full {
+    display: none !important;
+  }
+  .hotel-tab-text-short {
+    display: inline !important;
+  }
+  .hotel-modal-content-body {
+    padding: 14px 12px !important;
+  }
+}
+
+#mobile-phone-frame .hotel-modal-overlay {
+  padding: 6px !important;
+}
+#mobile-phone-frame .hotel-details-modal-dialog {
+  max-height: 96vh !important;
+  border-radius: 14px !important;
+}
+#mobile-phone-frame .hotel-modal-cover-photo {
+  height: 95px !important;
+}
+#mobile-phone-frame .hotel-modal-header {
+  padding: 10px 14px !important;
+}
+#mobile-phone-frame .hotel-modal-header h2 {
+  font-size: 1.05rem !important;
+}
+#mobile-phone-frame .hotel-modal-tab-nav {
+  padding: 0 6px !important;
+  gap: 3px !important;
+}
+#mobile-phone-frame .hotel-tab-btn {
+  padding: 9px 8px !important;
+  font-size: 11px !important;
+  gap: 4px !important;
+}
+#mobile-phone-frame .hotel-tab-text-full {
+  display: none !important;
+}
+#mobile-phone-frame .hotel-tab-text-short {
+  display: inline !important;
+}
+#mobile-phone-frame .hotel-modal-content-body {
+  padding: 14px 12px !important;
+}
+
