@@ -3587,6 +3587,18 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               addressText={l.address_text || `${l.area_name || 'Mingora'}, Swat`}
                               isCommunityService={Boolean(l.details?.is_community_service)}
                               onInstantReserve={() => setServiceModalListing(l)}
+                              onViewMap={() => {
+                                setMapModal({
+                                  open: true,
+                                  title: l.title,
+                                  lat: l.latitude || 34.77,
+                                  lng: l.longitude || 72.36,
+                                  areaName: l.area_name || 'Mingora, Swat',
+                                  categoryOrType: 'Transport & 4x4',
+                                  originCity: 'Islamabad / Rawalpindi',
+                                  destinationCity: l.area_name || 'Swat',
+                                });
+                              }}
                               onCheckDates={() =>
                                 setAvailModal({
                                   open: true,
@@ -3836,12 +3848,26 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         addressText={l.address_text || `${l.area_name || 'Saidu Sharif'}, Swat`}
                         isCommunityService={Boolean(l.details?.is_community_service)}
                         onInstantReserve={
-                          (l.type_code === 'transport' || l.type_code === 'guide' || l.details?.is_community_service)
+                          (l.type_code === 'transport' || l.type_code === 'guide' || l.type_code === 'activity' || l.details?.is_community_service)
                             ? () => setServiceModalListing(l)
                             : undefined
                         }
                         onViewHotelDetails={l.type_code === 'hotel' ? () => setHotelModalListing(l) : undefined}
                         onViewMenu={l.type_code === 'restaurant' ? () => setRestaurantModalListing(l) : undefined}
+                        onViewMap={() => {
+                          const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
+                          const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
+                          setMapModal({
+                            open: true,
+                            title: l.title,
+                            lat,
+                            lng,
+                            areaName: l.area_name || 'Swat',
+                            categoryOrType: l.type_label || (l.type_code === 'hotel' ? 'Hotel & Stay' : l.type_code === 'restaurant' ? 'Dining & Restaurant' : l.type_code === 'activity' ? 'Adventure & Ski' : 'Explore Listing'),
+                            originCity: 'Islamabad / Rawalpindi',
+                            destinationCity: l.area_name || l.title,
+                          });
+                        }}
                         onCheckDates={
                           l.type_code === 'hotel'
                             ? () =>
@@ -6168,6 +6194,19 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         <HotelDetailsModal
           hotel={hotelModalListing}
           onClose={() => setHotelModalListing(null)}
+          onViewMap={(lat, lng, title, areaName) => {
+            setHotelModalListing(null);
+            setMapModal({
+              open: true,
+              title,
+              lat,
+              lng,
+              areaName: areaName || 'Swat',
+              categoryOrType: 'Hotel & Stay',
+              originCity: 'Islamabad / Rawalpindi',
+              destinationCity: areaName || title,
+            });
+          }}
           onAddRoomToTrip={(room, startDate, endDate, travellers, roomsCount) => {
             let dayNum = 1;
             let endDayNum = 2;

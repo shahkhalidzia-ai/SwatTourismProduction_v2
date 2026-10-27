@@ -146,7 +146,21 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         {/* Location line with View Map & Rating */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 'var(--font-xs)', color: 'var(--mute)', gap: '6px', flexWrap: 'wrap' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <span
+              onClick={(e) => {
+                if (onViewMap) {
+                  e.stopPropagation();
+                  onViewMap();
+                }
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: onViewMap ? 'pointer' : 'default',
+              }}
+              title={onViewMap ? `Click to view ${title} on map` : undefined}
+            >
               <MapPin size={14} color="var(--pri)" />
               {addressText ? `${addressText} (${areaName})` : areaName}
             </span>
@@ -171,22 +185,36 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           </div>
           {onViewMap && (
             <button
+              type="button"
+              className="btn-card-view-map"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewMap();
               }}
+              title={`View ${title} on interactive map`}
+              data-testid={`btn-view-map-${id || 'item'}`}
               style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
                 color: 'var(--pri)',
-                fontWeight: 600,
-                fontSize: 'var(--font-xs)',
-                minHeight: 'auto',
-                padding: '2px 4px',
-                background: 'none',
-                border: 'none',
+                fontWeight: 700,
+                fontSize: '11px',
+                minHeight: 'unset',
+                height: 'auto',
+                padding: '2px 8px',
+                backgroundColor: 'rgba(47, 127, 193, 0.09)',
+                border: '1px solid rgba(47, 127, 193, 0.28)',
+                borderRadius: 'var(--radius-tag)',
                 cursor: 'pointer',
+                transition: 'all 0.16s ease',
+                flexShrink: 0,
+                lineHeight: 1.2,
+                boxSizing: 'border-box',
               }}
             >
-              View map
+              <MapPin size={11} color="var(--pri)" style={{ flexShrink: 0 }} />
+              <span>View Map</span>
             </button>
           )}
         </div>

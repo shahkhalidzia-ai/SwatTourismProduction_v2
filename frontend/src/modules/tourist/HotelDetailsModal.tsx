@@ -34,6 +34,7 @@ import { createBookingRequest, type Booking } from '../../api/bookings';
 interface HotelDetailsModalProps {
   hotel: ListingItem | null;
   onClose: () => void;
+  onViewMap?: (lat: number, lng: number, title: string, areaName?: string) => void;
   onAddRoomToTrip?: (
     room: PriceItem,
     startDate?: string,
@@ -50,6 +51,7 @@ interface HotelDetailsModalProps {
 export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
   hotel,
   onClose,
+  onViewMap,
   onAddRoomToTrip,
   onAddActivityToTrip,
   onCheckDates: _onCheckDates,
@@ -436,6 +438,38 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                 <MapPin size={13} color="var(--pri)" />
                 {hotel.address_text || `${hotel.area_name || 'Swat'}, Pakistan`}
               </span>
+              {onViewMap && (
+                <button
+                  type="button"
+                  className="btn-card-view-map"
+                  onClick={() =>
+                    onViewMap(
+                      hotel.latitude || 34.77,
+                      hotel.longitude || 72.36,
+                      hotel.title,
+                      hotel.area_name
+                    )
+                  }
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-tag)',
+                    backgroundColor: 'rgba(47, 127, 193, 0.1)',
+                    color: 'var(--pri)',
+                    border: '1px solid rgba(47, 127, 193, 0.28)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    minHeight: 'unset',
+                    height: 'auto',
+                  }}
+                  title="View hotel on interactive map"
+                >
+                  <MapPin size={11} /> View on Map
+                </button>
+              )}
               {hotel.phone && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                   <Phone size={13} color="var(--acc)" />

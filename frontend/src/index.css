@@ -788,6 +788,29 @@ textarea:focus-visible {
   transform: translateY(0);
 }
 
+/* Card View Map Button */
+.btn-card-view-map {
+  transition: all 0.16s ease !important;
+}
+
+.btn-card-view-map:hover {
+  background-color: var(--pri) !important;
+  color: #FFFFFF !important;
+  border-color: var(--pri) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(47, 127, 193, 0.28) !important;
+}
+
+.btn-card-view-map:hover span,
+.btn-card-view-map:hover svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+.btn-card-view-map:active {
+  transform: translateY(0);
+}
+
 /* Responsive Hotel Details Modal & Unsquishable Tab Bar */
 .hotel-modal-cover-photo {
   flex-shrink: 0 !important;
