@@ -719,3 +719,40 @@ textarea:focus-visible {
   }
 }
 
+/* Live Road Status & Highway Conditions Bar */
+.swat-road-status-bar {
+  transition: all 0.2s ease;
+}
+
+.swat-road-pills-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+.swat-road-pills-scroll::-webkit-scrollbar,
+.itinerary-presets-row::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .swat-road-status-bar {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+  }
+}
+
+#mobile-phone-frame .swat-road-status-bar {
+  padding: 8px 10px !important;
+  gap: 8px !important;
+}
+
+#mobile-phone-frame .itinerary-presets-row button {
+  padding: 6px 10px !important;
+}
+
