@@ -49,7 +49,7 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
         style={{
           flex: 1,
           padding: '10px 14px 16px 14px',
-          paddingBottom: showNavigation ? 'calc(var(--bottom-bar-height) + 24px)' : '16px',
+          paddingBottom: showNavigation ? 'calc(var(--bottom-bar-height) + 36px)' : '90px',
           overflowY: 'auto',
         }}
       >

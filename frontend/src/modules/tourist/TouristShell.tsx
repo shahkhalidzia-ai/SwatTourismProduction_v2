@@ -3984,6 +3984,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     >
                       {/* Photo Header */}
                       <div
+                        className="dest-card-photo"
                         style={{
                           height: '210px',
                           backgroundImage: `url(${destImg})`,
@@ -4005,6 +4006,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                         {/* Top Pills Row */}
                         <div
+                          className="dest-card-top-pills-row"
                           style={{
                             position: 'absolute',
                             top: '12px',
@@ -4019,6 +4021,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           }}
                         >
                           <span
+                            className="dest-card-top-pill"
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -4038,6 +4041,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           </span>
 
                           <span
+                            className="dest-card-top-pill"
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -4165,30 +4169,47 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           </span>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            icon={<CloudSun size={15} color="var(--pri)" />}
+                        {/* Action Buttons: 2-Column Responsive Row to Prevent Mobile Cutting */}
+                        <div
+                          className="dest-card-action-row"
+                          style={{
+                            marginTop: '12px',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '8px',
+                            width: '100%',
+                          }}
+                        >
+                          <button
+                            type="button"
                             onClick={() => setWeatherModal({ isOpen: true, destination: dest })}
+                            data-testid={`btn-weather-forecast-${dest.id}`}
                             style={{
-                              width: '100%',
-                              borderColor: 'var(--pri)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              padding: '8px 10px',
+                              borderRadius: '10px',
+                              border: '1.5px solid var(--pri)',
                               backgroundColor: 'rgba(16, 185, 129, 0.08)',
                               color: 'var(--ink)',
-                              fontWeight: 650,
-                              padding: '8px 12px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              minHeight: '38px',
+                              width: '100%',
+                              boxSizing: 'border-box',
+                              transition: 'all 0.15s ease',
+                              whiteSpace: 'nowrap',
                             }}
-                            data-testid={`btn-weather-forecast-${dest.id}`}
                           >
-                            View Weather Forecast
-                          </Button>
+                            <CloudSun size={15} color="var(--pri)" style={{ flexShrink: 0 }} />
+                            <span>Weather Forecast</span>
+                          </button>
 
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            fullWidth
+                          <button
+                            type="button"
                             onClick={() =>
                               setMapModal({
                                 open: true,
@@ -4201,9 +4222,30 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                                 destinationCity: dest.name,
                               })
                             }
+                            data-testid={`btn-view-map-${dest.id}`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '6px',
+                              padding: '8px 10px',
+                              borderRadius: '10px',
+                              border: '1.5px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              minHeight: '38px',
+                              width: '100%',
+                              boxSizing: 'border-box',
+                              transition: 'all 0.15s ease',
+                              whiteSpace: 'nowrap',
+                            }}
                           >
-                            View Map
-                          </Button>
+                            <MapPin size={15} color="var(--pri)" style={{ flexShrink: 0 }} />
+                            <span>View Map</span>
+                          </button>
                         </div>
                       </div>
                     </div>
