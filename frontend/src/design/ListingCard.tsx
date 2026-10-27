@@ -64,6 +64,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
 }) => {
   const effectiveRating = rating ?? Number((4.6 + ((title.charCodeAt(0) % 4) * 0.1)).toFixed(1));
   const effectiveReviews = reviewCount ?? (28 + (title.charCodeAt(title.length - 1) % 65));
+  const isAddToTripHidden = type === 'restaurant' || type === 'guide' || type === 'transport';
   return (
     <Card
       padding="none"
@@ -396,7 +397,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               className="listing-card-action-row"
               style={{
                 display: 'grid',
-                gridTemplateColumns: onCheckDates && onAddToTrip ? '1fr 1fr' : '1fr',
+                gridTemplateColumns: onCheckDates && onAddToTrip && !isAddToTripHidden ? '1fr 1fr' : '1fr',
                 gap: '8px',
                 width: '100%',
                 maxWidth: '100%',
@@ -426,7 +427,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                   Check dates
                 </Button>
               )}
-              {onAddToTrip && (
+              {onAddToTrip && !isAddToTripHidden && (
                 <Button
                   variant="accent"
                   size="sm"
@@ -449,7 +450,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           )}
 
           {/* 1-Tap Quick Day Add Strip (Less Input, More Output) */}
-          {availableDays && availableDays.length > 0 && onQuickAddToDay && (
+          {availableDays && availableDays.length > 0 && onQuickAddToDay && !isAddToTripHidden && (
             <div
               style={{
                 display: 'flex',
