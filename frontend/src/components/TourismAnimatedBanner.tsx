@@ -339,7 +339,8 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 }}
               >
                 <Mountain size={12} color={homeSearchTab === 'valleys' ? '#0369A1' : '#A7F3D0'} />
-                <span>Valleys &amp; Places</span>
+                <span className="banner-tab-text-full">Valleys &amp; Places</span>
+                <span className="banner-tab-text-short">Valleys</span>
               </button>
 
               {/* 2. Explore (Stay, Dining, Guide) */}
@@ -385,7 +386,8 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 }}
               >
                 <Compass size={12} color={homeSearchTab === 'explore' ? '#0369A1' : '#FDE047'} />
-                <span>Explore (Stay, Dining, Guide)</span>
+                <span className="banner-tab-text-full">Explore (Stay, Dining, Guide)</span>
+                <span className="banner-tab-text-short">Explore</span>
               </button>
 
               {/* 3. Transport & Buses */}
@@ -431,7 +433,8 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 }}
               >
                 <Bus size={12} color={homeSearchTab === 'transport' ? '#0369A1' : '#93C5FD'} />
-                <span>Transport &amp; Buses</span>
+                <span className="banner-tab-text-full">Transport &amp; Buses</span>
+                <span className="banner-tab-text-short">Transport</span>
               </button>
             </div>
           ) : <div />}

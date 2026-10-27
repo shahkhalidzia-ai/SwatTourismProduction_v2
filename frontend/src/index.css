@@ -398,6 +398,24 @@ textarea:focus-visible {
   display: none !important;
 }
 
+/* Banner search tabs responsive short/full text */
+.banner-tab-text-short {
+  display: none;
+}
+.banner-tab-text-full {
+  display: inline;
+}
+
+#mobile-phone-frame .banner-tab-text-full,
+.phone-layout .banner-tab-text-full {
+  display: none !important;
+}
+
+#mobile-phone-frame .banner-tab-text-short,
+.phone-layout .banner-tab-text-short {
+  display: inline !important;
+}
+
 #mobile-phone-frame .banner-bottom-row,
 .phone-layout .banner-bottom-row {
   flex-direction: column !important;
@@ -409,6 +427,17 @@ textarea:focus-visible {
 .phone-layout .banner-search-tabs {
   width: 100% !important;
   justify-content: flex-start !important;
+  gap: 3px !important;
+  padding: 2px 3px !important;
+}
+
+#mobile-phone-frame .banner-search-tabs button,
+.phone-layout .banner-search-tabs button {
+  padding: 0 8px !important;
+  gap: 4px !important;
+  font-size: 10.5px !important;
+  height: 24px !important;
+  flex-shrink: 0 !important;
 }
 
 #mobile-phone-frame .banner-header-action,
@@ -607,6 +636,21 @@ textarea:focus-visible {
     width: 100% !important;
     justify-content: space-between !important;
     margin-left: 0 !important;
+  }
+  .banner-tab-text-full {
+    display: none !important;
+  }
+  .banner-tab-text-short {
+    display: inline !important;
+  }
+  .banner-search-tabs {
+    gap: 3px !important;
+    padding: 2px 3px !important;
+  }
+  .banner-search-tabs button {
+    padding: 0 8px !important;
+    gap: 4px !important;
+    font-size: 10.5px !important;
   }
 }
 
