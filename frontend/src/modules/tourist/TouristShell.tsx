@@ -3420,7 +3420,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
               </div>
 
-              {/* Search & Filter Controls for Explore Stays, Dining & Guides */}
+              {/* Filter Controls for Explore Stays, Dining & Guides */}
               <div
                 style={{
                   display: 'flex',
@@ -3430,61 +3430,6 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   flexWrap: 'wrap',
                 }}
               >
-                {/* Search Text Box */}
-                <div
-                  className="home-explore-search-input"
-                  style={{
-                    flex: '1 1 200px',
-                    minWidth: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    backgroundColor: 'var(--card)',
-                    border: '1.5px solid var(--line)',
-                    borderRadius: '12px',
-                    padding: '6px 14px',
-                    boxShadow: '0 2px 6px rgba(18, 50, 74, 0.04)',
-                    gap: '10px',
-                  }}
-                >
-                  <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search hotels, dining, trout cafes, guides, 4x4 rides..."
-                    data-testid="input-explore-stays-search"
-                    style={{
-                      flex: 1,
-                      border: 'none',
-                      outline: 'none',
-                      backgroundColor: 'transparent',
-                      color: 'var(--ink)',
-                      fontSize: '13.5px',
-                      padding: '4px 0',
-                    }}
-                  />
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--mute)',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      title="Clear search"
-                      aria-label="Clear search"
-                    >
-                      <X size={15} />
-                    </button>
-                  )}
-                </div>
-
                 {/* Swat Valley / Area Filter */}
                 <select
                   value={selectedAreaId}
