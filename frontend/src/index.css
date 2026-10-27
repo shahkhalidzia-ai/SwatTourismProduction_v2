@@ -757,6 +757,21 @@ textarea:focus-visible {
 }
 
 /* Smart Hotel Details Unified Button (Styled like units free pill badge) */
+.btn-smart-hotel-details {
+  min-height: unset !important;
+  height: auto !important;
+  padding: 3px 8px !important;
+  font-size: var(--font-xs) !important;
+  line-height: 1.2 !important;
+  border-radius: var(--radius-tag) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+  transition: all 0.18s ease;
+}
+
 .btn-smart-hotel-details:hover {
   background-color: var(--pri) !important;
   color: #ffffff !important;

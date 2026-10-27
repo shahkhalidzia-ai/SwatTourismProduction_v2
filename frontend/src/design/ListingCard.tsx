@@ -283,8 +283,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                     lineHeight: 1.2,
                     letterSpacing: '0.02em',
                     whiteSpace: 'nowrap',
-                    cursor: 'pointer',
-                    boxSizing: 'border-box',
+                    minHeight: 'unset',
+                    height: 'auto',
                     transition: 'all 0.18s ease',
                   }}
                 >
