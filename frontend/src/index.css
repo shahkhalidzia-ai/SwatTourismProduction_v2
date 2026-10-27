@@ -756,3 +756,14 @@ textarea:focus-visible {
   padding: 6px 10px !important;
 }
 
+/* Smart Hotel Details Unified Button */
+.btn-smart-hotel-details:hover {
+  background-color: var(--pri-hover, #1b4f72) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(47, 127, 193, 0.35) !important;
+}
+
+.btn-smart-hotel-details:active {
+  transform: translateY(0);
+}
+

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Bed,
+  Calendar,
   Sparkles,
   Compass,
   CheckCircle2,
@@ -43,6 +44,7 @@ interface HotelDetailsModalProps {
   onAddActivityToTrip?: (activityName: string) => void;
   onCheckDates?: () => void;
   onBookingSuccess?: (booking: Booking) => void;
+  initialTab?: 'rooms' | 'calendar' | 'facilities' | 'activities';
 }
 
 export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
@@ -52,8 +54,15 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
   onAddActivityToTrip,
   onCheckDates: _onCheckDates,
   onBookingSuccess,
+  initialTab = 'rooms',
 }) => {
-  const [activeTab, setActiveTab] = useState<'rooms' | 'facilities' | 'activities'>('rooms');
+  const [activeTab, setActiveTab] = useState<'rooms' | 'calendar' | 'facilities' | 'activities'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Dates & Travellers state
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -177,6 +186,25 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
       isMounted = false;
     };
   }, [hotel.id, checkInDate, checkOutDate]);
+
+  // Generate next 14 days for the interactive Check Dates & Availability Calendar
+  const calendarDaysList = useMemo(() => {
+    const itemRecords = availabilityData.filter(
+      (r) => !selectedRoomId || r.price_item_id === selectedRoomId
+    );
+    const days: { dateStr: string; displayDay: string; displayDate: string; record?: AvailabilityRecord }[] = [];
+    const curr = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(curr);
+      d.setDate(curr.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      const displayDay = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const displayDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const record = itemRecords.find((r) => r.date === dateStr);
+      days.push({ dateStr, displayDay, displayDate, record });
+    }
+    return days;
+  }, [availabilityData, selectedRoomId]);
 
   // Facilities
   const defaultFacilities = [
@@ -442,7 +470,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
             borderBottom: '1px solid var(--line)',
             backgroundColor: 'var(--soft)',
             padding: '0 24px',
-            gap: '8px',
+            gap: '6px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
           }}
         >
           <button
@@ -450,8 +480,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '12px 16px',
+              gap: '7px',
+              padding: '12px 14px',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'rooms' ? '3px solid var(--pri)' : '3px solid transparent',
@@ -459,11 +489,34 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               fontWeight: activeTab === 'rooms' ? 700 : 500,
               fontSize: 'var(--font-sm)',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
             id="tab-hotel-rooms"
           >
-            <Bed size={16} />
-            Rooms & Availability ({rooms.length})
+            <Bed size={15} />
+            Rooms &amp; Booking ({rooms.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('calendar')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '7px',
+              padding: '12px 14px',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'calendar' ? '3px solid var(--pri)' : '3px solid transparent',
+              color: activeTab === 'calendar' ? 'var(--pri)' : 'var(--mute)',
+              fontWeight: activeTab === 'calendar' ? 700 : 500,
+              fontSize: 'var(--font-sm)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+            id="tab-hotel-calendar"
+          >
+            <Calendar size={15} />
+            Check Dates &amp; Calendar
           </button>
 
           <button
@@ -471,8 +524,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '12px 16px',
+              gap: '7px',
+              padding: '12px 14px',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'facilities' ? '3px solid var(--pri)' : '3px solid transparent',
@@ -480,10 +533,11 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               fontWeight: activeTab === 'facilities' ? 700 : 500,
               fontSize: 'var(--font-sm)',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
             id="tab-hotel-facilities"
           >
-            <Sparkles size={16} />
+            <Sparkles size={15} />
             Hotel Facilities ({facilities.length})
           </button>
 
@@ -492,8 +546,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '12px 16px',
+              gap: '7px',
+              padding: '12px 14px',
               background: 'none',
               border: 'none',
               borderBottom: activeTab === 'activities' ? '3px solid var(--pri)' : '3px solid transparent',
@@ -501,10 +555,11 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               fontWeight: activeTab === 'activities' ? 700 : 500,
               fontSize: 'var(--font-sm)',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
             id="tab-hotel-activities"
           >
-            <Compass size={16} />
+            <Compass size={15} />
             Hotel Activities ({activities.length})
           </button>
         </div>
@@ -1080,7 +1135,173 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
             </div>
           )}
 
-          {/* TAB 2: FACILITIES */}
+          {/* TAB 2: CHECK DATES & AVAILABILITY CALENDAR */}
+          {activeTab === 'calendar' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} data-testid="hotel-calendar-tab">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h3 style={{ fontSize: 'var(--font-base)', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+                    Daily Live Availability &amp; Rate Calendar
+                  </h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
+                    Pick your travel dates below to check vacant units and book instantly.
+                  </p>
+                </div>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: '11px' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--ok)' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--ok)' }} />
+                    Available
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--bad)' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--bad)' }} />
+                    Sold out
+                  </span>
+                </div>
+              </div>
+
+              {/* Room Type Selector Chips */}
+              {rooms.length > 1 && (
+                <div>
+                  <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', display: 'block', marginBottom: '8px' }}>
+                    Select Room Category:
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {rooms.map((room) => {
+                      const isSelected = room.id === selectedRoomId;
+                      return (
+                        <button
+                          key={room.id}
+                          type="button"
+                          onClick={() => setSelectedRoomId(room.id || '')}
+                          style={{
+                            padding: '6px 14px',
+                            borderRadius: '20px',
+                            fontSize: 'var(--font-xs)',
+                            fontWeight: isSelected ? 700 : 500,
+                            backgroundColor: isSelected ? 'var(--pri)' : 'var(--soft)',
+                            color: isSelected ? '#FFFFFF' : 'var(--ink)',
+                            border: isSelected ? '1.5px solid var(--pri)' : '1px solid var(--line)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {room.name} • PKR {room.price.toLocaleString()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* 14-Day Calendar Grid */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(78px, 1fr))',
+                    gap: '8px',
+                  }}
+                >
+                  {calendarDaysList.map((d) => {
+                    const isSelected = d.dateStr === checkInDate;
+                    const isBlocked = d.record?.is_blocked ?? false;
+                    const unitsAvailable = isBlocked
+                      ? 0
+                      : d.record
+                      ? d.record.units_available
+                      : currentSelectedRoom?.default_units ?? 6;
+                    const dayPrice = d.record?.price_override ?? currentSelectedRoom?.price ?? 0;
+
+                    return (
+                      <button
+                        key={d.dateStr}
+                        type="button"
+                        onClick={() => {
+                          setCheckInDate(d.dateStr);
+                          // Auto set checkout to next day
+                          const nextD = new Date(d.dateStr);
+                          nextD.setDate(nextD.getDate() + 1);
+                          setCheckOutDate(nextD.toISOString().split('T')[0]);
+                        }}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          padding: '10px 4px',
+                          borderRadius: '10px',
+                          border: isSelected ? '2px solid var(--pri)' : '1px solid var(--line)',
+                          backgroundColor: isSelected
+                            ? 'rgba(47, 127, 193, 0.1)'
+                            : isBlocked || unitsAvailable === 0
+                            ? 'rgba(214, 86, 74, 0.08)'
+                            : 'var(--card)',
+                          cursor: isBlocked || unitsAvailable === 0 ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.15s ease',
+                          boxShadow: isSelected ? '0 2px 8px rgba(47, 127, 193, 0.18)' : 'none',
+                        }}
+                      >
+                        <span style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 600 }}>{d.displayDay}</span>
+                        <span style={{ fontSize: '13px', fontWeight: 750, color: 'var(--ink)', margin: '2px 0' }}>{d.displayDate}</span>
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            color: unitsAvailable > 0 ? 'var(--ok)' : 'var(--bad)',
+                          }}
+                        >
+                          {unitsAvailable > 0 ? `${unitsAvailable} free` : 'Sold'}
+                        </span>
+                        <span style={{ fontSize: '10px', color: 'var(--mute)', marginTop: '2px' }}>
+                          Rs. {Math.round(dayPrice / 1000)}k
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Date Summary & Instant Actions */}
+              <div
+                style={{
+                  marginTop: '4px',
+                  backgroundColor: 'var(--soft)',
+                  border: '1px solid var(--line)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', fontWeight: 600 }}>
+                    Selected Stay Schedule:
+                  </div>
+                  <div style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--ink)', marginTop: '2px' }}>
+                    {checkInDate} ➔ {checkOutDate} ({nightsCount} {nightsCount === 1 ? 'night' : 'nights'})
+                  </div>
+                  <div style={{ fontSize: 'var(--font-xs)', color: 'var(--pri)', fontWeight: 600, marginTop: '2px' }}>
+                    {currentSelectedRoom?.name} • PKR {totalAmount.toLocaleString()} total
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<Bed size={14} />}
+                    onClick={() => setActiveTab('rooms')}
+                  >
+                    View Room Details &amp; Book ➔
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: FACILITIES */}
           {activeTab === 'facilities' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <p style={{ margin: 0, fontSize: 'var(--font-sm)', color: 'var(--mute)' }}>

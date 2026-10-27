@@ -260,21 +260,39 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             )}
           </div>
 
-          {/* Hotel Specific: View Rooms, Facilities & Activities Button */}
+          {/* Hotel Specific: Unified Smart Button for Rooms, Dates & Facilities */}
           {type === 'hotel' && onViewHotelDetails && (
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Bed size={14} />}
+            <button
+              type="button"
+              className="btn-smart-hotel-details"
               onClick={(e) => {
                 e.stopPropagation();
                 onViewHotelDetails();
               }}
-              style={{ width: '100%', marginBottom: '2px' }}
               id={`btn-view-hotel-details-${id || 'hotel'}`}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '7px',
+                padding: '7px 14px',
+                borderRadius: '9999px',
+                backgroundColor: 'var(--pri)',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: 650,
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(47, 127, 193, 0.22)',
+                transition: 'all 0.18s ease',
+                width: '100%',
+                minHeight: '34px',
+              }}
             >
-              View Rooms, Facilities & Activities
-            </Button>
+              <Bed size={14} />
+              <span>Rooms, Dates & Facilities</span>
+              <span style={{ fontSize: '11px', opacity: 0.85 }}>➔</span>
+            </button>
           )}
 
           {/* Restaurant Specific: View Menu & Contact Button */}
@@ -316,62 +334,63 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             </Button>
           )}
 
-          {/* Standard Action Buttons (Check Dates / Add to Trip) */}
-          <div
-            className="listing-card-action-row"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: type === 'hotel' ? '1fr' : '1fr 1fr',
-              gap: '8px',
-              width: '100%',
-              maxWidth: '100%',
-              minWidth: 0,
-              boxSizing: 'border-box',
-            }}
-          >
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<Calendar size={13} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onCheckDates) onCheckDates();
-              }}
+          {/* Standard Action Buttons (Only for non-hotel types, since hotel is unified above) */}
+          {type !== 'hotel' && (
+            <div
+              className="listing-card-action-row"
               style={{
+                display: 'grid',
+                gridTemplateColumns: onCheckDates && onAddToTrip ? '1fr 1fr' : '1fr',
+                gap: '8px',
                 width: '100%',
                 maxWidth: '100%',
                 minWidth: 0,
                 boxSizing: 'border-box',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
               }}
             >
-              Check dates
-            </Button>
-            {type !== 'hotel' && (
-              <Button
-                variant="accent"
-                size="sm"
-                icon={<Plus size={13} />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onAddToTrip) onAddToTrip();
-                }}
-                style={{
-                  width: '100%',
-                  maxWidth: '100%',
-                  minWidth: 0,
-                  boxSizing: 'border-box',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                Add to trip
-              </Button>
-            )}
-          </div>
+              {onCheckDates && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Calendar size={13} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onCheckDates) onCheckDates();
+                  }}
+                  style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  Check dates
+                </Button>
+              )}
+              {onAddToTrip && (
+                <Button
+                  variant="accent"
+                  size="sm"
+                  icon={<Plus size={13} />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onAddToTrip) onAddToTrip();
+                  }}
+                  style={{
+                    width: '100%',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  Add to Trip
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* 1-Tap Quick Day Add Strip (Less Input, More Output) */}
           {availableDays && availableDays.length > 0 && onQuickAddToDay && (
