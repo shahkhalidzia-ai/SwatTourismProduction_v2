@@ -2444,7 +2444,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           {/* Top Hero Split Layout: 80% Search Hub & Results / 20% Advisory & Weather Intelligence */}
           <div className="tourist-home-hero-split">
             {/* Left 80% Column: Search Frame + Direct Search Result Lists */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0, maxWidth: '100%', width: '100%' }}>
               {/* Hero Search & Transport Hub Frame */}
               <div
                 className="hero-search-hub-frame"
@@ -2604,6 +2604,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       overflowX: 'auto',
                       padding: '2px 2px 4px 2px',
                       scrollbarWidth: 'none',
+                      minWidth: 0,
+                      maxWidth: '100%',
+                      width: '100%',
                     }}
                   >
                     {[
@@ -3748,31 +3751,32 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           {/* Note: This Weekend in Swat weather is now positioned in the top 80/20 hero intelligence column */}
 
           {/* Popular Destinations Cards */}
-          <div style={{ marginTop: '0px' }}>
+          <div className="dest-section-container" style={{ marginTop: '0px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             {/* Header & Subtitle */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <div
                     style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
                       background: 'linear-gradient(135deg, var(--pri), #047857)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: '#ffffff',
                       boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                      flexShrink: 0,
                     }}
                   >
-                    <Mountain size={20} />
+                    <Mountain size={18} />
                   </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 className="dest-header-title" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
                       Popular Destinations
                     </h3>
-                    <p style={{ fontSize: '13px', color: 'var(--mute)', margin: '2px 0 0 0' }}>
+                    <p className="dest-header-subtitle" style={{ fontSize: '12px', color: 'var(--mute)', margin: '2px 0 0 0', lineHeight: 1.35 }}>
                       Breathtaking alpine valleys, turquoise glacial lakes, chairlift peaks & royal palaces
                     </p>
                   </div>
@@ -3782,38 +3786,43 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 14px',
+                    gap: '5px',
+                    padding: '4px 10px',
                     borderRadius: '20px',
                     backgroundColor: 'rgba(16, 185, 129, 0.08)',
                     color: 'var(--pri)',
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: 600,
                     border: '1px solid rgba(16, 185, 129, 0.2)',
+                    flexShrink: 0,
                   }}
                 >
-                  <Sparkles size={14} />
+                  <Sparkles size={12} />
                   {effectiveDestinations.length} Approved Swat Spots
                 </span>
               </div>
 
               {/* Scenic Category Filter Chips */}
               <div
+                className="scenic-category-chips-row"
                 style={{
                   display: 'flex',
-                  gap: '8px',
+                  gap: '6px',
                   overflowX: 'auto',
-                  padding: '10px 0 4px 0',
+                  padding: '8px 0 4px 0',
                   scrollbarWidth: 'none',
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
                 }}
               >
                 {[
-                  { id: 'all', label: `All Sceneries (${effectiveDestinations.length})`, icon: <Sparkles size={13} /> },
-                  { id: 'valley', label: `Alpine Valleys (${effectiveDestinations.filter((d) => d.category === 'valley').length || 3})`, icon: <Mountain size={13} /> },
-                  { id: 'lake', label: `Glacial Lakes (${effectiveDestinations.filter((d) => d.category === 'lake').length || 2})`, icon: <Waves size={13} /> },
-                  { id: 'ski', label: `Ski & Adventure (${effectiveDestinations.filter((d) => d.category === 'ski').length || 1})`, icon: <Sparkles size={13} /> },
-                  { id: 'forest', label: `Cedar Forests (${effectiveDestinations.filter((d) => d.category === 'forest').length || 1})`, icon: <Trees size={13} /> },
-                  { id: 'heritage', label: `Royal Heritage (${effectiveDestinations.filter((d) => d.category === 'heritage').length || 1})`, icon: <Landmark size={13} /> },
+                  { id: 'all', label: `All Sceneries (${effectiveDestinations.length})`, icon: <Sparkles size={12} /> },
+                  { id: 'valley', label: `Alpine Valleys (${effectiveDestinations.filter((d) => d.category === 'valley').length || 3})`, icon: <Mountain size={12} /> },
+                  { id: 'lake', label: `Glacial Lakes (${effectiveDestinations.filter((d) => d.category === 'lake').length || 2})`, icon: <Waves size={12} /> },
+                  { id: 'ski', label: `Ski & Adventure (${effectiveDestinations.filter((d) => d.category === 'ski').length || 1})`, icon: <Sparkles size={12} /> },
+                  { id: 'forest', label: `Cedar Forests (${effectiveDestinations.filter((d) => d.category === 'forest').length || 1})`, icon: <Trees size={12} /> },
+                  { id: 'heritage', label: `Royal Heritage (${effectiveDestinations.filter((d) => d.category === 'heritage').length || 1})`, icon: <Landmark size={12} /> },
                 ].map((cat) => {
                   const isActive = destCategoryFilter === cat.id;
                   return (
@@ -3823,10 +3832,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        padding: '7px 14px',
-                        borderRadius: '24px',
-                        fontSize: '12px',
+                        gap: '5px',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '11.5px',
                         fontWeight: isActive ? 600 : 500,
                         backgroundColor: isActive ? 'var(--pri)' : 'var(--surface)',
                         color: isActive ? '#ffffff' : 'var(--ink)',
@@ -3835,6 +3844,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         whiteSpace: 'nowrap',
                         transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
                         boxShadow: isActive ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
+                        flexShrink: 0,
                       }}
                     >
                       {cat.icon}
@@ -3851,7 +3861,11 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fill, minmax(285px, 1fr))',
-                gap: '20px',
+                gap: '16px',
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
               }}
             >
               {(() => {
@@ -3964,6 +3978,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   return (
                     <div
                       key={`dest-card-${dest.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${idx}`}
+                      className="dest-scenery-card"
                       style={{
                         display: 'flex',
                         flexDirection: 'column',
@@ -3973,6 +3988,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         overflow: 'hidden',
                         boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
                         transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                        width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-4px)';
@@ -4179,6 +4198,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                             gridTemplateColumns: '1fr 1fr',
                             gap: '6px',
                             width: '100%',
+                            maxWidth: '100%',
+                            minWidth: 0,
+                            boxSizing: 'border-box',
                           }}
                         >
                           <button
@@ -4189,24 +4211,28 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '5px',
-                              padding: '6px 8px',
+                              gap: '4px',
+                              padding: '5px 6px',
                               borderRadius: '8px',
                               border: '1.5px solid var(--pri)',
                               backgroundColor: 'rgba(16, 185, 129, 0.08)',
                               color: 'var(--ink)',
-                              fontSize: '11.5px',
+                              fontSize: '11px',
                               fontWeight: 700,
                               cursor: 'pointer',
-                              minHeight: '34px',
+                              minHeight: '32px',
                               width: '100%',
+                              maxWidth: '100%',
+                              minWidth: 0,
                               boxSizing: 'border-box',
                               transition: 'all 0.15s ease',
                               whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
                             }}
                           >
                             <CloudSun size={13} color="var(--pri)" style={{ flexShrink: 0 }} />
-                            <span>Weather</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Weather</span>
                           </button>
 
                           <button
@@ -4228,24 +4254,28 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               display: 'inline-flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              gap: '5px',
-                              padding: '6px 8px',
+                              gap: '4px',
+                              padding: '5px 6px',
                               borderRadius: '8px',
                               border: '1.5px solid var(--line)',
                               backgroundColor: 'var(--card)',
                               color: 'var(--ink)',
-                              fontSize: '11.5px',
+                              fontSize: '11px',
                               fontWeight: 700,
                               cursor: 'pointer',
-                              minHeight: '34px',
+                              minHeight: '32px',
                               width: '100%',
+                              maxWidth: '100%',
+                              minWidth: 0,
                               boxSizing: 'border-box',
                               transition: 'all 0.15s ease',
                               whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
                             }}
                           >
                             <MapPin size={13} color="var(--pri)" style={{ flexShrink: 0 }} />
-                            <span>View Map</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>View Map</span>
                           </button>
                         </div>
                       </div>

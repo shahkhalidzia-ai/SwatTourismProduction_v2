@@ -48,9 +48,13 @@ export const PhoneLayout: React.FC<PhoneLayoutProps> = ({
       <main
         style={{
           flex: 1,
-          padding: '10px 14px 16px 14px',
+          padding: '8px 10px 12px 10px',
           paddingBottom: showNavigation ? 'calc(var(--bottom-bar-height) + 36px)' : '90px',
           overflowY: 'auto',
+          overflowX: 'hidden',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
         }}
       >
         {!hideTopBanner && (
