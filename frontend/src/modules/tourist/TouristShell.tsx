@@ -3602,10 +3602,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             </div>
           )}
 
-          {/* Note: This Weekend in Swat weather is now positioned in the top 80/20 hero intelligence column */}
-
-          {/* Popular Destinations Cards */}
-          <div className="dest-section-container" style={{ marginTop: '0px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+          {/* Popular Destinations Cards - Only display when on Valleys & Places tab */}
+          {homeSearchTab === 'valleys' && (
+            <div className="dest-section-container" style={{ marginTop: '0px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             {/* Header & Subtitle */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
@@ -4139,7 +4138,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               })()}
               </div>
             </div>
-            </div>
+          )}
+          </div>
 
             {/* Right 20% Column: Active Advisory Frame & This Weekend Weather Frame */}
             <div
