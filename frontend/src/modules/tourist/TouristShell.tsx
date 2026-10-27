@@ -451,6 +451,7 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
       },
     ],
     details: {
+      accommodation_type: 'Hotel',
       total_rooms: 48,
       star_rating: 5,
       check_in_time: '14:00',
@@ -535,6 +536,7 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
       },
     ],
     details: {
+      accommodation_type: 'Resort',
       total_rooms: 80,
       star_rating: 5,
       check_in_time: '14:00',
@@ -617,6 +619,7 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
       },
     ],
     details: {
+      accommodation_type: 'Resort',
       total_rooms: 24,
       check_in_time: '14:00',
       check_out_time: '12:00',
@@ -649,6 +652,138 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
     },
     media: [],
     rating_count: 18,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-guesthouse-1',
+    business_id: 'biz-demo-guesthouse',
+    business_name: 'Kalam Pine Valley Guest House',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Kalam',
+    title: 'Kalam Pine Valley Guest House',
+    description: 'Charming traditional wooden guesthouse overlooking Kalam pine forest, offering cozy family rooms, home-cooked Swati meals, and warm hospitality.',
+    address_text: 'Pine Forest Road, Kalam Valley, Swat',
+    phone: '+92-946-812777',
+    whatsapp_number: '+92-345-8127770',
+    latitude: 35.488,
+    longitude: 72.589,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-gh-1',
+        name: 'Deluxe Pine Mountain Room',
+        price: 6500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 6,
+        description: 'Warm pine-paneled room with king bed, electric heating, attached bath with 24/7 hot water, and forest view balcony.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-gh-2',
+        name: 'Family Guesthouse Suite',
+        price: 11000,
+        unit: 'per_night',
+        capacity: 5,
+        default_units: 3,
+        description: 'Spacious 2-bedroom guesthouse suite with private sitting area, traditional rugs, and mountain terrace.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Guesthouse',
+      total_rooms: 12,
+      star_rating: 4,
+      check_in_time: '13:00',
+      check_out_time: '11:00',
+      facilities: [
+        'Free Wi-Fi',
+        'Traditional Homestyle Breakfast',
+        '24/7 Hot Water & Heating',
+        'Pine Forest & Valley Views',
+        'On-site Parking',
+        'Campfire & Lawn Sitting',
+      ],
+      activities: [
+        {
+          name: 'Guided Kalam Pine Forest Trail',
+          duration: '1.5 hours',
+          desc: 'Relaxing walking tour through virgin pine groves with guesthouse host.',
+        },
+      ],
+    },
+    media: [],
+    rating_count: 19,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-apartment-1',
+    business_id: 'biz-demo-apartment',
+    business_name: 'Fizagat Luxury Riverview Apartments',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'Fizagat Luxury Riverview Apartments',
+    description: 'Modern serviced holiday apartments overlooking Swat River in Fizagat, featuring fully-equipped kitchens, private river-view balconies, and elevator access.',
+    address_text: 'Fizagat Riverside Park Road, Mingora, Swat',
+    phone: '+92-946-722888',
+    whatsapp_number: '+92-345-7228880',
+    latitude: 34.786,
+    longitude: 72.368,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-apt-1',
+        name: '2-Bedroom Serviced Apartment',
+        price: 14500,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 4,
+        description: 'Complete 2-bedroom luxury flat with furnished living lounge, full kitchen, high-speed WiFi, smart TV, and river balcony.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-apt-2',
+        name: '3-Bedroom Executive Penthouse Flat',
+        price: 24000,
+        unit: 'per_night',
+        capacity: 7,
+        default_units: 2,
+        description: 'Spacious family penthouse apartment with 3 ensuite bedrooms, panoramic river terrace, laundry machines, and dining hall.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Apartment',
+      total_rooms: 16,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Complete Kitchen with Refrigerator & Microwave',
+        'Free High-Speed Wi-Fi & Smart TVs',
+        '24/7 Power Backup & Elevator',
+        'River Swat Front Balconies',
+        'Secure Basement Parking',
+        'Daily Housekeeping',
+      ],
+      activities: [
+        {
+          name: 'Fizagat Riverside Walking Tour',
+          duration: '1 hour',
+          desc: 'Direct access to Fizagat riverside park and children play areas.',
+        },
+      ],
+    },
+    media: [],
+    rating_count: 24,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -3816,7 +3951,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     if (!listingCover) {
                       const titleLower = (l.title || '').toLowerCase();
                       if (l.type_code === 'hotel') {
-                        listingCover = titleLower.includes('kalam') || titleLower.includes('lodge')
+                        listingCover = titleLower.includes('apartment') || titleLower.includes('flat')
+                          ? '/images/deluxe_room.jpg'
+                          : titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('guest')
                           ? '/images/kalam_lodge.jpg'
                           : '/images/swat_serena.jpg';
                       } else if (l.type_code === 'restaurant') {
@@ -3832,12 +3969,23 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       }
                     }
 
+                    const accType = l.details?.accommodation_type || (
+                      l.title.toLowerCase().includes('resort')
+                        ? 'Resort'
+                        : (l.title.toLowerCase().includes('apartment') || l.title.toLowerCase().includes('flat'))
+                        ? 'Apartment'
+                        : (l.title.toLowerCase().includes('guest') || l.title.toLowerCase().includes('inn') || l.title.toLowerCase().includes('lodge'))
+                        ? 'Guesthouse'
+                        : 'Hotel'
+                    );
+
                     return (
                       <ListingCard
                         key={`home-explore-${l.id}`}
                         id={l.id}
                         title={l.title}
                         type={l.type_code}
+                        accommodationType={l.type_code === 'hotel' ? accType : undefined}
                         areaName={l.area_name || 'Swat Valley'}
                         isVerified={l.is_verified || l.status === 'published'}
                         coverImage={listingCover}
@@ -4790,7 +4938,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       if (!listingCover) {
                         const titleLower = (l.title || '').toLowerCase();
                         if (l.type_code === 'hotel') {
-                          listingCover = titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('heights')
+                          listingCover = titleLower.includes('apartment') || titleLower.includes('flat')
+                            ? '/images/deluxe_room.jpg'
+                            : titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('heights') || titleLower.includes('guest')
                             ? '/images/kalam_lodge.jpg'
                             : '/images/swat_serena.jpg';
                         } else if (l.type_code === 'restaurant') {
@@ -4806,12 +4956,23 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         }
                       }
 
+                      const accType = l.details?.accommodation_type || (
+                        l.title.toLowerCase().includes('resort')
+                          ? 'Resort'
+                          : (l.title.toLowerCase().includes('apartment') || l.title.toLowerCase().includes('flat'))
+                          ? 'Apartment'
+                          : (l.title.toLowerCase().includes('guest') || l.title.toLowerCase().includes('inn') || l.title.toLowerCase().includes('lodge'))
+                          ? 'Guesthouse'
+                          : 'Hotel'
+                      );
+
                       return (
                         <ListingCard
                           key={l.id}
                           id={l.id}
                           title={l.title}
                           type={l.type_code}
+                          accommodationType={l.type_code === 'hotel' ? accType : undefined}
                           coverImage={listingCover}
                           areaName={l.area_name || 'Swat'}
                           isVerified={l.is_verified}

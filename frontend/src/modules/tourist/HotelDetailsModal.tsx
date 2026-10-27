@@ -408,7 +408,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-              <Tag variant="neutral">Hotel & Stay</Tag>
+              <Tag variant="neutral">{details.accommodation_type ? `${details.accommodation_type} & Stay` : 'Hotel & Stay'}</Tag>
               {hotel.is_verified && (
                 <Tag variant="ok" icon={<CheckCircle2 size={12} />}>
                   Authority Verified

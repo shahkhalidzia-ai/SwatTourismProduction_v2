@@ -21,6 +21,7 @@ export interface ListingCardProps {
   whatsappNumber?: string;
   addressText?: string;
   isSelected?: boolean;
+  accommodationType?: string;
   isCommunityService?: boolean;
   onSelect?: () => void;
   onViewHotelDetails?: () => void;
@@ -37,6 +38,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   id,
   title,
   type,
+  accommodationType,
   areaName,
   isVerified = true,
   coverImage,
@@ -117,12 +119,33 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               }}
             />
             <div style={{ display: 'flex', gap: '6px', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-              <Tag variant="neutral" style={{ textTransform: 'capitalize', backgroundColor: 'rgba(15,23,42,0.75)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
-                {type}
+              <Tag
+                variant="neutral"
+                style={{
+                  textTransform: 'capitalize',
+                  backgroundColor: 'rgba(15,23,42,0.82)',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.22)',
+                  backdropFilter: 'blur(4px)',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                }}
+              >
+                {type === 'hotel'
+                  ? (accommodationType || 'Hotel')
+                  : type === 'restaurant'
+                  ? 'Dining'
+                  : type === 'activity'
+                  ? 'Adventure'
+                  : type === 'transport'
+                  ? 'Transport'
+                  : type === 'guide'
+                  ? 'Guide'
+                  : type}
               </Tag>
               {isSelected && (
                 <Tag variant="accent" icon={<Sparkles size={11} />}>
-                  Selected Hotel
+                  Selected Stay
                 </Tag>
               )}
             </div>
@@ -257,8 +280,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({
         )}
 
         {/* Tags */}
-        {tags.length > 0 && (
+        {(tags.length > 0 || (type === 'hotel' && accommodationType)) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px' }}>
+            {type === 'hotel' && accommodationType && (
+              <Tag variant="pri" style={{ fontWeight: 700 }}>
+                🏨 {accommodationType}
+              </Tag>
+            )}
             {tags.map((tag, idx) => (
               <Tag key={idx} variant="soft">
                 {tag}
