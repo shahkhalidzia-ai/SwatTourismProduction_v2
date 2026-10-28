@@ -4651,39 +4651,95 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 }}
               >
                 {[
-                  { id: 'all', label: `All Sceneries (${effectiveDestinations.length})`, icon: <Sparkles size={11} /> },
-                  { id: 'valley', label: `Alpine Valleys (${effectiveDestinations.filter((d) => d.category === 'valley').length || 3})`, icon: <Mountain size={11} /> },
-                  { id: 'lake', label: `Glacial Lakes (${effectiveDestinations.filter((d) => d.category === 'lake').length || 2})`, icon: <Waves size={11} /> },
-                  { id: 'ski', label: `Ski & Adventure (${effectiveDestinations.filter((d) => d.category === 'ski').length || 1})`, icon: <Sparkles size={11} /> },
-                  { id: 'forest', label: `Cedar Forests (${effectiveDestinations.filter((d) => d.category === 'forest').length || 1})`, icon: <Trees size={11} /> },
-                  { id: 'heritage', label: `Royal Heritage (${effectiveDestinations.filter((d) => d.category === 'heritage').length || 1})`, icon: <Landmark size={11} /> },
+                  { id: 'all', label: 'All Sceneries', count: effectiveDestinations.length, icon: <Sparkles size={12} /> },
+                  { id: 'valley', label: 'Alpine Valleys', count: effectiveDestinations.filter((d) => d.category === 'valley').length || 3, icon: <Mountain size={12} /> },
+                  { id: 'lake', label: 'Glacial Lakes', count: effectiveDestinations.filter((d) => d.category === 'lake').length || 2, icon: <Waves size={12} /> },
+                  { id: 'ski', label: 'Ski & Adventure', count: effectiveDestinations.filter((d) => d.category === 'ski').length || 1, icon: <Sparkles size={12} /> },
+                  { id: 'forest', label: 'Cedar Forests', count: effectiveDestinations.filter((d) => d.category === 'forest').length || 1, icon: <Trees size={12} /> },
+                  { id: 'heritage', label: 'Royal Heritage', count: effectiveDestinations.filter((d) => d.category === 'heritage').length || 1, icon: <Landmark size={12} /> },
                 ].map((cat) => {
                   const isActive = destCategoryFilter === cat.id;
                   return (
                     <button
                       key={cat.id}
+                      type="button"
                       onClick={() => setDestCategoryFilter(cat.id)}
+                      data-testid={`dest-cat-btn-${cat.id}`}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
-                        padding: '4px 11px',
-                        borderRadius: '20px',
-                        fontSize: '11px',
-                        fontWeight: isActive ? 700 : 550,
-                        backgroundColor: isActive ? 'var(--pri)' : 'var(--bg)',
+                        gap: '6px',
+                        padding: '5px 12px 5px 10px',
+                        borderRadius: '9999px',
+                        fontSize: '11.5px',
+                        fontWeight: isActive ? 650 : 550,
+                        background: isActive
+                          ? 'linear-gradient(135deg, var(--pri) 0%, #1e6296 100%)'
+                          : 'var(--card)',
                         color: isActive ? 'var(--cta-text)' : 'var(--ink)',
-                        border: isActive ? '1px solid var(--pri)' : '1px solid var(--line)',
+                        border: isActive
+                          ? '1px solid var(--pri)'
+                          : '1px solid var(--line)',
+                        boxShadow: isActive
+                          ? '0 3px 10px rgba(47, 127, 193, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22)'
+                          : '0 1px 2px rgba(18, 50, 74, 0.04)',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        transition: 'all 0.15s ease',
-                        boxShadow: isActive ? '0 2px 8px rgba(47, 127, 193, 0.22)' : 'none',
+                        transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                         flexShrink: 0,
-                        height: '27px',
+                        height: '30px',
+                        boxSizing: 'border-box',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.borderColor = 'rgba(47, 127, 193, 0.45)';
+                          e.currentTarget.style.backgroundColor = 'var(--soft)';
+                          e.currentTarget.style.color = 'var(--pri)';
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = '0 3px 8px rgba(47, 127, 193, 0.12)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.borderColor = 'var(--line)';
+                          e.currentTarget.style.backgroundColor = 'var(--card)';
+                          e.currentTarget.style.color = 'var(--ink)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(18, 50, 74, 0.04)';
+                        }
                       }}
                     >
-                      {cat.icon}
-                      {cat.label}
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          color: isActive ? 'var(--cta-text)' : 'var(--pri)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {cat.icon}
+                      </span>
+                      <span>{cat.label}</span>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '18px',
+                          height: '17px',
+                          padding: '0 5px',
+                          borderRadius: '10px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : 'var(--bg)',
+                          color: isActive ? 'var(--cta-text)' : 'var(--mute)',
+                          border: isActive ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid var(--line)',
+                          lineHeight: 1,
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        {cat.count}
+                      </span>
                     </button>
                   );
                 })}
