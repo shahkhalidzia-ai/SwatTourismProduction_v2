@@ -344,9 +344,20 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
       >
         {/* Hotel Cover Photo Banner */}
         {(() => {
-          const bannerUrl = (hotel.title || '').toLowerCase().includes('kalam')
-            ? '/images/kalam_lodge.jpg'
-            : '/images/swat_serena.jpg';
+          const tLower = (hotel.title || '').toLowerCase();
+          const bannerUrl = (hotel as any).cover_image_url || hotel.media?.[0]?.url || (
+            tLower.includes('rock city') ? '/images/rock_city_resort.jpg' :
+            tLower.includes('hotel one') ? '/images/hotel_one_swat.jpg' :
+            tLower.includes('greens') ? '/images/greens_hotel_kalam.jpg' :
+            tLower.includes('zen luxus') ? '/images/zen_luxus_kalam.jpg' :
+            tLower.includes('kuwait') || tLower.includes('bahrain') ? '/images/kuwait_continental_bahrain.jpg' :
+            tLower.includes('white palace') || tLower.includes('marghazar') ? '/images/white_palace_marghuzar.jpg' :
+            tLower.includes('malam jabba') || tLower.includes('pc ') ? '/images/malam_jabba.jpg' :
+            tLower.includes('miandam') ? '/images/miandam_valley.jpg' :
+            tLower.includes('apartment') || tLower.includes('flat') ? '/images/deluxe_room.jpg' :
+            tLower.includes('kalam') || tLower.includes('lodge') || tLower.includes('walnut') ? '/images/kalam_lodge.jpg' :
+            '/images/swat_serena.jpg'
+          );
           return (
             <div
               className="hotel-modal-cover-photo"

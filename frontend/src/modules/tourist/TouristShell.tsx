@@ -95,7 +95,7 @@ import {
   type EmergencyContact,
   type SOSEvent,
 } from '../../api/safety';
-import type { ListingItem, PriceItem, ListingTypeCode } from '../../api/listings';
+import type { ListingItem, PriceItem, ListingTypeCode, MediaItem } from '../../api/listings';
 import { getPublishedTransportListingItems } from '../business/TransportFleetManager';
 import {
   fetchApprovedHostServices,
@@ -103,6 +103,17 @@ import {
   getStoredHostApplications,
   SWAT_COMMUNITY_APPS_EVENT,
 } from '../../api/community';
+
+const makeMediaItem = (id: string, url: string, caption: string, owner_id: string): MediaItem => ({
+  id,
+  owner_type: 'listing',
+  owner_id,
+  url,
+  media_type: 'image',
+  caption,
+  sort_order: 0,
+  created_at: new Date().toISOString(),
+});
 
 const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
   {
@@ -782,8 +793,480 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
         },
       ],
     },
-    media: [],
+    media: [makeMediaItem('m-fiz-apt', '/images/deluxe_room.jpg', 'Fizagat Luxury Riverview Apartments', 'listing-demo-apartment-1')],
     rating_count: 24,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '8b167bd31f6c4b2a85333a5861200ae8',
+    business_id: 'biz-rock-city',
+    business_name: 'Rock City Resort Fizagat',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'Rock City Resort, Fizagat',
+    description: 'Iconic cliffside resort perched above the roaring Swat River with terraced botanical gardens, open-air riverside BBQ gazebos, and serene mountain panoramas.',
+    address_text: 'Fizagat Cliff Heights, Swat River Road, Fizagat, Swat',
+    phone: '+92-946-724500',
+    whatsapp_number: '+92-345-7245001',
+    latitude: 34.7865,
+    longitude: 72.3725,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-rock-1',
+        name: 'River View Executive Room',
+        price: 9500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Cliffside room with private wooden balcony directly looking over the roaring Swat River.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-rock-2',
+        name: 'Cliffside Family Villa',
+        price: 17500,
+        unit: 'per_night',
+        capacity: 5,
+        default_units: 3,
+        description: 'Spacious family duplex villa with scenic parlor, master bedroom, and panoramic river deck.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Resort',
+      total_rooms: 36,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free High-Speed Wi-Fi',
+        'Swat River Panoramic Terraces',
+        '24/7 Room Heating & Hot Water',
+        'Terraced Riverside Dining Gazebos',
+        'Power Backup Generator (24/7)',
+        'Secure Private Parking',
+        'Children\'s Play Garden',
+        'BBQ & Trout Fish Specialties',
+      ],
+      activities: [
+        {
+          name: 'Fizagat River Cliff Walking Trail',
+          duration: '1 hour',
+          desc: 'Private resort trail leading down to pristine riverside stone beaches.',
+        },
+        {
+          name: 'Swat River Trout Sunset Barbecue',
+          duration: 'Evening',
+          desc: 'Chef-grilled fresh river trout with traditional naan on open river terrace.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-rock-city', '/images/rock_city_resort.jpg', 'Rock City Resort Fizagat', '8b167bd31f6c4b2a85333a5861200ae8')],
+    rating_count: 22,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '5f3a9e710b844f6cae6712390a1bc901',
+    business_id: 'biz-hotel-one',
+    business_name: 'Hotel One Swat',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'Hotel One Swat, Fizagat',
+    description: 'Contemporary upscale hotel managed by Hashoo Group, featuring elegant air-conditioned and heated rooms, multi-cuisine restaurant, and business facilities.',
+    address_text: 'Main Kalam Highway, Fizagat, Swat',
+    phone: '+92-946-722110',
+    whatsapp_number: '+92-345-7221100',
+    latitude: 34.7891,
+    longitude: 72.3752,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-h1-1',
+        name: 'Deluxe King Room',
+        price: 11000,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 10,
+        description: 'Modern room with plush king bed, workspace, 43-inch smart LED, and heated bath.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-h1-2',
+        name: 'Premium River Suite',
+        price: 16500,
+        unit: 'per_night',
+        capacity: 3,
+        default_units: 4,
+        description: 'Suite featuring separate parlor lounge, complimentary mini-bar, and panoramic views of Fizagat ridge.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 42,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free High-Speed Wi-Fi',
+        'Modern Climate Control (Heating/AC)',
+        '24/7 Room Service & Reception',
+        'In-House Restaurant \'Kafe One\'',
+        'Free Secure Basement Parking',
+        '24/7 Power Backup Generator',
+      ],
+      activities: [
+        {
+          name: 'Swat Cultural Museum & White Palace Day Trip',
+          duration: 'Half day',
+          desc: 'Guided concierge trip exploring Swat Museum and historic Royal White Palace.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-hotel-one', '/images/hotel_one_swat.jpg', 'Hotel One Swat', '5f3a9e710b844f6cae6712390a1bc901')],
+    rating_count: 19,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '6c4e1290fa81498b8c4d29310e54b677',
+    business_id: 'biz-greens-kalam',
+    business_name: 'Greens Hotel Kalam',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Kalam',
+    title: 'Greens Hotel by Roomy, Kalam',
+    description: 'Kalam\'s most iconic historic hotel on a scenic pine plateau, offering lush manicured lawns, pine-paneled rooms, room heaters, and tranquil mountain vistas.',
+    address_text: 'Kalam Hilltop, Main Bazaar Road, Kalam Valley, Swat',
+    phone: '+92-946-812111',
+    whatsapp_number: '+92-345-8121112',
+    latitude: 35.4912,
+    longitude: 72.5833,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-greens-1',
+        name: 'Pine View Deluxe Room',
+        price: 10500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 12,
+        description: 'Pine-paneled heritage room with plush king bed, heating, hot shower, and direct pine forest vista.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-greens-2',
+        name: 'Valley Family Suite',
+        price: 18000,
+        unit: 'per_night',
+        capacity: 5,
+        default_units: 5,
+        description: 'Two-room interconnecting family suite with comfortable seating area and valley view verandas.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 50,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free Wi-Fi',
+        'Pine Lawn Mountain Vistas',
+        '24/7 Hot Water & Room Heating',
+        'Traditional Swati & Continental Dining',
+        '24/7 Power Backup Generator',
+        'Free On-site Secure Parking',
+      ],
+      activities: [
+        {
+          name: 'Kalam Valley Pine Plateau Stroll',
+          duration: '1 hour',
+          desc: 'Morning walk through ancient Himalayan cedar and pine woods surrounding the property.',
+        },
+        {
+          name: 'Evening Garden Bonfire & Chai Gathering',
+          duration: 'Evening',
+          desc: 'Warm outdoor wood fire with Cardamom Kashmiri chai and local mountain tales.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-greens-kalam', '/images/greens_hotel_kalam.jpg', 'Greens Hotel Kalam', '6c4e1290fa81498b8c4d29310e54b677')],
+    rating_count: 25,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '7a5c8b3e2109485aafe931085cd49022',
+    business_id: 'biz-zen-luxus',
+    business_name: 'Zen Luxus Hotel Kalam',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Kalam',
+    title: 'Zen Luxus Hotel Kalam',
+    description: 'Ultra-modern architectural hotel in upper Kalam featuring floor-to-ceiling glass panorama walls, central climate heating, luxury bedding, and fine continental cuisine.',
+    address_text: 'Upper Kalam Heights, Riverbank Bypass, Kalam Valley, Swat',
+    phone: '+92-946-812999',
+    whatsapp_number: '+92-345-8129990',
+    latitude: 35.4940,
+    longitude: 72.5870,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-zen-1',
+        name: 'Luxury Panorama King Room',
+        price: 13500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Floor-to-ceiling glass suite looking directly onto snow-covered peaks, king bed, smart heating.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-zen-2',
+        name: 'Presidential Mountain Suite',
+        price: 22500,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 3,
+        description: 'Corner executive penthouse suite with 270-degree valley vistas, designer fireplace, and jacuzzi.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 30,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free Ultra High-Speed Wi-Fi',
+        'Central Heating & Heated Floors',
+        'Floor-to-Ceiling Snow Peak Views',
+        '24/7 Hot Water & Power Backup',
+        'Rooftop Observation & Stargazing Terrace',
+        'Gourmet Cafe & Fine Dining Lounge',
+      ],
+      activities: [
+        {
+          name: 'Rooftop Stargazing & Snow Peak Astronomy',
+          duration: 'Evening',
+          desc: 'High-powered telescope session observing Milky Way skies over Falak Sar peak.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-zen-kalam', '/images/zen_luxus_kalam.jpg', 'Zen Luxus Hotel Kalam', '7a5c8b3e2109485aafe931085cd49022')],
+    rating_count: 21,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '8c2d914560ea4f11bd3209841ca91122',
+    business_id: 'biz-white-palace',
+    business_name: 'White Palace Marghazar',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'White Palace Hotel, Marghazar',
+    description: 'Iconic royal summer residence built in 1940 by the first Wali of Swat using white chinar marble, surrounded by natural mountain streams and whispering chinars.',
+    address_text: 'Marghazar Valley, 12 km South of Saidu Sharif, Swat',
+    phone: '+92-946-741122',
+    whatsapp_number: '+92-345-7411220',
+    latitude: 34.6622,
+    longitude: 72.3167,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-wp-1',
+        name: 'Royal Heritage Room',
+        price: 8500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Marble-floored heritage room with royal arch windows, mountain views, heating, and queen bed.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-wp-2',
+        name: 'Wali-e-Swat Imperial Suite',
+        price: 15000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 2,
+        description: 'Palatial suite with antique wooden carvings, private royal reception salon, and garden fountain balcony.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 28,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Historic White Marble Architecture',
+        'Natural Spring Water Cascades & Lawns',
+        '24/7 Hot Water & Room Heating',
+        'Royal Banquet Hall & Courtyard Dining',
+        'Free Secure Grounds Parking',
+        'Power Backup Generator',
+      ],
+      activities: [
+        {
+          name: 'Royal Wali of Swat Heritage Palace Tour',
+          duration: '1 hour',
+          desc: 'Guided walking tour through royal suites, original 1940 furniture, and historic photographs.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-white-palace', '/images/white_palace_marghuzar.jpg', 'White Palace Hotel Marghazar', '8c2d914560ea4f11bd3209841ca91122')],
+    rating_count: 20,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '9a12401f5e7c41328905b1c402e9a567',
+    business_id: 'biz-kuwait-cont',
+    business_name: 'Kuwait Continental Hotel Bahrain',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Bahrain',
+    title: 'Kuwait Continental Hotel, Bahrain',
+    description: 'Established riverfront hotel located directly at the roaring confluence of Swat and Daral rivers in Bahrain, offering fresh river trout and wooden riverside balconies.',
+    address_text: 'River Confluence Road, Main Bazaar, Bahrain, Swat',
+    phone: '+92-946-781200',
+    whatsapp_number: '+92-345-7812000',
+    latitude: 35.2075,
+    longitude: 72.5488,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-kc-1',
+        name: 'River Sound Deluxe Room',
+        price: 7000,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 10,
+        description: 'Cozy wood-accented room with private balcony directly overlooking the thundering river.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-kc-2',
+        name: 'Bahrain Riverside Family Suite',
+        price: 12000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 4,
+        description: 'Two connected bedrooms with panoramic river terrace, attached baths, and 24/7 hot water.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 32,
+      star_rating: 3,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free Wi-Fi',
+        'Swat River Confluence Balconies',
+        '24/7 Hot Water & Room Heating',
+        'Riverside Fresh Trout Specialty Dining',
+        'Power Backup Generator',
+      ],
+      activities: [
+        {
+          name: 'Bahrain Woodcraft & Souvenir Bazaar Tour',
+          duration: '1.5 hours',
+          desc: 'Walk through Bahrain\'s famous market for hand-carved cedar furniture and walnut bowls.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-kuwait-cont', '/images/kuwait_continental_bahrain.jpg', 'Kuwait Continental Hotel Bahrain', '9a12401f5e7c41328905b1c402e9a567')],
+    rating_count: 18,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '3e9b11409ac64d999015c7a02b113456',
+    business_id: 'biz-miandam-palace',
+    business_name: 'Hotel Miandam Palace',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Swat',
+    title: 'Hotel Miandam Palace',
+    description: 'Quiet hilltop retreat in the terraced fruit orchards of Miandam, famous for its crisp cool climate, medicinal herb forests, and panoramic views.',
+    address_text: 'Upper Ridge Road, Miandam Valley, Swat',
+    phone: '+92-946-791144',
+    whatsapp_number: '+92-345-7911440',
+    latitude: 35.0416,
+    longitude: 72.5517,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-miandam-1',
+        name: 'Terrace Pine Room',
+        price: 6000,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Serene room with balcony opening onto apple orchards and pine mountain slopes.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-miandam-2',
+        name: 'Miandam Panoramic Suite',
+        price: 10000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 2,
+        description: 'Spacious family suite with floor-to-ceiling wooden windows overlooking the entire valley basin.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Guesthouse',
+      total_rooms: 20,
+      star_rating: 3,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free Wi-Fi',
+        'Orchard & Valley Panorama Terraces',
+        '24/7 Hot Water & Heating',
+        'Locally Sourced Organic Pashtun Meals',
+        'Free Parking',
+      ],
+      activities: [
+        {
+          name: 'Miandam Medicinal Plants & Orchard Walk',
+          duration: '2 hours',
+          desc: 'Guided nature trek across apple, peach, and walnut groves with local herbalist.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-miandam', '/images/miandam_valley.jpg', 'Hotel Miandam Palace', '3e9b11409ac64d999015c7a02b113456')],
+    rating_count: 14,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -3978,15 +4461,33 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       ? `${primaryPriceItem.default_units || 5} units free`
                       : 'Open daily';
 
-                    let listingCover = (l as any).cover_image_url || '';
+                    let listingCover = (l as any).cover_image_url || l.media?.[0]?.url || '';
                     if (!listingCover) {
                       const titleLower = (l.title || '').toLowerCase();
                       if (l.type_code === 'hotel') {
-                        listingCover = titleLower.includes('apartment') || titleLower.includes('flat')
-                          ? '/images/deluxe_room.jpg'
-                          : titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('guest')
-                          ? '/images/kalam_lodge.jpg'
-                          : '/images/swat_serena.jpg';
+                        if (titleLower.includes('rock city')) {
+                          listingCover = '/images/rock_city_resort.jpg';
+                        } else if (titleLower.includes('hotel one')) {
+                          listingCover = '/images/hotel_one_swat.jpg';
+                        } else if (titleLower.includes('greens')) {
+                          listingCover = '/images/greens_hotel_kalam.jpg';
+                        } else if (titleLower.includes('zen luxus')) {
+                          listingCover = '/images/zen_luxus_kalam.jpg';
+                        } else if (titleLower.includes('kuwait') || titleLower.includes('bahrain')) {
+                          listingCover = '/images/kuwait_continental_bahrain.jpg';
+                        } else if (titleLower.includes('white palace') || titleLower.includes('marghazar')) {
+                          listingCover = '/images/white_palace_marghuzar.jpg';
+                        } else if (titleLower.includes('malam jabba') || titleLower.includes('pc ')) {
+                          listingCover = '/images/malam_jabba.jpg';
+                        } else if (titleLower.includes('miandam')) {
+                          listingCover = '/images/miandam_valley.jpg';
+                        } else if (titleLower.includes('apartment') || titleLower.includes('flat')) {
+                          listingCover = '/images/deluxe_room.jpg';
+                        } else if (titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('guest') || titleLower.includes('walnut')) {
+                          listingCover = '/images/kalam_lodge.jpg';
+                        } else {
+                          listingCover = '/images/swat_serena.jpg';
+                        }
                       } else if (l.type_code === 'restaurant') {
                         listingCover = '/images/trout_restaurant.jpg';
                       } else if (l.type_code === 'guide') {
@@ -4966,15 +5467,33 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         extraInfo = `Vehicle: ${l.details?.vehicle_type || '4x4 Jeep'} • Seats: ${l.details?.seats || 6}`;
                       }
 
-                      let listingCover = (l as any).cover_image_url || '';
+                      let listingCover = (l as any).cover_image_url || l.media?.[0]?.url || '';
                       if (!listingCover) {
                         const titleLower = (l.title || '').toLowerCase();
                         if (l.type_code === 'hotel') {
-                          listingCover = titleLower.includes('apartment') || titleLower.includes('flat')
-                            ? '/images/deluxe_room.jpg'
-                            : titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('heights') || titleLower.includes('guest')
-                            ? '/images/kalam_lodge.jpg'
-                            : '/images/swat_serena.jpg';
+                          if (titleLower.includes('rock city')) {
+                            listingCover = '/images/rock_city_resort.jpg';
+                          } else if (titleLower.includes('hotel one')) {
+                            listingCover = '/images/hotel_one_swat.jpg';
+                          } else if (titleLower.includes('greens')) {
+                            listingCover = '/images/greens_hotel_kalam.jpg';
+                          } else if (titleLower.includes('zen luxus')) {
+                            listingCover = '/images/zen_luxus_kalam.jpg';
+                          } else if (titleLower.includes('kuwait') || titleLower.includes('bahrain')) {
+                            listingCover = '/images/kuwait_continental_bahrain.jpg';
+                          } else if (titleLower.includes('white palace') || titleLower.includes('marghazar')) {
+                            listingCover = '/images/white_palace_marghuzar.jpg';
+                          } else if (titleLower.includes('malam jabba') || titleLower.includes('pc ')) {
+                            listingCover = '/images/malam_jabba.jpg';
+                          } else if (titleLower.includes('miandam')) {
+                            listingCover = '/images/miandam_valley.jpg';
+                          } else if (titleLower.includes('apartment') || titleLower.includes('flat')) {
+                            listingCover = '/images/deluxe_room.jpg';
+                          } else if (titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('heights') || titleLower.includes('guest') || titleLower.includes('walnut')) {
+                            listingCover = '/images/kalam_lodge.jpg';
+                          } else {
+                            listingCover = '/images/swat_serena.jpg';
+                          }
                         } else if (l.type_code === 'restaurant') {
                           listingCover = '/images/trout_restaurant.jpg';
                         } else if (l.type_code === 'activity') {
