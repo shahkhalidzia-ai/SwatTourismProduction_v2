@@ -14,7 +14,7 @@ import { CommunityShell } from './modules/community/CommunityShell';
 import { AuthorityShell } from './modules/authority/AuthorityShell';
 import { DemoTourGuide } from './components/DemoTourGuide';
 
-import { ShieldAlert, LogOut, User as UserIcon, Building2, UserPlus, LogIn } from 'lucide-react';
+import { ShieldAlert, LogOut, User as UserIcon, Building2, LogIn } from 'lucide-react';
 import { Button } from './design/Button';
 
 const isTestEnv =
@@ -341,51 +341,7 @@ const MainAppContent: React.FC = () => {
             <span>List Your Property</span>
           </button>
 
-          {/* Register Tourist / Guest */}
-          <button
-            type="button"
-            onClick={() => {
-              setAuthModalConfig({
-                isOpen: true,
-                mode: 'register',
-                role: 'tourist',
-              });
-            }}
-            data-testid="btn-public-register"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              height: '30px',
-              minHeight: '0px',
-              maxHeight: '30px',
-              boxSizing: 'border-box',
-              padding: '0 12px',
-              borderRadius: '20px',
-              backgroundColor: 'var(--header-pill-bg, rgba(255, 255, 255, 0.16))',
-              border: 'var(--header-pill-border, 1px solid rgba(255, 255, 255, 0.28))',
-              backdropFilter: 'blur(6px)',
-              color: 'var(--header-pill-ink, #ffffff)',
-              fontSize: '11.5px',
-              fontWeight: 650,
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.filter = 'brightness(1.15)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.filter = 'none';
-              e.currentTarget.style.transform = 'none';
-            }}
-          >
-            <UserPlus size={13} />
-            <span>Register</span>
-          </button>
-
-          {/* Sign In */}
+          {/* Unified Sign In / Register Button */}
           <button
             type="button"
             onClick={() => {
@@ -403,7 +359,7 @@ const MainAppContent: React.FC = () => {
               minHeight: '0px',
               maxHeight: '30px',
               boxSizing: 'border-box',
-              padding: '0 12px',
+              padding: '0 13px',
               borderRadius: '20px',
               backgroundColor: '#FFFFFF',
               color: 'var(--pri)',
@@ -424,7 +380,7 @@ const MainAppContent: React.FC = () => {
             }}
           >
             <LogIn size={13} />
-            <span>Sign In</span>
+            <span>Sign In / Register</span>
           </button>
         </div>
       );

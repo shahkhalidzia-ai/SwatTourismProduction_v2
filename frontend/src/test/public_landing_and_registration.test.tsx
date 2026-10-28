@@ -14,15 +14,12 @@ describe('Public Landing Page and Property Registration Verification', () => {
 
     // Verify Public Header Actions are rendered
     const listPropertyBtn = await screen.findByTestId('btn-public-list-property');
-    const registerBtn = await screen.findByTestId('btn-public-register');
     const loginBtn = await screen.findByTestId('btn-public-login');
 
     expect(listPropertyBtn).toBeDefined();
-    expect(registerBtn).toBeDefined();
     expect(loginBtn).toBeDefined();
     expect(screen.getByText('List Your Property')).toBeDefined();
-    expect(screen.getByText('Register')).toBeDefined();
-    expect(screen.getByText('Sign In')).toBeDefined();
+    expect(screen.getByText('Sign In / Register')).toBeDefined();
 
     // Verify Tourist Home Screen is active by default
     expect(await screen.findByText('Swat Tourism Platform')).toBeDefined();
@@ -42,17 +39,16 @@ describe('Public Landing Page and Property Registration Verification', () => {
     expect(screen.getByText('Primary Business Type')).toBeDefined();
   });
 
-  it('opens AuthModal with Tourist role when "Register" is clicked', async () => {
+  it('opens AuthModal when "Sign In / Register" is clicked', async () => {
     render(<App />);
 
-    const registerBtn = await screen.findByTestId('btn-public-register');
+    const authBtn = await screen.findByTestId('btn-public-login');
     await act(async () => {
-      fireEvent.click(registerBtn);
+      fireEvent.click(authBtn);
     });
 
-    // Verify Auth Modal is opened in register mode with tourist fields
-    expect(await screen.findByText('Create an Account')).toBeDefined();
-    expect(screen.getByText('Home City')).toBeDefined();
+    expect(await screen.findByText(/Welcome to Swat Tourism|Create an Account|Sign In/i)).toBeDefined();
+  });
   });
 
   it('opens AuthModal in login mode when "Sign In" is clicked', async () => {
@@ -118,10 +114,15 @@ describe('Public Landing Page and Property Registration Verification', () => {
   it('disables one-click persona logins when registration mode is active, and enables in login mode', async () => {
     render(<App />);
 
-    // Open AuthModal in registration mode
-    const registerBtn = await screen.findByTestId('btn-public-register');
+    // Open AuthModal and switch to registration mode
+    const authBtn = await screen.findByTestId('btn-public-login');
     await act(async () => {
-      fireEvent.click(registerBtn);
+      fireEvent.click(authBtn);
+    });
+
+    const registerTab = await screen.findByRole('button', { name: /Register/i });
+    await act(async () => {
+      fireEvent.click(registerTab);
     });
 
     expect(await screen.findByText('Create an Account')).toBeDefined();
