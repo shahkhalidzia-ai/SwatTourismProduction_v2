@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, CheckCircle2, Calendar, Plus, Phone, Bed, UtensilsCrossed, Sparkles, Car, Compass, Users, Star } from 'lucide-react';
+import { MapPin, CheckCircle2, Calendar, Plus, Phone, Bed, UtensilsCrossed, Sparkles, Car, Compass, Users, Star, CloudSun } from 'lucide-react';
 import { Card } from './Card';
 import { Tag } from './Tag';
 import { Button } from './Button';
@@ -27,6 +27,7 @@ export interface ListingCardProps {
   onViewHotelDetails?: () => void;
   onViewMenu?: () => void;
   onViewMap?: () => void;
+  onViewWeather?: () => void;
   onCheckDates?: () => void;
   onAddToTrip?: () => void;
   onInstantReserve?: () => void;
@@ -56,6 +57,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   onViewHotelDetails,
   onViewMenu,
   onViewMap,
+  onViewWeather,
   onCheckDates,
   onAddToTrip,
   onInstantReserve,
@@ -211,40 +213,76 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               <span style={{ color: 'var(--mute)', fontWeight: 500 }}>({effectiveReviews})</span>
             </span>
           </div>
-          {onViewMap && (
-            <button
-              type="button"
-              className="btn-card-view-map"
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewMap();
-              }}
-              title={`View ${title} on interactive map`}
-              data-testid={`btn-view-map-${id || 'item'}`}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                color: 'var(--pri)',
-                fontWeight: 700,
-                fontSize: '11px',
-                minHeight: 'unset',
-                height: 'auto',
-                padding: '2px 8px',
-                backgroundColor: 'rgba(47, 127, 193, 0.09)',
-                border: '1px solid rgba(47, 127, 193, 0.28)',
-                borderRadius: 'var(--radius-tag)',
-                cursor: 'pointer',
-                transition: 'all 0.16s ease',
-                flexShrink: 0,
-                lineHeight: 1.2,
-                boxSizing: 'border-box',
-              }}
-            >
-              <MapPin size={11} color="var(--pri)" style={{ flexShrink: 0 }} />
-              <span>View Map</span>
-            </button>
-          )}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0, flexWrap: 'wrap' }}>
+            {onViewMap && (
+              <button
+                type="button"
+                className="btn-card-view-map"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewMap();
+                }}
+                title={`View ${title} on interactive map`}
+                data-testid={`btn-view-map-${id || 'item'}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: 'var(--pri)',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  minHeight: 'unset',
+                  height: 'auto',
+                  padding: '2px 8px',
+                  backgroundColor: 'rgba(47, 127, 193, 0.09)',
+                  border: '1px solid rgba(47, 127, 193, 0.28)',
+                  borderRadius: 'var(--radius-tag)',
+                  cursor: 'pointer',
+                  transition: 'all 0.16s ease',
+                  flexShrink: 0,
+                  lineHeight: 1.2,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <MapPin size={11} color="var(--pri)" style={{ flexShrink: 0 }} />
+                <span>View Map</span>
+              </button>
+            )}
+            {onViewWeather && (
+              <button
+                type="button"
+                className="btn-card-view-weather btn-card-weather"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewWeather();
+                }}
+                title={`View weather forecast for ${title}`}
+                data-testid={`btn-view-weather-${id || 'item'}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  color: 'var(--pri)',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  minHeight: 'unset',
+                  height: 'auto',
+                  padding: '2px 8px',
+                  backgroundColor: 'rgba(47, 127, 193, 0.09)',
+                  border: '1px solid rgba(47, 127, 193, 0.28)',
+                  borderRadius: 'var(--radius-tag)',
+                  cursor: 'pointer',
+                  transition: 'all 0.16s ease',
+                  flexShrink: 0,
+                  lineHeight: 1.2,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <CloudSun size={11} color="var(--pri)" style={{ flexShrink: 0 }} />
+                <span>View Weather</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Restaurant Specific: Contact No directly visible on card */}

@@ -3195,8 +3195,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         </div>
       )}
 
-      {/* Active Advisory Banner on non-home tabs */}
-      {activeTab !== 'home' && renderAdvisoryFrame(false)}
+      {/* Active Advisory Banner on non-home, non-trips tabs */}
+      {activeTab !== 'home' && activeTab !== 'trips' && renderAdvisoryFrame(false)}
 
       {/* ========================================================================= */}
       {/* TAB 1: HOME */}
@@ -4558,6 +4558,29 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                             destinationCity: l.area_name || l.title,
                           });
                         }}
+                        onViewWeather={
+                          l.type_code === 'hotel'
+                            ? () => {
+                                const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
+                                const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
+                                setWeatherModal({
+                                  isOpen: true,
+                                  destination: {
+                                    id: l.id,
+                                    name: l.title,
+                                    area_name: l.area_name || 'Swat Valley',
+                                    latitude: lat,
+                                    longitude: lng,
+                                    category: 'Hotel',
+                                    area_id: l.area_id || '',
+                                    is_approved: true,
+                                    is_featured: false,
+                                    created_at: new Date().toISOString(),
+                                  },
+                                });
+                              }
+                            : undefined
+                        }
                         onCheckDates={
                           l.type_code === 'hotel'
                             ? () =>
@@ -5661,6 +5684,29 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               destinationCity: l.area_name || l.title,
                             })
                           }
+                          onViewWeather={
+                            l.type_code === 'hotel'
+                              ? () => {
+                                  const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
+                                  const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
+                                  setWeatherModal({
+                                    isOpen: true,
+                                    destination: {
+                                      id: l.id,
+                                      name: l.title,
+                                      area_name: l.area_name || 'Swat Valley',
+                                      latitude: lat,
+                                      longitude: lng,
+                                      category: 'Hotel',
+                                      area_id: l.area_id || '',
+                                      is_approved: true,
+                                      is_featured: false,
+                                      created_at: new Date().toISOString(),
+                                    },
+                                  });
+                                }
+                              : undefined
+                          }
                           onCheckDates={() =>
                             setAvailModal({
                               open: true,
@@ -5807,7 +5853,20 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
       {/* ========================================================================= */}
       {activeTab === 'trips' && (
         <>
-          {currentViewedTrip ? (
+          {/* Top Blue Banner on Tourist Screen with matching landing page styling */}
+          <TourismAnimatedBanner
+            title="Swat Tourism Platform"
+            subtitle="Discover valleys, book stays, and explore safely"
+            headerAction={headerAction}
+            homeSearchTab={homeSearchTab}
+            onHomeSearchTabChange={setHomeSearchTab}
+          />
+
+          {/* Top Hero Split Layout: 80% Trip Planner / 20% Advisory, Road & Weather Intelligence */}
+          <div className="tourist-home-hero-split">
+            {/* Left 80% Column: Trip Manager & Saved Trips Views */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0, maxWidth: '100%', width: '100%' }}>
+              {currentViewedTrip ? (
             <TripManagerView
               trip={currentViewedTrip}
               bookings={myBookings.filter(
@@ -5979,6 +6038,25 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               onDeleteTrip={handleDeleteTrip}
             />
           )}
+            </div>
+
+            {/* Right 20% Column: Live Road Status Frame (over Advisory), Active Advisory Frame & This Weekend Weather Frame */}
+            <div
+              className="tourist-home-hero-sidebar"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                minWidth: 0,
+                position: 'sticky',
+                top: '16px',
+              }}
+            >
+              {renderRoadStatusFrame()}
+              {renderAdvisoryFrame(true)}
+              {renderWeekendWeatherCard()}
+            </div>
+          </div>
         </>
       )}
 

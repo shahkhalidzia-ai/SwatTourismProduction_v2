@@ -56,6 +56,7 @@ const OPENWEATHER_API_KEY = (import.meta as any).env?.VITE_OPENWEATHER_API_KEY |
 
 // Coordinate lookup for Swat destinations if not present
 const DESTINATION_COORDS: Record<string, { lat: number; lon: number; altitude: number }> = {
+  'kalam': { lat: 35.48, lon: 72.58, altitude: 2000 },
   'kalam valley': { lat: 35.48, lon: 72.58, altitude: 2000 },
   'mahodand lake': { lat: 35.7142, lon: 72.6486, altitude: 2865 },
   'malam jabba': { lat: 34.7997, lon: 72.5714, altitude: 2804 },
@@ -63,6 +64,7 @@ const DESTINATION_COORDS: Record<string, { lat: number; lon: number; altitude: n
   'bahrain': { lat: 35.2064, lon: 72.5539, altitude: 1400 },
   'madyan': { lat: 35.1347, lon: 72.5342, altitude: 1320 },
   'mingora': { lat: 34.7717, lon: 72.3602, altitude: 984 },
+  'saidu sharif': { lat: 34.75, lon: 72.35, altitude: 970 },
   'miandam': { lat: 35.0431, lon: 72.5489, altitude: 1800 },
 };
 
@@ -92,6 +94,8 @@ export const WeatherForecastModal: React.FC<WeatherForecastModalProps> = ({
     if (!destination) return { lat: 35.48, lon: 72.58, altitude: 2000 };
     const destKey = destination.name.toLowerCase().trim();
     if (DESTINATION_COORDS[destKey]) return DESTINATION_COORDS[destKey];
+    const areaKey = (destination.area_name || '').toLowerCase().trim();
+    if (DESTINATION_COORDS[areaKey]) return DESTINATION_COORDS[areaKey];
     return {
       lat: destination.latitude || 35.48,
       lon: destination.longitude || 72.58,

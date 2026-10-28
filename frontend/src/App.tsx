@@ -508,7 +508,7 @@ const MainAppContent: React.FC = () => {
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         headerAction={renderHeaderAction()}
-        hideTopBanner={activeTab === 'home'}
+        hideTopBanner={activeTab === 'home' || activeTab === 'trips'}
       >
         {renderActiveShell()}
 

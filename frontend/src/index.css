@@ -814,11 +814,13 @@ textarea:focus-visible {
 }
 
 /* Card Weather Button */
-.btn-card-weather {
+.btn-card-weather,
+.btn-card-view-weather {
   transition: all 0.16s ease !important;
 }
 
-.btn-card-weather:hover {
+.btn-card-weather:hover,
+.btn-card-view-weather:hover {
   background-color: var(--pri) !important;
   color: var(--cta-text) !important;
   border-color: var(--pri) !important;
@@ -827,11 +829,15 @@ textarea:focus-visible {
 }
 
 .btn-card-weather:hover span,
-.btn-card-weather:hover svg {
+.btn-card-weather:hover svg,
+.btn-card-view-weather:hover span,
+.btn-card-view-weather:hover svg {
   color: var(--cta-text) !important;
+  stroke: var(--cta-text) !important;
 }
 
-.btn-card-weather:active {
+.btn-card-weather:active,
+.btn-card-view-weather:active {
   transform: translateY(0);
 }
 
