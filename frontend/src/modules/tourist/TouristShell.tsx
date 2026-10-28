@@ -3250,7 +3250,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
             {/* TAB CONTENT 1: VALLEYS & PLACES SEARCH */}
             {homeSearchTab === 'valleys' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {/* Unified Search Input Container */}
                 <div
                   className="hero-search-input-box"
@@ -3259,16 +3259,16 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     alignItems: 'center',
                     backgroundColor: 'var(--bg)',
                     border: '1.5px solid var(--line)',
-                    borderRadius: '12px',
-                    padding: '4px 6px 4px 14px',
+                    borderRadius: '10px',
+                    padding: '3px 6px 3px 12px',
                     transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
                     gap: '8px',
-                    minHeight: '46px',
+                    minHeight: '38px',
                     flexWrap: 'wrap',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }}>
-                    <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
+                    <Search size={16} color="var(--pri)" style={{ flexShrink: 0 }} />
                     <input
                       type="text"
                       value={searchQuery}
@@ -3280,8 +3280,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         outline: 'none',
                         backgroundColor: 'transparent',
                         color: 'var(--ink)',
-                        fontSize: '13.5px',
-                        padding: '8px 4px',
+                        fontSize: '13px',
+                        padding: '6px 4px',
                         minWidth: 0,
                       }}
                     />
@@ -3294,7 +3294,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           border: 'none',
                           color: 'var(--mute)',
                           cursor: 'pointer',
-                          padding: '4px',
+                          padding: '3px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -3302,7 +3302,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         }}
                         title="Clear search"
                       >
-                        <X size={15} />
+                        <X size={14} />
                       </button>
                     )}
                   </div>
@@ -3313,11 +3313,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         /* search query filters view directly */
                       }}
                       style={{
-                        borderRadius: '9px',
-                        padding: '7px 16px',
-                        fontSize: '12.5px',
+                        borderRadius: '8px',
+                        padding: '5px 14px',
+                        fontSize: '12px',
                         fontWeight: 700,
                         flexShrink: 0,
+                        height: '30px',
                       }}
                     >
                       Search
@@ -3327,9 +3328,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       onClick={() => setShowAITripModal(true)}
                       data-testid="btn-home-ai-trip"
                       style={{
-                        borderRadius: '9px',
-                        padding: '7px 12px',
-                        fontSize: '12px',
+                        borderRadius: '8px',
+                        padding: '5px 10px',
+                        fontSize: '11.5px',
                         fontWeight: 700,
                         backgroundColor: '#F0FDF4',
                         color: '#065F46',
@@ -3338,46 +3339,29 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
+                        height: '30px',
                       }}
                     >
-                      <Sparkles size={14} color="#059669" />
+                      <Sparkles size={13} color="#059669" />
                       <span>AI Trip</span>
                     </Button>
                   </div>
                 </div>
 
                 {/* Popular Valleys Quick-Pills Filter Bar */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--mute)' }}>
-                    <span style={{ fontWeight: 600 }}>Quick Valley Filter:</span>
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--pri)',
-                          fontSize: '11px',
-                          fontWeight: 650,
-                          cursor: 'pointer',
-                          padding: 0,
-                        }}
-                      >
-                        Reset to All Valleys
-                      </button>
-                    )}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 650, color: 'var(--mute)', flexShrink: 0 }}>
+                    Quick Valleys:
+                  </span>
                   <div
                     style={{
                       display: 'flex',
-                      gap: '7px',
+                      gap: '6px',
                       overflowX: 'auto',
-                      padding: '2px 2px 4px 2px',
+                      padding: '2px 0',
                       scrollbarWidth: 'none',
+                      flex: 1,
                       minWidth: 0,
-                      maxWidth: '100%',
-                      width: '100%',
                     }}
                   >
                     {[
@@ -3399,18 +3383,19 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
-                            padding: '6px 12px',
+                            gap: '4px',
+                            padding: '4px 10px',
                             borderRadius: '9999px',
-                            fontSize: '11.5px',
+                            fontSize: '11px',
                             fontWeight: isSelected ? 700 : 550,
                             backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
                             color: isSelected ? '#FFFFFF' : 'var(--ink)',
                             border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
-                            boxShadow: isSelected ? '0 2px 6px rgba(47, 127, 193, 0.22)' : '0 1px 3px rgba(0,0,0,0.03)',
+                            boxShadow: isSelected ? '0 2px 6px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
                             transition: 'all 0.15s ease',
+                            height: '26px',
                           }}
                         >
                           <span>{valley.icon}</span>
@@ -3419,49 +3404,43 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       );
                     })}
                   </div>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '11px',
+                        fontWeight: 650,
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Reset ✕
+                    </button>
+                  )}
                 </div>
 
                 {/* Quick Itinerary Presets: Curated 1-Tap Journeys */}
-                <div className="itinerary-presets-container" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--mute)' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 650, color: 'var(--ink)' }}>
-                      <Sparkles size={13} color="var(--pri)" />
-                      <span>Quick Itinerary Presets:</span>
-                    </span>
-                    {activeItineraryPreset && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveItineraryPreset(null);
-                          setSearchQuery('');
-                          setDestCategoryFilter('all');
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--pri)',
-                          fontSize: '11px',
-                          fontWeight: 650,
-                          cursor: 'pointer',
-                          padding: 0,
-                        }}
-                      >
-                        Reset Itinerary ✕
-                      </button>
-                    )}
-                  </div>
+                <div className="itinerary-presets-container" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 650, color: 'var(--ink)', flexShrink: 0 }}>
+                    <Sparkles size={12} color="var(--pri)" />
+                    <span>Presets:</span>
+                  </span>
 
                   <div
                     className="itinerary-presets-row"
                     style={{
                       display: 'flex',
-                      gap: '8px',
+                      gap: '6px',
                       overflowX: 'auto',
-                      padding: '2px 2px 4px 2px',
+                      padding: '2px 0',
                       scrollbarWidth: 'none',
+                      flex: 1,
                       minWidth: 0,
-                      maxWidth: '100%',
-                      width: '100%',
                     }}
                   >
                     {[
@@ -3479,7 +3458,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         label: 'Ski & Adventure',
                         duration: '2 Days',
                         icon: '⛷️',
-                        tag: 'Malam Jabba Resort • Slopes',
+                        tag: 'Malam Jabba Slopes',
                         query: 'Malam Jabba',
                         category: 'all',
                       },
@@ -3488,16 +3467,16 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         label: 'Honeymoon & Luxury',
                         duration: '4 Days',
                         icon: '💍',
-                        tag: 'White Palace • Kalam Retreat',
+                        tag: 'White Palace • Kalam',
                         query: 'Marghuzar, Kalam',
                         category: 'all',
                       },
                       {
                         id: 'backpacker-trek',
-                        label: 'Backpacker & Trekking',
+                        label: 'Backpacker & Trek',
                         duration: '4 Days',
                         icon: '🎒',
-                        tag: 'Ushu Forest • Mahodand Lake',
+                        tag: 'Ushu • Mahodand Lake',
                         query: 'Mahodand, Ushu',
                         category: 'lake',
                       },
@@ -3520,51 +3499,63 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           }}
                           style={{
                             display: 'inline-flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-start',
-                            gap: '2px',
-                            padding: '7px 12px',
-                            borderRadius: '12px',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '4px 10px',
+                            borderRadius: '8px',
                             backgroundColor: isActive ? 'var(--pri)' : '#FFFFFF',
                             color: isActive ? '#FFFFFF' : 'var(--ink)',
                             border: isActive ? '1.5px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
-                            boxShadow: isActive ? '0 3px 10px rgba(47, 127, 193, 0.28)' : '0 1px 3px rgba(0,0,0,0.03)',
+                            boxShadow: isActive ? '0 2px 6px rgba(47, 127, 193, 0.22)' : '0 1px 2px rgba(0,0,0,0.02)',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
-                            transition: 'all 0.18s ease',
+                            transition: 'all 0.15s ease',
                             flexShrink: 0,
-                            textAlign: 'left',
+                            height: '28px',
                           }}
+                          title={preset.tag}
                         >
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '13px' }}>{preset.icon}</span>
-                            <span style={{ fontSize: '12px', fontWeight: 700 }}>{preset.label}</span>
-                            <span
-                              style={{
-                                fontSize: '10px',
-                                fontWeight: 700,
-                                padding: '1px 5px',
-                                borderRadius: '6px',
-                                backgroundColor: isActive ? 'rgba(255,255,255,0.22)' : 'rgba(47, 127, 193, 0.1)',
-                                color: isActive ? '#FFFFFF' : 'var(--pri)',
-                              }}
-                            >
-                              {preset.duration}
-                            </span>
-                          </div>
+                          <span style={{ fontSize: '12px' }}>{preset.icon}</span>
+                          <span style={{ fontSize: '11px', fontWeight: 700 }}>{preset.label}</span>
                           <span
                             style={{
-                              fontSize: '10.5px',
-                              fontWeight: 500,
-                              color: isActive ? 'rgba(255,255,255,0.85)' : 'var(--mute)',
+                              fontSize: '9.5px',
+                              fontWeight: 700,
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              backgroundColor: isActive ? 'rgba(255,255,255,0.22)' : 'rgba(47, 127, 193, 0.1)',
+                              color: isActive ? '#FFFFFF' : 'var(--pri)',
                             }}
                           >
-                            {preset.tag}
+                            {preset.duration}
                           </span>
                         </button>
                       );
                     })}
                   </div>
+
+                  {activeItineraryPreset && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveItineraryPreset(null);
+                        setSearchQuery('');
+                        setDestCategoryFilter('all');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '11px',
+                        fontWeight: 650,
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Reset ✕
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -4579,31 +4570,31 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           {homeSearchTab === 'valleys' && (
             <div className="dest-section-container" style={{ marginTop: '0px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
             {/* Header & Subtitle */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <div
                     style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
+                      width: '26px',
+                      height: '26px',
+                      borderRadius: '7px',
                       background: 'linear-gradient(135deg, var(--pri), #047857)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: '#ffffff',
-                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)',
                       flexShrink: 0,
                     }}
                   >
-                    <Mountain size={18} />
+                    <Mountain size={15} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <h3 className="dest-header-title" style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+                    <h3 className="dest-header-title" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
                       Popular Destinations
                     </h3>
-                    <p className="dest-header-subtitle" style={{ fontSize: '12px', color: 'var(--mute)', margin: '2px 0 0 0', lineHeight: 1.35 }}>
-                      Breathtaking alpine valleys, turquoise glacial lakes, chairlift peaks & royal palaces
+                    <p className="dest-header-subtitle" style={{ fontSize: '11.5px', color: 'var(--mute)', margin: '1px 0 0 0', lineHeight: 1.3 }}>
+                      Breathtaking alpine valleys, turquoise glacial lakes, chairlift peaks &amp; royal palaces
                     </p>
                   </div>
                 </div>
@@ -4612,18 +4603,18 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px',
-                    padding: '4px 10px',
-                    borderRadius: '20px',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '16px',
                     backgroundColor: 'rgba(16, 185, 129, 0.08)',
                     color: 'var(--pri)',
-                    fontSize: '11px',
+                    fontSize: '10.5px',
                     fontWeight: 600,
                     border: '1px solid rgba(16, 185, 129, 0.2)',
                     flexShrink: 0,
                   }}
                 >
-                  <Sparkles size={12} />
+                  <Sparkles size={11} />
                   {effectiveDestinations.length} Approved Swat Spots
                 </span>
               </div>
@@ -4635,7 +4626,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   display: 'flex',
                   gap: '6px',
                   overflowX: 'auto',
-                  padding: '8px 0 4px 0',
+                  padding: '4px 0 2px 0',
                   scrollbarWidth: 'none',
                   width: '100%',
                   maxWidth: '100%',
@@ -4643,12 +4634,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 }}
               >
                 {[
-                  { id: 'all', label: `All Sceneries (${effectiveDestinations.length})`, icon: <Sparkles size={12} /> },
-                  { id: 'valley', label: `Alpine Valleys (${effectiveDestinations.filter((d) => d.category === 'valley').length || 3})`, icon: <Mountain size={12} /> },
-                  { id: 'lake', label: `Glacial Lakes (${effectiveDestinations.filter((d) => d.category === 'lake').length || 2})`, icon: <Waves size={12} /> },
-                  { id: 'ski', label: `Ski & Adventure (${effectiveDestinations.filter((d) => d.category === 'ski').length || 1})`, icon: <Sparkles size={12} /> },
-                  { id: 'forest', label: `Cedar Forests (${effectiveDestinations.filter((d) => d.category === 'forest').length || 1})`, icon: <Trees size={12} /> },
-                  { id: 'heritage', label: `Royal Heritage (${effectiveDestinations.filter((d) => d.category === 'heritage').length || 1})`, icon: <Landmark size={12} /> },
+                  { id: 'all', label: `All Sceneries (${effectiveDestinations.length})`, icon: <Sparkles size={11} /> },
+                  { id: 'valley', label: `Alpine Valleys (${effectiveDestinations.filter((d) => d.category === 'valley').length || 3})`, icon: <Mountain size={11} /> },
+                  { id: 'lake', label: `Glacial Lakes (${effectiveDestinations.filter((d) => d.category === 'lake').length || 2})`, icon: <Waves size={11} /> },
+                  { id: 'ski', label: `Ski & Adventure (${effectiveDestinations.filter((d) => d.category === 'ski').length || 1})`, icon: <Sparkles size={11} /> },
+                  { id: 'forest', label: `Cedar Forests (${effectiveDestinations.filter((d) => d.category === 'forest').length || 1})`, icon: <Trees size={11} /> },
+                  { id: 'heritage', label: `Royal Heritage (${effectiveDestinations.filter((d) => d.category === 'heritage').length || 1})`, icon: <Landmark size={11} /> },
                 ].map((cat) => {
                   const isActive = destCategoryFilter === cat.id;
                   return (
@@ -4658,19 +4649,20 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '5px',
-                        padding: '6px 12px',
+                        gap: '4px',
+                        padding: '4px 10px',
                         borderRadius: '20px',
-                        fontSize: '11.5px',
+                        fontSize: '11px',
                         fontWeight: isActive ? 600 : 500,
                         backgroundColor: isActive ? 'var(--pri)' : 'var(--surface)',
                         color: isActive ? '#ffffff' : 'var(--ink)',
                         border: isActive ? '1px solid var(--pri)' : '1px solid var(--border)',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
-                        transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                        boxShadow: isActive ? '0 4px 12px rgba(16, 185, 129, 0.25)' : 'none',
+                        transition: 'all 0.15s ease',
+                        boxShadow: isActive ? '0 2px 8px rgba(16, 185, 129, 0.2)' : 'none',
                         flexShrink: 0,
+                        height: '27px',
                       }}
                     >
                       {cat.icon}
