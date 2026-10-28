@@ -296,11 +296,11 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 scrollbarWidth: 'none',
               }}
             >
-              {/* 1. Stays (formerly Explore) */}
+              {/* 1. Explore & Book */}
               <button
                 type="button"
                 onClick={() => onHomeSearchTabChange('explore')}
-                title="Explore Stays, Guide and Dining"
+                title="Browse and reserve Hotels, Dining, Guides & Transport"
                 data-testid="tab-home-explore"
                 style={{
                   display: 'inline-flex',
@@ -340,8 +340,8 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
                 }}
               >
                 <Compass size={12} color={homeSearchTab === 'explore' ? '#0369A1' : '#FDE047'} />
-                <span className="banner-tab-text-full">Stays</span>
-                <span className="banner-tab-text-short">Stays</span>
+                <span className="banner-tab-text-full">Explore &amp; Book</span>
+                <span className="banner-tab-text-short">Explore &amp; Book</span>
               </button>
 
               {/* 2. Transport */}
