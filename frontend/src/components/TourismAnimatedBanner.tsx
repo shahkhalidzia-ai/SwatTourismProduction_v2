@@ -217,6 +217,7 @@ export const TourismAnimatedBanner: React.FC<TourismAnimatedBannerProps> = ({
         {/* Top Right: Weather & Destination Ticker Pill */}
         <div
           id="header-weather-destination-pill"
+          className="header-weather-destination-pill"
           style={{
             display: 'flex',
             alignItems: 'center',

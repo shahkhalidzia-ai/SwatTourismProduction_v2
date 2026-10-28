@@ -1022,4 +1022,26 @@ textarea:focus-visible {
   gap: 5px !important;
 }
 
+/* Hide weather frame and web/phone view switch in phone view and mobile devices */
+@media (max-width: 640px) {
+  .header-weather-destination-pill,
+  #header-weather-destination-pill,
+  .tourism-scenic-banner .view-switch-container,
+  .tourism-scenic-banner [data-testid="view-switch-container"] {
+    display: none !important;
+  }
+}
+
+#mobile-phone-frame .header-weather-destination-pill,
+#mobile-phone-frame #header-weather-destination-pill,
+#mobile-phone-frame .view-switch-container,
+#mobile-phone-frame [data-testid="view-switch-container"],
+.phone-layout .header-weather-destination-pill,
+.phone-layout #header-weather-destination-pill,
+.phone-layout .view-switch-container,
+.phone-layout [data-testid="view-switch-container"] {
+  display: none !important;
+}
+
+
 

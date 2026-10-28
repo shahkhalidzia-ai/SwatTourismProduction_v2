@@ -12,6 +12,7 @@ interface ViewSwitchProps {
 export const ViewSwitch: React.FC<ViewSwitchProps> = ({ currentMode, onModeChange, style }) => {
   return (
     <div
+      className="view-switch-container"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
