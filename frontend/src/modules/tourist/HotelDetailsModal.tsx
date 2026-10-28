@@ -666,18 +666,18 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
         <div
           className="hotel-modal-content-body"
           style={{
-            padding: '20px 24px',
+            padding: '14px 20px',
             overflowY: 'auto',
             flex: '1 1 auto',
             minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
-            gap: '20px',
+            gap: '14px',
           }}
         >
           {/* TAB 1: ROOMS & AVAILABILITY */}
           {activeTab === 'rooms' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {/* SUCCESS BANNER / VIEW IF BOOKED */}
               {bookingSuccess ? (
                 <div
@@ -761,34 +761,42 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                 </div>
               ) : (
                 <>
-                  {/* STAY CONTROLS BAR: Dates, Travellers, Rooms */}
+                  {/* STAY CONTROLS BAR: Compacted & Styled like Room Card Frame */}
                   <div
                     style={{
-                      padding: '16px 20px',
+                      padding: '10px 14px',
                       borderRadius: 'var(--radius-card)',
-                      backgroundColor: 'var(--soft)',
+                      backgroundColor: 'var(--card)',
                       border: '1px solid var(--line)',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '12px',
+                      gap: '8px',
                     }}
                     data-testid="stay-controls-bar"
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                      <span style={{ fontSize: 'var(--font-xs)', fontWeight: 700, color: 'var(--pri)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        📅 Select Stay Dates &amp; Capacity
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span>📅</span> Stay Dates &amp; Capacity
+                        {isLoadingAvail && (
+                          <span style={{ fontSize: '10.5px', color: 'var(--mute)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 400 }}>
+                            • <Loader2 size={11} className="animate-spin" /> Live checking...
+                          </span>
+                        )}
                       </span>
-                      {isLoadingAvail && (
-                        <span style={{ fontSize: '11px', color: 'var(--mute)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Loader2 size={12} className="animate-spin" /> Checking live availability...
+
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--mute)' }}>
+                        <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(23, 76, 114, 0.08)', color: 'var(--pri)', fontWeight: 600 }}>
+                          {nightsCount} Night{nightsCount > 1 ? 's' : ''} Stay
                         </span>
-                      )}
+                        <span>({checkInDate} to {checkOutDate})</span>
+                      </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px' }}>
                       {/* Check-in */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--mute)', marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: 'var(--mute)', marginBottom: '3px' }}>
                           Check-in Date
                         </label>
                         <input
@@ -806,14 +814,15 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           }}
                           style={{
                             width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
                             border: '1px solid var(--line)',
                             backgroundColor: 'var(--card)',
                             color: 'var(--ink)',
                             fontSize: 'var(--font-xs)',
                             fontWeight: 600,
                             boxSizing: 'border-box',
+                            outline: 'none',
                           }}
                           data-testid="input-check-in-date"
                         />
@@ -821,7 +830,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
 
                       {/* Check-out */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--mute)', marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: 'var(--mute)', marginBottom: '3px' }}>
                           Check-out Date
                         </label>
                         <input
@@ -831,14 +840,15 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           onChange={(e) => setCheckOutDate(e.target.value)}
                           style={{
                             width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
                             border: '1px solid var(--line)',
                             backgroundColor: 'var(--card)',
                             color: 'var(--ink)',
                             fontSize: 'var(--font-xs)',
                             fontWeight: 600,
                             boxSizing: 'border-box',
+                            outline: 'none',
                           }}
                           data-testid="input-check-out-date"
                         />
@@ -846,7 +856,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
 
                       {/* Guests */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--mute)', marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: 'var(--mute)', marginBottom: '3px' }}>
                           Guests / Travellers
                         </label>
                         <select
@@ -854,14 +864,15 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           onChange={(e) => setTravellers(Number(e.target.value))}
                           style={{
                             width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
                             border: '1px solid var(--line)',
                             backgroundColor: 'var(--card)',
                             color: 'var(--ink)',
                             fontSize: 'var(--font-xs)',
                             fontWeight: 600,
                             boxSizing: 'border-box',
+                            outline: 'none',
                           }}
                           data-testid="select-guests-count"
                         >
@@ -875,7 +886,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
 
                       {/* Rooms Count */}
                       <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--mute)', marginBottom: '4px' }}>
+                        <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: 'var(--mute)', marginBottom: '3px' }}>
                           Number of Rooms
                         </label>
                         <select
@@ -883,14 +894,15 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           onChange={(e) => setRoomsCount(Number(e.target.value))}
                           style={{
                             width: '100%',
-                            padding: '9px 12px',
-                            borderRadius: '8px',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
                             border: '1px solid var(--line)',
                             backgroundColor: 'var(--card)',
                             color: 'var(--ink)',
                             fontSize: 'var(--font-xs)',
                             fontWeight: 600,
                             boxSizing: 'border-box',
+                            outline: 'none',
                           }}
                           data-testid="select-rooms-count"
                         >
@@ -901,15 +913,6 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           ))}
                         </select>
                       </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--mute)', borderTop: '1px dashed var(--line)', paddingTop: '8px', flexWrap: 'wrap', gap: '6px' }}>
-                      <span>
-                        Stay Duration: <strong style={{ color: 'var(--pri)' }}>{nightsCount} Night{nightsCount > 1 ? 's' : ''}</strong> ({checkInDate} to {checkOutDate})
-                      </span>
-                      <span>
-                        Total rates automatically calculate based on stay dates
-                      </span>
                     </div>
                   </div>
 
