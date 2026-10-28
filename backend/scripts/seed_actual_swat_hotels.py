@@ -602,7 +602,7 @@ HOTELS_DATA = [
         ],
     },
     {
-        "id": "listing-demo-apartment-1",
+        "id": "1adef98f3df65bbda51b0c084304091b",
         "title": "Fizagat Luxury Riverview Apartments",
         "business_name": "Fizagat Luxury Riverview Apartments",
         "accommodation_type": "Apartment",
@@ -773,7 +773,12 @@ def seed_hotels():
         sort_order = 0
         for r in hotel["rooms"]:
             sort_order += 1
-            cur.execute("SELECT id FROM price_items WHERE id = ? OR (listing_id = ? AND name = ?)", (r["id"], listing_id, r["name"]))
+            try:
+                room_id = uuid.UUID(str(r["id"])).hex
+            except Exception:
+                room_id = uuid.uuid5(uuid.NAMESPACE_DNS, str(r["id"])).hex
+
+            cur.execute("SELECT id FROM price_items WHERE id = ? OR (listing_id = ? AND name = ?)", (room_id, listing_id, r["name"]))
             pi_row = cur.fetchone()
             if pi_row:
                 cur.execute("""
@@ -792,7 +797,7 @@ def seed_hotels():
                         default_units, is_bookable, is_active, sort_order, created_at, updated_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?)
                 """, (
-                    r["id"], listing_id, r["name"], r["description"], r["price"], r["unit"],
+                    room_id, listing_id, r["name"], r["description"], r["price"], r["unit"],
                     r["capacity"], r.get("default_units", 5), sort_order, now, now
                 ))
 

@@ -733,7 +733,7 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'listing-demo-apartment-1',
+    id: '1adef98f3df65bbda51b0c084304091b',
     business_id: 'biz-demo-apartment',
     business_name: 'Fizagat Luxury Riverview Apartments',
     type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
@@ -793,7 +793,7 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
         },
       ],
     },
-    media: [makeMediaItem('m-fiz-apt', '/images/deluxe_room.jpg', 'Fizagat Luxury Riverview Apartments', 'listing-demo-apartment-1')],
+    media: [makeMediaItem('m-fiz-apt', '/images/deluxe_room.jpg', 'Fizagat Luxury Riverview Apartments', '1adef98f3df65bbda51b0c084304091b')],
     rating_count: 24,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
