@@ -814,12 +814,18 @@ textarea:focus-visible {
 }
 
 /* Responsive Hotel Details Modal & Unsquishable Tab Bar */
-.hotel-modal-cover-photo {
+.hotel-modal-header {
   flex-shrink: 0 !important;
 }
 
-.hotel-modal-header {
-  flex-shrink: 0 !important;
+.hotel-modal-top-thumb {
+  flex-shrink: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hotel-modal-top-thumb:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18) !important;
 }
 
 .hotel-modal-tab-nav {
@@ -872,16 +878,18 @@ textarea:focus-visible {
     max-height: 96vh !important;
     border-radius: 14px !important;
   }
-  .hotel-modal-cover-photo {
-    height: 95px !important;
-    flex-shrink: 0 !important;
+  .hotel-modal-top-thumb {
+    width: 85px !important;
+    height: 58px !important;
+    border-radius: 8px !important;
   }
   .hotel-modal-header {
-    padding: 10px 14px !important;
+    padding: 12px 14px !important;
     flex-shrink: 0 !important;
+    gap: 8px !important;
   }
   .hotel-modal-header h2 {
-    font-size: 1.05rem !important;
+    font-size: 1.1rem !important;
   }
   .hotel-modal-tab-nav {
     padding: 0 6px !important;
@@ -916,16 +924,18 @@ textarea:focus-visible {
   max-height: 96vh !important;
   border-radius: 14px !important;
 }
-#mobile-phone-frame .hotel-modal-cover-photo {
-  height: 95px !important;
-  flex-shrink: 0 !important;
+#mobile-phone-frame .hotel-modal-top-thumb {
+  width: 85px !important;
+  height: 58px !important;
+  border-radius: 8px !important;
 }
 #mobile-phone-frame .hotel-modal-header {
-  padding: 10px 14px !important;
+  padding: 12px 14px !important;
   flex-shrink: 0 !important;
+  gap: 8px !important;
 }
 #mobile-phone-frame .hotel-modal-header h2 {
-  font-size: 1.05rem !important;
+  font-size: 1.1rem !important;
 }
 #mobile-phone-frame .hotel-modal-tab-nav {
   padding: 0 6px !important;

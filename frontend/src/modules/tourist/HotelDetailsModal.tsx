@@ -329,9 +329,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
         style={{
           backgroundColor: 'var(--card)',
           borderRadius: 'var(--radius-card)',
-          maxWidth: '820px',
+          maxWidth: '960px',
           width: '100%',
-          maxHeight: 'min(92vh, 100%)',
+          maxHeight: 'min(93vh, 880px)',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 24px 48px rgba(0, 0, 0, 0.28)',
@@ -342,7 +342,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         data-testid="hotel-details-modal"
       >
-        {/* Hotel Cover Photo Banner */}
+        {/* Top Header: Hotel Information (Top Left) & Hotel Image + Close (Top Right) */}
         {(() => {
           const tLower = (hotel.title || '').toLowerCase();
           const bannerUrl = (hotel as any).cover_image_url || hotel.media?.[0]?.url || (
@@ -358,161 +358,178 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
             tLower.includes('kalam') || tLower.includes('lodge') || tLower.includes('walnut') ? '/images/kalam_lodge.jpg' :
             '/images/swat_serena.jpg'
           );
+
           return (
             <div
-              className="hotel-modal-cover-photo"
+              className="hotel-modal-header"
               style={{
-                height: '130px',
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--line)',
+                background: 'var(--card)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
                 flexShrink: 0,
-                backgroundImage: `url(${bannerUrl})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                position: 'relative',
               }}
             >
+              {/* Top Left: Attached Information related to Hotel */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                  <Tag variant="neutral">{details.accommodation_type ? `${details.accommodation_type} & Stay` : 'Hotel & Stay'}</Tag>
+                  {hotel.is_verified && (
+                    <Tag variant="ok" icon={<CheckCircle2 size={12} />}>
+                      Authority Verified
+                    </Tag>
+                  )}
+                  {details.star_rating && (
+                    <Tag variant="accent">{'★'.repeat(details.star_rating)} Luxury Stay</Tag>
+                  )}
+                </div>
+
+                <h2
+                  style={{
+                    fontSize: 'clamp(1.2rem, 2vw, 1.55rem)',
+                    fontWeight: 700,
+                    color: 'var(--ink)',
+                    margin: '0 0 6px 0',
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {hotel.title}
+                </h2>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    fontSize: 'var(--font-xs)',
+                    color: 'var(--mute)',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+                    <MapPin size={13} color="var(--pri)" />
+                    {hotel.address_text || `${hotel.area_name || 'Swat'}, Pakistan`}
+                  </span>
+                  {onViewMap && (
+                    <button
+                      type="button"
+                      className="btn-card-view-map"
+                      onClick={() =>
+                        onViewMap(
+                          hotel.latitude || 34.77,
+                          hotel.longitude || 72.36,
+                          hotel.title,
+                          hotel.area_name
+                        )
+                      }
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '3px 9px',
+                        borderRadius: 'var(--radius-tag)',
+                        backgroundColor: 'rgba(47, 127, 193, 0.1)',
+                        color: 'var(--pri)',
+                        border: '1px solid rgba(47, 127, 193, 0.28)',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        minHeight: 'unset',
+                        height: 'auto',
+                        transition: 'all 0.15s ease',
+                      }}
+                      title="View hotel on interactive map"
+                    >
+                      <MapPin size={11} /> View on Map
+                    </button>
+                  )}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    Check-in: <strong style={{ color: 'var(--ink)' }}>{details.check_in_time || '14:00'}</strong> • Check-out:{' '}
+                    <strong style={{ color: 'var(--ink)' }}>{details.check_out_time || '12:00'}</strong>
+                  </span>
+                  {hotel.phone && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Phone size={13} color="var(--acc)" />
+                      {hotel.phone}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Top Right: Hotel Image & Close Button */}
               <div
                 style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.65) 100%)',
-                }}
-              />
-              <button
-                onClick={onClose}
-                aria-label="Close"
-                style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  background: 'rgba(0,0,0,0.5)',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  width: '36px',
-                  height: '36px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  zIndex: 10,
+                  gap: '12px',
+                  flexShrink: 0,
                 }}
               >
-                <X size={20} />
-              </button>
+                <div
+                  className="hotel-modal-top-thumb"
+                  style={{
+                    width: '180px',
+                    height: '84px',
+                    borderRadius: '10px',
+                    backgroundImage: `url(${bannerUrl})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    border: '1px solid var(--line)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                  title={hotel.title}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 60%)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      bottom: '5px',
+                      left: '8px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: '#ffffff',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                      letterSpacing: '0.3px',
+                    }}
+                  >
+                    Scenic Preview
+                  </span>
+                </div>
+
+                <button
+                  onClick={onClose}
+                  style={{
+                    background: 'var(--soft)',
+                    border: '1px solid var(--line)',
+                    cursor: 'pointer',
+                    color: 'var(--ink)',
+                    padding: '8px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title="Close dialog"
+                  aria-label="Close"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
           );
         })()}
-
-        {/* Header */}
-        <div
-          className="hotel-modal-header"
-          style={{
-            padding: '14px 20px',
-            borderBottom: '1px solid var(--line)',
-            background: 'var(--card)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexShrink: 0,
-          }}
-        >
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-              <Tag variant="neutral">{details.accommodation_type ? `${details.accommodation_type} & Stay` : 'Hotel & Stay'}</Tag>
-              {hotel.is_verified && (
-                <Tag variant="ok" icon={<CheckCircle2 size={12} />}>
-                  Authority Verified
-                </Tag>
-              )}
-              {details.star_rating && (
-                <Tag variant="accent">{'★'.repeat(details.star_rating)} Luxury Stay</Tag>
-              )}
-            </div>
-
-            <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
-              {hotel.title}
-            </h2>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '14px',
-                marginTop: '6px',
-                fontSize: 'var(--font-xs)',
-                color: 'var(--mute)',
-                flexWrap: 'wrap',
-              }}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <MapPin size={13} color="var(--pri)" />
-                {hotel.address_text || `${hotel.area_name || 'Swat'}, Pakistan`}
-              </span>
-              {onViewMap && (
-                <button
-                  type="button"
-                  className="btn-card-view-map"
-                  onClick={() =>
-                    onViewMap(
-                      hotel.latitude || 34.77,
-                      hotel.longitude || 72.36,
-                      hotel.title,
-                      hotel.area_name
-                    )
-                  }
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-tag)',
-                    backgroundColor: 'rgba(47, 127, 193, 0.1)',
-                    color: 'var(--pri)',
-                    border: '1px solid rgba(47, 127, 193, 0.28)',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    minHeight: 'unset',
-                    height: 'auto',
-                  }}
-                  title="View hotel on interactive map"
-                >
-                  <MapPin size={11} /> View on Map
-                </button>
-              )}
-              {hotel.phone && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <Phone size={13} color="var(--acc)" />
-                  {hotel.phone}
-                </span>
-              )}
-              <span>
-                Check-in: <strong>{details.check_in_time || '14:00'}</strong> • Check-out:{' '}
-                <strong>{details.check_out_time || '12:00'}</strong>
-              </span>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--mute)',
-              padding: '6px',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-            title="Close dialog"
-            aria-label="Close"
-          >
-            <X size={20} />
-          </button>
-        </div>
 
         {/* Tab Navigation */}
         <div
@@ -747,7 +764,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                   {/* STAY CONTROLS BAR: Dates, Travellers, Rooms */}
                   <div
                     style={{
-                      padding: '16px',
+                      padding: '16px 20px',
                       borderRadius: 'var(--radius-card)',
                       backgroundColor: 'var(--soft)',
                       border: '1px solid var(--line)',
@@ -757,9 +774,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     }}
                     data-testid="stay-controls-bar"
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                       <span style={{ fontSize: 'var(--font-xs)', fontWeight: 700, color: 'var(--pri)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        📅 Select Stay Dates & Capacity
+                        📅 Select Stay Dates &amp; Capacity
                       </span>
                       {isLoadingAvail && (
                         <span style={{ fontSize: '11px', color: 'var(--mute)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -768,7 +785,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                       )}
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
                       {/* Check-in */}
                       <div>
                         <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--mute)', marginBottom: '4px' }}>
@@ -789,8 +806,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           }}
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '6px',
+                            padding: '9px 12px',
+                            borderRadius: '8px',
                             border: '1px solid var(--line)',
                             backgroundColor: 'var(--card)',
                             color: 'var(--ink)',
@@ -814,8 +831,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           onChange={(e) => setCheckOutDate(e.target.value)}
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '6px',
+                            padding: '9px 12px',
+                            borderRadius: '8px',
                             border: '1px solid var(--line)',
                             backgroundColor: 'var(--card)',
                             color: 'var(--ink)',
@@ -837,8 +854,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           onChange={(e) => setTravellers(Number(e.target.value))}
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '6px',
+                            padding: '9px 12px',
+                            borderRadius: '8px',
                             border: '1px solid var(--line)',
                             backgroundColor: 'var(--card)',
                             color: 'var(--ink)',
@@ -866,8 +883,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           onChange={(e) => setRoomsCount(Number(e.target.value))}
                           style={{
                             width: '100%',
-                            padding: '8px 10px',
-                            borderRadius: '6px',
+                            padding: '9px 12px',
+                            borderRadius: '8px',
                             border: '1px solid var(--line)',
                             backgroundColor: 'var(--card)',
                             color: 'var(--ink)',
@@ -886,12 +903,12 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--mute)', borderTop: '1px dashed var(--line)', paddingTop: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px', color: 'var(--mute)', borderTop: '1px dashed var(--line)', paddingTop: '8px', flexWrap: 'wrap', gap: '6px' }}>
                       <span>
                         Stay Duration: <strong style={{ color: 'var(--pri)' }}>{nightsCount} Night{nightsCount > 1 ? 's' : ''}</strong> ({checkInDate} to {checkOutDate})
                       </span>
                       <span>
-                        Rates automatically calculate based on stay dates
+                        Total rates automatically calculate based on stay dates
                       </span>
                     </div>
                   </div>
@@ -915,29 +932,46 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     </div>
                   )}
 
-                  {/* ROOMS LIST WITH DIRECT CHOICE & SEARCH */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap', gap: '8px' }}>
-                    <p style={{ margin: 0, fontSize: 'var(--font-sm)', color: 'var(--ink)', fontWeight: 600 }}>
-                      Available Room Types at {hotel.title}:
-                    </p>
-                    <div style={{ position: 'relative', width: '220px' }}>
-                      <Search size={14} color="var(--mute)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                  {/* ROOMS LIST WITH DIRECT CHOICE & EXPANDED SEARCH & SELECTION */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginTop: '6px',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      padding: '4px 0',
+                    }}
+                  >
+                    <div>
+                      <p style={{ margin: 0, fontSize: 'var(--font-base)', color: 'var(--ink)', fontWeight: 700 }}>
+                        Select Your Room &amp; Rates ({filteredRooms.length} available)
+                      </p>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--mute)' }}>
+                        Choose your room below to complete your booking
+                      </p>
+                    </div>
+
+                    <div style={{ position: 'relative', width: '300px', minWidth: '240px' }}>
+                      <Search size={14} color="var(--mute)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                       <input
                         type="text"
                         value={roomSearchQuery}
                         onChange={(e) => setRoomSearchQuery(e.target.value)}
-                        placeholder="Search rooms..."
+                        placeholder="Search rooms (Deluxe, Suite, Twin)..."
                         data-testid="input-search-hotel-rooms"
                         style={{
                           width: '100%',
-                          padding: '6px 28px 6px 30px',
+                          padding: '8px 30px 8px 34px',
                           borderRadius: '8px',
                           border: '1px solid var(--line)',
-                          fontSize: '11.5px',
+                          fontSize: '12px',
                           backgroundColor: 'var(--card)',
                           color: 'var(--ink)',
                           outline: 'none',
                           boxSizing: 'border-box',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                         }}
                       />
                       {roomSearchQuery && (
@@ -946,7 +980,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           onClick={() => setRoomSearchQuery('')}
                           style={{
                             position: 'absolute',
-                            right: '6px',
+                            right: '8px',
                             top: '50%',
                             transform: 'translateY(-50%)',
                             background: 'none',
@@ -956,7 +990,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                             padding: '2px',
                           }}
                         >
-                          <X size={12} />
+                          <X size={13} />
                         </button>
                       )}
                     </div>
@@ -1175,13 +1209,10 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (room.id) setSelectedRoomId(room.id);
-                                  if (onAddRoomToTrip) {
-                                    onAddRoomToTrip(room, checkInDate, checkOutDate, travellers, roomsCount);
-                                  }
                                 }}
                                 data-testid={`btn-select-room-direct-${room.id}`}
                               >
-                                {isSelected ? '✓ Add Selected Room to Trip' : `Select & Add ${room.name}`}
+                                {isSelected ? '✓ Room Selected' : 'Select This Room'}
                               </Button>
                             </div>
                           </div>
