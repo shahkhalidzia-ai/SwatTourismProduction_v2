@@ -3697,23 +3697,26 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px',
-                            padding: '4px 10px',
+                            justifyContent: 'center',
+                            gap: '3.5px',
+                            padding: '0 8px',
                             borderRadius: '9999px',
-                            fontSize: '11px',
+                            fontSize: '10.5px',
                             fontWeight: isSelected ? 700 : 550,
-                            backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
-                            color: isSelected ? '#FFFFFF' : 'var(--ink)',
-                            border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
+                            backgroundColor: isSelected ? 'var(--pri)' : 'var(--card)',
+                            color: isSelected ? 'var(--cta-text)' : 'var(--ink)',
+                            border: isSelected ? '1px solid var(--pri)' : '1px solid var(--line)',
                             boxShadow: isSelected ? '0 2px 6px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
                             transition: 'all 0.15s ease',
-                            height: '27px',
+                            height: '24px',
+                            boxSizing: 'border-box',
+                            lineHeight: 1,
                           }}
                         >
-                          <span>{cat.icon}</span>
-                          <span>{cat.label}</span>
+                          <span style={{ fontSize: '11px', lineHeight: 1 }}>{cat.icon}</span>
+                          <span style={{ lineHeight: 1 }}>{cat.label}</span>
                         </button>
                       );
                     })}
