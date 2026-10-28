@@ -837,19 +837,29 @@ textarea:focus-visible {
   height: 48px !important;
   display: flex !important;
   align-items: center !important;
-  background-color: var(--soft) !important;
-  border-bottom: 1.5px solid var(--line) !important;
+  background-color: var(--card) !important;
+  border-bottom: 1px solid var(--line) !important;
+  padding: 8px 18px !important;
+  gap: 8px !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
 }
 
 .hotel-tab-btn {
   flex-shrink: 0 !important;
-  min-height: 46px !important;
-  height: 46px !important;
+  min-height: 32px !important;
+  height: 32px !important;
   display: inline-flex !important;
   align-items: center !important;
   box-sizing: border-box !important;
+  border-radius: 8px !important;
+  transition: all 0.15s ease !important;
+}
+
+.hotel-tab-btn:hover:not(.active) {
+  background-color: rgba(47, 127, 193, 0.08) !important;
+  border-color: rgba(47, 127, 193, 0.3) !important;
+  color: var(--pri) !important;
 }
 
 .hotel-modal-content-body {
@@ -892,18 +902,18 @@ textarea:focus-visible {
     font-size: 1.1rem !important;
   }
   .hotel-modal-tab-nav {
-    padding: 0 6px !important;
-    gap: 3px !important;
-    min-height: 44px !important;
-    height: 44px !important;
-    flex-shrink: 0 !important;
-  }
-  .hotel-tab-btn {
-    padding: 0 8px !important;
-    font-size: 11px !important;
+    padding: 6px 10px !important;
     gap: 4px !important;
     min-height: 42px !important;
     height: 42px !important;
+    flex-shrink: 0 !important;
+  }
+  .hotel-tab-btn {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    gap: 4px !important;
+    min-height: 30px !important;
+    height: 30px !important;
     flex-shrink: 0 !important;
   }
   .hotel-tab-text-full {
@@ -938,18 +948,18 @@ textarea:focus-visible {
   font-size: 1.1rem !important;
 }
 #mobile-phone-frame .hotel-modal-tab-nav {
-  padding: 0 6px !important;
-  gap: 3px !important;
-  min-height: 44px !important;
-  height: 44px !important;
-  flex-shrink: 0 !important;
-}
-#mobile-phone-frame .hotel-tab-btn {
-  padding: 0 8px !important;
-  font-size: 11px !important;
+  padding: 6px 10px !important;
   gap: 4px !important;
   min-height: 42px !important;
   height: 42px !important;
+  flex-shrink: 0 !important;
+}
+#mobile-phone-frame .hotel-tab-btn {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  gap: 4px !important;
+  min-height: 30px !important;
+  height: 30px !important;
   flex-shrink: 0 !important;
 }
 #mobile-phone-frame .hotel-tab-text-full {

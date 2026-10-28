@@ -531,15 +531,15 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
           );
         })()}
 
-        {/* Tab Navigation */}
+        {/* Attractive Segmented Tab Navigation */}
         <div
           className="hotel-modal-tab-nav"
           style={{
             display: 'flex',
             alignItems: 'center',
-            borderBottom: '1.5px solid var(--line)',
-            backgroundColor: 'var(--soft)',
-            padding: '0 16px',
+            borderBottom: '1px solid var(--line)',
+            backgroundColor: 'var(--card)',
+            padding: '8px 18px',
             gap: '8px',
             overflowX: 'auto',
             scrollbarWidth: 'none',
@@ -549,6 +549,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
             boxSizing: 'border-box',
           }}
         >
+          {/* Tab 1: Rooms & Booking */}
           <button
             onClick={() => setActiveTab('rooms')}
             className={`hotel-tab-btn ${activeTab === 'rooms' ? 'active' : ''}`}
@@ -556,27 +557,46 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '0 14px',
-              height: '46px',
-              minHeight: '46px',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === 'rooms' ? '3px solid var(--pri)' : '3px solid transparent',
-              color: activeTab === 'rooms' ? 'var(--pri)' : 'var(--mute)',
+              padding: '6px 12px',
+              height: '32px',
+              minHeight: '32px',
+              borderRadius: '8px',
+              border: activeTab === 'rooms' ? '1.5px solid var(--pri)' : '1px solid var(--line)',
+              backgroundColor: activeTab === 'rooms' ? 'rgba(47, 127, 193, 0.1)' : 'var(--soft)',
+              color: activeTab === 'rooms' ? 'var(--pri)' : 'var(--ink)',
               fontWeight: activeTab === 'rooms' ? 700 : 500,
-              fontSize: 'var(--font-sm)',
+              fontSize: '12px',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
               boxSizing: 'border-box',
+              transition: 'all 0.15s ease',
+              boxShadow: activeTab === 'rooms' ? '0 2px 6px rgba(47, 127, 193, 0.16)' : 'none',
             }}
             id="tab-hotel-rooms"
           >
-            <Bed size={15} style={{ flexShrink: 0 }} />
-            <span className="hotel-tab-text-full">Rooms &amp; Booking ({rooms.length})</span>
-            <span className="hotel-tab-text-short">Rooms ({rooms.length})</span>
+            <Bed size={14} style={{ flexShrink: 0 }} />
+            <span className="hotel-tab-text-full">Rooms &amp; Booking</span>
+            <span className="hotel-tab-text-short">Rooms</span>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                fontWeight: 700,
+                backgroundColor: activeTab === 'rooms' ? 'var(--pri)' : 'rgba(0, 0, 0, 0.08)',
+                color: activeTab === 'rooms' ? '#ffffff' : 'var(--mute)',
+                lineHeight: 1.2,
+              }}
+            >
+              {rooms.length}
+            </span>
           </button>
 
+          {/* Tab 2: Check Dates & Calendar */}
           <button
             onClick={() => setActiveTab('calendar')}
             className={`hotel-tab-btn ${activeTab === 'calendar' ? 'active' : ''}`}
@@ -584,27 +604,30 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '0 14px',
-              height: '46px',
-              minHeight: '46px',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === 'calendar' ? '3px solid var(--pri)' : '3px solid transparent',
-              color: activeTab === 'calendar' ? 'var(--pri)' : 'var(--mute)',
+              padding: '6px 12px',
+              height: '32px',
+              minHeight: '32px',
+              borderRadius: '8px',
+              border: activeTab === 'calendar' ? '1.5px solid var(--pri)' : '1px solid var(--line)',
+              backgroundColor: activeTab === 'calendar' ? 'rgba(47, 127, 193, 0.1)' : 'var(--soft)',
+              color: activeTab === 'calendar' ? 'var(--pri)' : 'var(--ink)',
               fontWeight: activeTab === 'calendar' ? 700 : 500,
-              fontSize: 'var(--font-sm)',
+              fontSize: '12px',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
               boxSizing: 'border-box',
+              transition: 'all 0.15s ease',
+              boxShadow: activeTab === 'calendar' ? '0 2px 6px rgba(47, 127, 193, 0.16)' : 'none',
             }}
             id="tab-hotel-calendar"
           >
-            <Calendar size={15} style={{ flexShrink: 0 }} />
+            <Calendar size={14} style={{ flexShrink: 0 }} />
             <span className="hotel-tab-text-full">Check Dates &amp; Calendar</span>
             <span className="hotel-tab-text-short">Dates</span>
           </button>
 
+          {/* Tab 3: Hotel Facilities */}
           <button
             onClick={() => setActiveTab('facilities')}
             className={`hotel-tab-btn ${activeTab === 'facilities' ? 'active' : ''}`}
@@ -612,27 +635,46 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '0 14px',
-              height: '46px',
-              minHeight: '46px',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === 'facilities' ? '3px solid var(--pri)' : '3px solid transparent',
-              color: activeTab === 'facilities' ? 'var(--pri)' : 'var(--mute)',
+              padding: '6px 12px',
+              height: '32px',
+              minHeight: '32px',
+              borderRadius: '8px',
+              border: activeTab === 'facilities' ? '1.5px solid var(--pri)' : '1px solid var(--line)',
+              backgroundColor: activeTab === 'facilities' ? 'rgba(47, 127, 193, 0.1)' : 'var(--soft)',
+              color: activeTab === 'facilities' ? 'var(--pri)' : 'var(--ink)',
               fontWeight: activeTab === 'facilities' ? 700 : 500,
-              fontSize: 'var(--font-sm)',
+              fontSize: '12px',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
               boxSizing: 'border-box',
+              transition: 'all 0.15s ease',
+              boxShadow: activeTab === 'facilities' ? '0 2px 6px rgba(47, 127, 193, 0.16)' : 'none',
             }}
             id="tab-hotel-facilities"
           >
-            <Sparkles size={15} style={{ flexShrink: 0 }} />
-            <span className="hotel-tab-text-full">Hotel Facilities ({facilities.length})</span>
-            <span className="hotel-tab-text-short">Facilities ({facilities.length})</span>
+            <Sparkles size={14} style={{ flexShrink: 0 }} />
+            <span className="hotel-tab-text-full">Hotel Facilities</span>
+            <span className="hotel-tab-text-short">Facilities</span>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                fontWeight: 700,
+                backgroundColor: activeTab === 'facilities' ? 'var(--pri)' : 'rgba(0, 0, 0, 0.08)',
+                color: activeTab === 'facilities' ? '#ffffff' : 'var(--mute)',
+                lineHeight: 1.2,
+              }}
+            >
+              {facilities.length}
+            </span>
           </button>
 
+          {/* Tab 4: Hotel Activities */}
           <button
             onClick={() => setActiveTab('activities')}
             className={`hotel-tab-btn ${activeTab === 'activities' ? 'active' : ''}`}
@@ -640,25 +682,43 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '0 14px',
-              height: '46px',
-              minHeight: '46px',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === 'activities' ? '3px solid var(--pri)' : '3px solid transparent',
-              color: activeTab === 'activities' ? 'var(--pri)' : 'var(--mute)',
+              padding: '6px 12px',
+              height: '32px',
+              minHeight: '32px',
+              borderRadius: '8px',
+              border: activeTab === 'activities' ? '1.5px solid var(--pri)' : '1px solid var(--line)',
+              backgroundColor: activeTab === 'activities' ? 'rgba(47, 127, 193, 0.1)' : 'var(--soft)',
+              color: activeTab === 'activities' ? 'var(--pri)' : 'var(--ink)',
               fontWeight: activeTab === 'activities' ? 700 : 500,
-              fontSize: 'var(--font-sm)',
+              fontSize: '12px',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
               boxSizing: 'border-box',
+              transition: 'all 0.15s ease',
+              boxShadow: activeTab === 'activities' ? '0 2px 6px rgba(47, 127, 193, 0.16)' : 'none',
             }}
             id="tab-hotel-activities"
           >
-            <Compass size={15} style={{ flexShrink: 0 }} />
-            <span className="hotel-tab-text-full">Hotel Activities ({activities.length})</span>
-            <span className="hotel-tab-text-short">Activities ({activities.length})</span>
+            <Compass size={14} style={{ flexShrink: 0 }} />
+            <span className="hotel-tab-text-full">Hotel Activities</span>
+            <span className="hotel-tab-text-short">Activities</span>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                fontWeight: 700,
+                backgroundColor: activeTab === 'activities' ? 'var(--pri)' : 'rgba(0, 0, 0, 0.08)',
+                color: activeTab === 'activities' ? '#ffffff' : 'var(--mute)',
+                lineHeight: 1.2,
+              }}
+            >
+              {activities.length}
+            </span>
           </button>
         </div>
 
