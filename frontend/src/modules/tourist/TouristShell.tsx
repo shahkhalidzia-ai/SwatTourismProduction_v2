@@ -3661,19 +3661,32 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 </div>
 
                 {/* Explore Category Filter Bar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 650, color: 'var(--mute)', flexShrink: 0 }}>
+                <div
+                  className="explore-category-filter-bar"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    flexWrap: 'wrap',
+                    width: '100%',
+                  }}
+                >
+                  <span
+                    className="explore-filter-label"
+                    style={{ fontSize: '11px', fontWeight: 650, color: 'var(--mute)', flexShrink: 0 }}
+                  >
                     Filter Offerings:
                   </span>
                   <div
+                    className="explore-filter-pills-row"
                     style={{
                       display: 'flex',
-                      gap: '6px',
-                      overflowX: 'auto',
+                      gap: '5px',
+                      flexWrap: 'wrap',
                       padding: '2px 0',
-                      scrollbarWidth: 'none',
                       flex: 1,
                       minWidth: 0,
+                      alignItems: 'center',
                     }}
                   >
                     {[
@@ -3713,6 +3726,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                             height: '24px',
                             boxSizing: 'border-box',
                             lineHeight: 1,
+                            flexShrink: 0,
                           }}
                         >
                           <span style={{ fontSize: '11px', lineHeight: 1 }}>{cat.icon}</span>
@@ -3720,28 +3734,31 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         </button>
                       );
                     })}
+                    {homeExploreFilter !== 'all' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHomeExploreFilter('all');
+                          setSelectedType('all');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--pri)',
+                          fontSize: '11px',
+                          fontWeight: 650,
+                          cursor: 'pointer',
+                          padding: '0 4px',
+                          flexShrink: 0,
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        Reset ✕
+                      </button>
+                    )}
                   </div>
-                  {homeExploreFilter !== 'all' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setHomeExploreFilter('all');
-                        setSelectedType('all');
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--pri)',
-                        fontSize: '11px',
-                        fontWeight: 650,
-                        cursor: 'pointer',
-                        padding: '0 4px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      Reset ✕
-                    </button>
-                  )}
                 </div>
               </div>
             )}
