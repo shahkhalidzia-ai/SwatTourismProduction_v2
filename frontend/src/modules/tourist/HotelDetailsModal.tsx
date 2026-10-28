@@ -1548,6 +1548,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
               <Button
                 variant="secondary"
                 size="sm"
+                style={{ display: 'none' }}
                 onClick={() => {
                   if (onAddRoomToTrip) {
                     onAddRoomToTrip(currentSelectedRoom, checkInDate, checkOutDate, travellers, roomsCount);
