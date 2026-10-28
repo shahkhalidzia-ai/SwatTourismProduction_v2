@@ -4569,14 +4569,31 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           {/* Popular Destinations Cards - Only display when on Valleys & Places tab */}
           {homeSearchTab === 'valleys' && (
             <div className="dest-section-container" style={{ marginTop: '0px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-            {/* Header & Subtitle */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+            {/* Properly Framed White Header Box for Popular Destinations */}
+            <div
+              className="dest-header-frame"
+              style={{
+                backgroundColor: 'var(--card)',
+                border: '1px solid rgba(47, 127, 193, 0.16)',
+                borderRadius: '14px',
+                padding: '12px 16px',
+                boxShadow: '0 4px 18px -4px rgba(18, 50, 74, 0.06), 0 1px 4px rgba(0, 0, 0, 0.02)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                marginBottom: '14px',
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                   <div
                     style={{
-                      width: '26px',
-                      height: '26px',
+                      width: '28px',
+                      height: '28px',
                       borderRadius: '7px',
                       background: 'linear-gradient(135deg, var(--pri), #047857)',
                       display: 'flex',
@@ -4587,10 +4604,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       flexShrink: 0,
                     }}
                   >
-                    <Mountain size={15} />
+                    <Mountain size={16} />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <h3 className="dest-header-title" style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+                    <h3 className="dest-header-title" style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
                       Popular Destinations
                     </h3>
                     <p className="dest-header-subtitle" style={{ fontSize: '11.5px', color: 'var(--mute)', margin: '1px 0 0 0', lineHeight: 1.3 }}>
@@ -4604,13 +4621,13 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
-                    padding: '3px 8px',
+                    padding: '3px 9px',
                     borderRadius: '16px',
-                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    backgroundColor: 'rgba(47, 127, 193, 0.08)',
                     color: 'var(--pri)',
-                    fontSize: '10.5px',
-                    fontWeight: 600,
-                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                    fontSize: '11px',
+                    fontWeight: 650,
+                    border: '1px solid rgba(47, 127, 193, 0.22)',
                     flexShrink: 0,
                   }}
                 >
@@ -4626,7 +4643,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                   display: 'flex',
                   gap: '6px',
                   overflowX: 'auto',
-                  padding: '4px 0 2px 0',
+                  padding: '2px 0 1px 0',
                   scrollbarWidth: 'none',
                   width: '100%',
                   maxWidth: '100%',
@@ -4650,17 +4667,17 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
-                        padding: '4px 10px',
+                        padding: '4px 11px',
                         borderRadius: '20px',
                         fontSize: '11px',
-                        fontWeight: isActive ? 600 : 500,
-                        backgroundColor: isActive ? 'var(--pri)' : 'var(--surface)',
-                        color: isActive ? '#ffffff' : 'var(--ink)',
-                        border: isActive ? '1px solid var(--pri)' : '1px solid var(--border)',
+                        fontWeight: isActive ? 700 : 550,
+                        backgroundColor: isActive ? 'var(--pri)' : 'var(--bg)',
+                        color: isActive ? 'var(--cta-text)' : 'var(--ink)',
+                        border: isActive ? '1px solid var(--pri)' : '1px solid var(--line)',
                         cursor: 'pointer',
                         whiteSpace: 'nowrap',
                         transition: 'all 0.15s ease',
-                        boxShadow: isActive ? '0 2px 8px rgba(16, 185, 129, 0.2)' : 'none',
+                        boxShadow: isActive ? '0 2px 8px rgba(47, 127, 193, 0.22)' : 'none',
                         flexShrink: 0,
                         height: '27px',
                       }}
