@@ -3222,12 +3222,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 style={{
                   backgroundColor: 'var(--card)',
                   border: '1px solid rgba(47, 127, 193, 0.16)',
-                  borderRadius: '18px',
-                  padding: '18px 20px',
-                  boxShadow: '0 8px 30px -4px rgba(18, 50, 74, 0.07), 0 2px 10px rgba(0, 0, 0, 0.03)',
+                  borderRadius: '14px',
+                  padding: '12px 16px',
+                  boxShadow: '0 4px 18px -4px rgba(18, 50, 74, 0.06), 0 1px 4px rgba(0, 0, 0, 0.02)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '14px',
+                  gap: '10px',
                   minWidth: 0,
                 }}
               >
@@ -3571,7 +3571,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
             {/* TAB CONTENT 2: EXPLORE (STAY, DINING, GUIDE) SEARCH */}
             {homeSearchTab === 'explore' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} data-testid="home-explore-content">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} data-testid="home-explore-content">
                 {/* Unified Search Input Container */}
                 <div
                   className="hero-search-input-box"
@@ -3580,16 +3580,16 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     alignItems: 'center',
                     backgroundColor: 'var(--bg)',
                     border: '1.5px solid var(--line)',
-                    borderRadius: '12px',
-                    padding: '4px 6px 4px 14px',
+                    borderRadius: '10px',
+                    padding: '3px 6px 3px 12px',
                     transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
                     gap: '8px',
-                    minHeight: '46px',
+                    minHeight: '38px',
                     flexWrap: 'wrap',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }}>
-                    <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
+                    <Search size={16} color="var(--pri)" style={{ flexShrink: 0 }} />
                     <input
                       type="text"
                       value={searchQuery}
@@ -3602,8 +3602,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         outline: 'none',
                         backgroundColor: 'transparent',
                         color: 'var(--ink)',
-                        fontSize: '13.5px',
-                        padding: '8px 4px',
+                        fontSize: '13px',
+                        padding: '6px 4px',
                         minWidth: 0,
                       }}
                     />
@@ -3616,7 +3616,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           border: 'none',
                           color: 'var(--mute)',
                           cursor: 'pointer',
-                          padding: '4px',
+                          padding: '3px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -3624,7 +3624,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         }}
                         title="Clear search"
                       >
-                        <X size={15} />
+                        <X size={14} />
                       </button>
                     )}
                   </div>
@@ -3635,11 +3635,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         /* filters active view directly */
                       }}
                       style={{
-                        borderRadius: '9px',
-                        padding: '7px 16px',
-                        fontSize: '12.5px',
+                        borderRadius: '8px',
+                        padding: '5px 14px',
+                        fontSize: '12px',
                         fontWeight: 700,
                         flexShrink: 0,
+                        height: '30px',
                       }}
                     >
                       Search
@@ -3648,9 +3649,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       variant="secondary"
                       onClick={() => setShowAITripModal(true)}
                       style={{
-                        borderRadius: '9px',
-                        padding: '7px 12px',
-                        fontSize: '12px',
+                        borderRadius: '8px',
+                        padding: '5px 10px',
+                        fontSize: '11.5px',
                         fontWeight: 700,
                         backgroundColor: '#F0FDF4',
                         color: '#065F46',
@@ -3659,46 +3660,29 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
+                        height: '30px',
                       }}
                     >
-                      <Sparkles size={14} color="#059669" />
+                      <Sparkles size={13} color="#059669" />
                       <span>AI Trip</span>
                     </Button>
                   </div>
                 </div>
 
                 {/* Explore Category Filter Bar */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--mute)' }}>
-                    <span style={{ fontWeight: 600 }}>Filter Offerings:</span>
-                    {homeExploreFilter !== 'all' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setHomeExploreFilter('all');
-                          setSelectedType('all');
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--pri)',
-                          fontSize: '11px',
-                          fontWeight: 650,
-                          cursor: 'pointer',
-                          padding: 0,
-                        }}
-                      >
-                        Reset to All Stays &amp; Dining
-                      </button>
-                    )}
-                  </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 650, color: 'var(--mute)', flexShrink: 0 }}>
+                    Filter Offerings:
+                  </span>
                   <div
                     style={{
                       display: 'flex',
-                      gap: '7px',
+                      gap: '6px',
                       overflowX: 'auto',
-                      padding: '2px 2px 4px 2px',
+                      padding: '2px 0',
                       scrollbarWidth: 'none',
+                      flex: 1,
+                      minWidth: 0,
                     }}
                   >
                     {[
@@ -3722,18 +3706,19 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
-                            padding: '6px 14px',
+                            gap: '4px',
+                            padding: '4px 10px',
                             borderRadius: '9999px',
-                            fontSize: '11.5px',
+                            fontSize: '11px',
                             fontWeight: isSelected ? 700 : 550,
                             backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
                             color: isSelected ? '#FFFFFF' : 'var(--ink)',
                             border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
-                            boxShadow: isSelected ? '0 2px 6px rgba(47, 127, 193, 0.22)' : '0 1px 3px rgba(0,0,0,0.03)',
+                            boxShadow: isSelected ? '0 2px 6px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
                             transition: 'all 0.15s ease',
+                            height: '27px',
                           }}
                         >
                           <span>{cat.icon}</span>
@@ -3742,6 +3727,27 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       );
                     })}
                   </div>
+                  {homeExploreFilter !== 'all' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHomeExploreFilter('all');
+                        setSelectedType('all');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '11px',
+                        fontWeight: 650,
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Reset ✕
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -4299,94 +4305,87 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             {/* Explore Spotlight (Stays, Dining, Guides) when Explore tab is active in Home Frame */}
             {homeSearchTab === 'explore' && (
               <div style={{ marginTop: '0px' }} data-testid="home-explore-showcase">
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '16px',
-                  flexWrap: 'wrap',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #174C72, #047857)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ffffff',
-                      boxShadow: '0 4px 12px rgba(23, 76, 114, 0.25)',
-                    }}
-                  >
-                    <CompassIcon size={20} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
-                      {homeExploreFilter === 'hotel'
-                        ? 'Verified Stays & Mountain Resorts'
-                        : homeExploreFilter === 'restaurant'
-                        ? 'Riverside Dining & Fresh Trout Cafes'
-                        : homeExploreFilter === 'transport'
-                        ? 'Local 4x4 Mountain Jeeps & Rentals'
-                        : homeExploreFilter === 'guide'
-                        ? 'Certified Local Guides & Trackers'
-                        : homeExploreFilter === 'activity'
-                        ? 'Adventure Sports & Activities'
-                        : homeExploreFilter === 'shop'
-                        ? 'Swat Handicrafts, Shawls & Souvenirs'
-                        : 'Explore Swat: Stays, Dining & Guides'}
-                    </h3>
-                    <p style={{ fontSize: '13px', color: 'var(--mute)', margin: '2px 0 0 0' }}>
-                      Certified hospitality, family dining, and authorized local tour operators
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Filter Controls for Explore Stays, Dining & Guides */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  marginBottom: '14px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                {/* Swat Valley / Area Filter */}
-                <select
-                  value={selectedAreaId}
-                  onChange={(e) => setSelectedAreaId(e.target.value)}
-                  className="home-explore-area-select"
-                  data-testid="select-explore-stays-area"
+                <div
                   style={{
-                    padding: '9px 14px',
-                    borderRadius: '12px',
-                    border: '1.5px solid var(--line)',
-                    backgroundColor: 'var(--card)',
-                    color: 'var(--ink)',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    flex: '1 1 140px',
-                    minWidth: 0,
-                    boxShadow: '0 2px 6px rgba(18, 50, 74, 0.04)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '10px',
+                    flexWrap: 'wrap',
+                    gap: '10px',
                   }}
                 >
-                  <option value="">All Valleys &amp; Areas</option>
-                  {areas.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.area_type})
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '7px',
+                        background: 'linear-gradient(135deg, #174C72, #047857)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 8px rgba(23, 76, 114, 0.2)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <CompassIcon size={16} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+                        {homeExploreFilter === 'hotel'
+                          ? 'Verified Stays & Mountain Resorts'
+                          : homeExploreFilter === 'restaurant'
+                          ? 'Riverside Dining & Fresh Trout Cafes'
+                          : homeExploreFilter === 'transport'
+                          ? 'Local 4x4 Mountain Jeeps & Rentals'
+                          : homeExploreFilter === 'guide'
+                          ? 'Certified Local Guides & Trackers'
+                          : homeExploreFilter === 'activity'
+                          ? 'Adventure Sports & Activities'
+                          : homeExploreFilter === 'shop'
+                          ? 'Swat Handicrafts, Shawls & Souvenirs'
+                          : 'Explore Swat: Stays, Dining & Guides'}
+                      </h3>
+                      <p style={{ fontSize: '11.5px', color: 'var(--mute)', margin: '1px 0 0 0' }}>
+                        Certified hospitality, family dining, and authorized local tour operators
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Swat Valley / Area Filter placed neatly alongside the title */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <select
+                      value={selectedAreaId}
+                      onChange={(e) => setSelectedAreaId(e.target.value)}
+                      className="home-explore-area-select"
+                      data-testid="select-explore-stays-area"
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--line)',
+                        backgroundColor: 'var(--card)',
+                        color: 'var(--ink)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(18, 50, 74, 0.04)',
+                        height: '32px',
+                        minWidth: '160px',
+                        maxWidth: '220px',
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="">All Valleys &amp; Areas</option>
+                      {areas.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({a.area_type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
               {/* Grid of Verified Listings (Arranged in 2 Columns on Web, Single Column on Phone) */}
               <div
