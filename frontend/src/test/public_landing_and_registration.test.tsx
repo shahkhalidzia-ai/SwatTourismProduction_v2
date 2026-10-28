@@ -82,12 +82,12 @@ describe('Public Landing Page and Property Registration Verification', () => {
     expect(bannerListBtn).toBeDefined();
 
     // Verify all 6 category filters exist in explore tab
-    expect(screen.getByText('Stays (Hotels & Resorts)')).toBeDefined();
-    expect(screen.getByText('Dining (Riverside & Trout)')).toBeDefined();
-    expect(screen.getByText('Local 4x4 & Jeeps')).toBeDefined();
-    expect(screen.getByText('Guides (Local Experts)')).toBeDefined();
-    expect(screen.getByText('Adventures & Ski')).toBeDefined();
-    expect(screen.getByText('Crafts & Souvenirs')).toBeDefined();
+    expect(screen.getByText('Stays')).toBeDefined();
+    expect(screen.getByText('Dining')).toBeDefined();
+    expect(screen.getByText('4x4 Jeeps')).toBeDefined();
+    expect(screen.getByText('Guides')).toBeDefined();
+    expect(screen.getByText('Adventures')).toBeDefined();
+    expect(screen.getByText('Crafts')).toBeDefined();
   });
 
   it('renders Instant Reserve button on Transport and opens InstantServiceReservationModal', async () => {

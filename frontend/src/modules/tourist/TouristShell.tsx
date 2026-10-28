@@ -3677,13 +3677,13 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     }}
                   >
                     {[
-                      { id: 'all', label: 'All Stays & Dining', icon: '✨' },
-                      { id: 'hotel', label: 'Stays (Hotels & Resorts)', icon: '🏨' },
-                      { id: 'restaurant', label: 'Dining (Riverside & Trout)', icon: '🍽️' },
-                      { id: 'transport', label: 'Local 4x4 & Jeeps', icon: '🚙' },
-                      { id: 'guide', label: 'Guides (Local Experts)', icon: '🧭' },
-                      { id: 'activity', label: 'Adventures & Ski', icon: '⛷️' },
-                      { id: 'shop', label: 'Crafts & Souvenirs', icon: '🛍️' },
+                      { id: 'all', label: 'All', icon: '✨' },
+                      { id: 'hotel', label: 'Stays', icon: '🏨' },
+                      { id: 'restaurant', label: 'Dining', icon: '🍽️' },
+                      { id: 'transport', label: '4x4 Jeeps', icon: '🚙' },
+                      { id: 'guide', label: 'Guides', icon: '🧭' },
+                      { id: 'activity', label: 'Adventures', icon: '⛷️' },
+                      { id: 'shop', label: 'Crafts', icon: '🛍️' },
                     ].map((cat) => {
                       const isSelected = homeExploreFilter === cat.id;
                       return (
