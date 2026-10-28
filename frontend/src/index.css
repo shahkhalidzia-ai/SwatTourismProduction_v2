@@ -776,14 +776,14 @@ textarea:focus-visible {
 .btn-smart-hotel-details:hover,
 .btn-smart-dining-menu:hover {
   background-color: var(--pri) !important;
-  color: #ffffff !important;
+  color: var(--cta-text) !important;
   border-color: var(--pri) !important;
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(47, 127, 193, 0.28) !important;
+  box-shadow: var(--pri-shadow) !important;
 }
 
 .btn-smart-hotel-details:hover span {
-  color: #ffffff !important;
+  color: var(--cta-text) !important;
 }
 
 .btn-smart-hotel-details:active {
@@ -797,19 +797,41 @@ textarea:focus-visible {
 
 .btn-card-view-map:hover {
   background-color: var(--pri) !important;
-  color: #FFFFFF !important;
+  color: var(--cta-text) !important;
   border-color: var(--pri) !important;
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(47, 127, 193, 0.28) !important;
+  box-shadow: var(--pri-shadow) !important;
 }
 
 .btn-card-view-map:hover span,
 .btn-card-view-map:hover svg {
-  color: #FFFFFF !important;
-  stroke: #FFFFFF !important;
+  color: var(--cta-text) !important;
+  stroke: var(--cta-text) !important;
 }
 
 .btn-card-view-map:active {
+  transform: translateY(0);
+}
+
+/* Card Weather Button */
+.btn-card-weather {
+  transition: all 0.16s ease !important;
+}
+
+.btn-card-weather:hover {
+  background-color: var(--pri) !important;
+  color: var(--cta-text) !important;
+  border-color: var(--pri) !important;
+  transform: translateY(-1px);
+  box-shadow: var(--pri-shadow) !important;
+}
+
+.btn-card-weather:hover span,
+.btn-card-weather:hover svg {
+  color: var(--cta-text) !important;
+}
+
+.btn-card-weather:active {
   transform: translateY(0);
 }
 
@@ -825,7 +847,7 @@ textarea:focus-visible {
 
 .hotel-modal-top-thumb:hover {
   transform: scale(1.02);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18) !important;
+  box-shadow: var(--thumb-hover-shadow) !important;
 }
 
 .hotel-modal-tab-nav {
@@ -857,8 +879,8 @@ textarea:focus-visible {
 }
 
 .hotel-tab-btn:hover:not(.active) {
-  background-color: rgba(47, 127, 193, 0.08) !important;
-  border-color: rgba(47, 127, 193, 0.3) !important;
+  background-color: var(--pri-soft-bg) !important;
+  border-color: var(--pri-soft-border) !important;
   color: var(--pri) !important;
 }
 

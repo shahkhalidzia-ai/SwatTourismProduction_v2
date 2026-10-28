@@ -4804,23 +4804,25 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         display: 'flex',
                         flexDirection: 'column',
                         borderRadius: '16px',
-                        border: '1px solid var(--border)',
-                        backgroundColor: 'var(--surface)',
+                        border: '1px solid var(--line)',
+                        backgroundColor: 'var(--card)',
                         overflow: 'hidden',
-                        boxShadow: '0 4px 18px rgba(0, 0, 0, 0.04)',
-                        transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                        boxShadow: '0 4px 18px -2px rgba(18, 50, 74, 0.05)',
+                        transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
                         width: '100%',
                         maxWidth: '100%',
                         minWidth: 0,
                         boxSizing: 'border-box',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-4px)';
-                        e.currentTarget.style.boxShadow = '0 12px 28px rgba(0, 0, 0, 0.1)';
+                        e.currentTarget.style.transform = 'translateY(-3px)';
+                        e.currentTarget.style.borderColor = 'rgba(47, 127, 193, 0.45)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px -2px rgba(47, 127, 193, 0.14)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 18px rgba(0, 0, 0, 0.04)';
+                        e.currentTarget.style.borderColor = 'var(--line)';
+                        e.currentTarget.style.boxShadow = '0 4px 18px -2px rgba(18, 50, 74, 0.05)';
                       }}
                     >
                       {/* Photo Header */}
@@ -5048,6 +5050,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                             type="button"
                             onClick={() => setWeatherModal({ isOpen: true, destination: dest })}
                             data-testid={`btn-weather-forecast-${dest.id}`}
+                            className="btn-card-weather"
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
@@ -5056,7 +5059,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               padding: '5px 6px',
                               borderRadius: '8px',
                               border: '1.5px solid var(--pri)',
-                              backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                              backgroundColor: 'var(--soft)',
                               color: 'var(--ink)',
                               fontSize: '11px',
                               fontWeight: 700,
@@ -5091,6 +5094,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                               })
                             }
                             data-testid={`btn-view-map-${dest.id}`}
+                            className="btn-card-view-map"
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',

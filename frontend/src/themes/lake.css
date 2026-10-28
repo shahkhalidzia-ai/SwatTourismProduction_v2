@@ -31,6 +31,10 @@ html[data-theme="lake"] {
   --cta-to: #2F7FC1;
   --cta-text: #FFFFFF;
   --btn-soft: #D3E6F7;
+  --pri-shadow: 0 3px 10px rgba(47, 127, 193, 0.28);
+  --pri-soft-bg: rgba(47, 127, 193, 0.08);
+  --pri-soft-border: rgba(47, 127, 193, 0.3);
+  --thumb-hover-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
   --ok-bg: #D5F0E3;
   --warn: #7A4A00;
   --warn-bg: #FFE7BD;
@@ -101,6 +105,10 @@ html[data-theme="lake"] [data-mode="dark"] {
   --info: #7CC2F8;
   --info-bg: #122B42;
   --btn-soft: #1F3B52;
+  --pri-shadow: 0 3px 10px rgba(47, 127, 193, 0.4);
+  --pri-soft-bg: rgba(47, 127, 193, 0.15);
+  --pri-soft-border: rgba(47, 127, 193, 0.4);
+  --thumb-hover-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 
   /* Header & Top Bar Tokens - Theme 1 Dark */
   --header-bg: 
