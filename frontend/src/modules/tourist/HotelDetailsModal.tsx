@@ -329,7 +329,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
         style={{
           backgroundColor: 'var(--card)',
           borderRadius: 'var(--radius-card)',
-          maxWidth: '960px',
+          maxWidth: '1020px',
           width: '100%',
           maxHeight: 'min(93vh, 880px)',
           display: 'flex',
@@ -1059,9 +1059,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="hotel-rooms-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
                     {filteredRooms.length === 0 ? (
-                      <div style={{ padding: '24px', textAlign: 'center', backgroundColor: '#F8FAFC', borderRadius: '10px', border: '1px dashed var(--line)' }}>
+                      <div style={{ gridColumn: '1 / -1', padding: '24px', textAlign: 'center', backgroundColor: '#F8FAFC', borderRadius: '10px', border: '1px dashed var(--line)' }}>
                         <p style={{ margin: 0, fontSize: '12px', color: 'var(--mute)' }}>
                           No room types match "{roomSearchQuery}".
                         </p>
@@ -1116,8 +1116,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                             }
                           }}
                           style={{
-                            padding: '16px 18px',
-                            borderRadius: 'var(--radius-card)',
+                            padding: '10px 12px',
+                            borderRadius: '10px',
                             border: isSelected
                               ? '2px solid var(--pri)'
                               : '1px solid var(--line)',
@@ -1126,120 +1126,139 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                               : isSoldOut
                               ? 'var(--soft)'
                               : 'var(--card)',
-                            boxShadow: isSelected ? '0 4px 14px rgba(23, 76, 114, 0.12)' : '0 2px 6px rgba(0,0,0,0.02)',
+                            boxShadow: isSelected ? '0 4px 12px rgba(23, 76, 114, 0.12)' : '0 1px 4px rgba(0,0,0,0.02)',
                             display: 'flex',
                             flexDirection: 'column',
-                            gap: '10px',
+                            justifyContent: 'space-between',
+                            gap: '8px',
                             cursor: isSoldOut ? 'not-allowed' : 'pointer',
                             opacity: isSoldOut ? 0.65 : 1,
                             transition: 'all 0.15s ease',
+                            boxSizing: 'border-box',
                           }}
                           data-testid={`hotel-room-card-${room.id}`}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-                              {/* Selection Indicator Radio Button */}
-                              <div
-                                style={{
-                                  width: '20px',
-                                  height: '20px',
-                                  borderRadius: '50%',
-                                  border: isSelected ? '6px solid var(--pri)' : '2px solid var(--line)',
-                                  backgroundColor: '#fff',
-                                  flexShrink: 0,
-                                  transition: 'all 0.15s ease',
-                                }}
-                              />
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                                {/* Selection Indicator Radio Button */}
+                                <div
+                                  style={{
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    border: isSelected ? '5px solid var(--pri)' : '2px solid var(--line)',
+                                    backgroundColor: '#fff',
+                                    flexShrink: 0,
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                />
 
-                              {/* Room Photo Thumbnail */}
-                              <div
-                                style={{
-                                  width: '110px',
-                                  height: '75px',
-                                  borderRadius: '8px',
-                                  backgroundImage: `url(${
-                                    (room.name || '').toLowerCase().includes('family') || (room.name || '').toLowerCase().includes('suite')
-                                      ? '/images/family_suite.jpg'
-                                      : '/images/deluxe_room.jpg'
-                                  })`,
-                                  backgroundSize: 'cover',
-                                  backgroundPosition: 'center',
-                                  flexShrink: 0,
-                                  border: '1px solid var(--line)',
-                                  boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-                                }}
-                              />
+                                {/* Room Photo Thumbnail */}
+                                <div
+                                  style={{
+                                    width: '80px',
+                                    height: '56px',
+                                    borderRadius: '6px',
+                                    backgroundImage: `url(${
+                                      (room.name || '').toLowerCase().includes('family') || (room.name || '').toLowerCase().includes('suite')
+                                        ? '/images/family_suite.jpg'
+                                        : '/images/deluxe_room.jpg'
+                                    })`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                    flexShrink: 0,
+                                    border: '1px solid var(--line)',
+                                    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                                  }}
+                                />
 
-                              <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                  <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
-                                    {room.name}
-                                  </h4>
-                                  {isSelected && (
-                                    <Tag variant="accent" icon={<Check size={11} />}>
-                                      Selected
-                                    </Tag>
-                                  )}
-                                  {isBlocked ? (
-                                    <Tag variant="bad">Closed / Blocked</Tag>
-                                  ) : minAvailable <= 0 ? (
-                                    <Tag variant="bad">Sold Out</Tag>
-                                  ) : minAvailable < roomsCount ? (
-                                    <Tag variant="accent">Only {minAvailable} Free</Tag>
-                                  ) : (
-                                    <Tag variant="ok">{minAvailable} Rooms Free</Tag>
-                                  )}
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                    <h4 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {room.name}
+                                    </h4>
+                                    {isSelected && (
+                                      <Tag variant="accent" icon={<Check size={10} />}>
+                                        Selected
+                                      </Tag>
+                                    )}
+                                    {isBlocked ? (
+                                      <Tag variant="bad">Closed</Tag>
+                                    ) : minAvailable <= 0 ? (
+                                      <Tag variant="bad">Sold Out</Tag>
+                                    ) : minAvailable < roomsCount ? (
+                                      <Tag variant="accent">Only {minAvailable} Free</Tag>
+                                    ) : (
+                                      <Tag variant="ok">{minAvailable} Rooms Free</Tag>
+                                    )}
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--mute)', marginTop: '2px' }}>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                      <Users size={12} color="var(--pri)" /> Up to {capacity} Guests
+                                    </span>
+                                    <span>•</span>
+                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{beds}</span>
+                                  </div>
                                 </div>
+                              </div>
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--font-xs)', color: 'var(--mute)', marginTop: '4px' }}>
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                    <Users size={13} color="var(--pri)" /> Up to {capacity} Guests
+                              {/* Price Breakdown */}
+                              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>
+                                  <span>PKR {Number(room.price).toLocaleString()}</span>
+                                  <span style={{ fontSize: '10.5px', color: 'var(--mute)', fontWeight: 400 }}> / night</span>
+                                </div>
+                                <div style={{ fontSize: '10.5px', color: 'var(--pri)', fontWeight: 600, marginTop: '1px' }}>
+                                  Total: PKR {roomStayTotal.toLocaleString()}{' '}
+                                  <span style={{ color: 'var(--mute)', fontWeight: 400 }}>
+                                    ({nightsCount} night{nightsCount > 1 ? 's' : ''})
                                   </span>
-                                  <span>•</span>
-                                  <span>{beds}</span>
                                 </div>
                               </div>
                             </div>
 
-                            {/* Price Breakdown */}
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: 'var(--font-base)', fontWeight: 700, color: 'var(--ink)' }}>
-                                <span>PKR {Number(room.price).toLocaleString()}</span>
-                                <span style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 400 }}> / night</span>
-                              </div>
-                              <div style={{ fontSize: '11px', color: 'var(--pri)', fontWeight: 600, marginTop: '2px' }}>
-                                Total: PKR {roomStayTotal.toLocaleString()}{' '}
-                                <span style={{ color: 'var(--mute)', fontWeight: 400 }}>
-                                  ({nightsCount} night{nightsCount > 1 ? 's' : ''})
+                            <p style={{
+                              margin: '6px 0 0 0',
+                              fontSize: '11px',
+                              color: 'var(--mute)',
+                              lineHeight: 1.3,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 1,
+                              WebkitBoxOrient: 'vertical',
+                            }}>
+                              {room.description || rMeta.desc || 'Comfortable and private room with full guest amenities, room heating, and scenic mountain views.'}
+                            </p>
+
+                            {/* Room Amenities Chips */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                              {amenities.slice(0, 3).map((amenity, idx) => (
+                                <span
+                                  key={idx}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '3px',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: 'rgba(23, 76, 114, 0.05)',
+                                    color: 'var(--pri)',
+                                    fontSize: '10px',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  <Check size={9} /> {amenity}
                                 </span>
-                              </div>
+                              ))}
+                              {amenities.length > 3 && (
+                                <span style={{ fontSize: '10px', color: 'var(--mute)', alignSelf: 'center' }}>
+                                  +{amenities.length - 3} more
+                                </span>
+                              )}
                             </div>
-                          </div>
-
-                          <p style={{ margin: 0, fontSize: 'var(--font-xs)', color: 'var(--mute)', lineHeight: 1.4 }}>
-                            {room.description || rMeta.desc || 'Comfortable and private room with full guest amenities, room heating, and scenic mountain views.'}
-                          </p>
-
-                          {/* Room Amenities Chips */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {amenities.map((amenity, idx) => (
-                              <span
-                                key={idx}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  padding: '2px 8px',
-                                  borderRadius: '4px',
-                                  backgroundColor: 'rgba(23, 76, 114, 0.06)',
-                                  color: 'var(--pri)',
-                                  fontSize: '11px',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                <Check size={10} /> {amenity}
-                              </span>
-                            ))}
                           </div>
 
                           {/* Room Card Action Row */}
@@ -1248,23 +1267,22 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center',
-                              paddingTop: '10px',
+                              paddingTop: '6px',
                               borderTop: '1px dashed var(--line)',
-                              marginTop: '4px',
-                              flexWrap: 'wrap',
-                              gap: '8px',
+                              marginTop: '2px',
+                              gap: '6px',
                             }}
                           >
                             <span
                               style={{
-                                fontSize: '11px',
+                                fontSize: '10.5px',
                                 color: isSelected ? 'var(--pri)' : 'var(--mute)',
                                 fontWeight: isSelected ? 700 : 500,
                               }}
                             >
-                              {isSelected ? '✓ This room is selected' : 'Click card or button to select this room type'}
+                              {isSelected ? '✓ This room is selected' : 'Click card or button to select'}
                             </span>
-                            <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ display: 'flex', gap: '6px' }}>
                               <Button
                                 variant={isSelected ? 'primary' : 'secondary'}
                                 size="sm"
@@ -1272,8 +1290,17 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (room.id) setSelectedRoomId(room.id);
+                                  if (onAddRoomToTrip) {
+                                    onAddRoomToTrip(room, checkInDate, checkOutDate, travellers, roomsCount);
+                                  }
                                 }}
                                 data-testid={`btn-select-room-direct-${room.id}`}
+                                style={{
+                                  padding: '3px 10px',
+                                  fontSize: '11px',
+                                  height: '26px',
+                                  minHeight: '26px',
+                                }}
                               >
                                 {isSelected ? '✓ Room Selected' : 'Select This Room'}
                               </Button>

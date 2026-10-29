@@ -22,6 +22,7 @@ interface WebLayoutProps {
 
 const ITEM_SUBTITLES: Record<string, string> = {
   home: 'Valley Highlights & Stays',
+  bookings: 'Reservations & Stays',
   explore: 'Hotels, Dining & Guides',
   trips: 'Custom Itinerary Planner',
   safety: 'Live SOS & Road Updates',

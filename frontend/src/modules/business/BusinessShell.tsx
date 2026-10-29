@@ -59,6 +59,7 @@ import {
   fetchBusinessStats,
   acceptBooking,
   declineBooking,
+  acceptBookingCancellation,
   completeBooking,
   type Booking,
   type BusinessBookingSummary,
@@ -91,6 +92,8 @@ export interface BookingRow {
   payment_status?: string;
   deposit_amount?: number;
   declineReason?: string;
+  cancel_reason?: string;
+  cancellation_requested?: boolean;
   rawBooking?: Booking;
   assigned_room_number?: string;
   assigned_room_id?: string;
@@ -340,6 +343,9 @@ export function loadTransportRideOrders(
                 rawAmount: item.rawAmount || existing?.rawAmount || 12000,
                 status: item.status || existing?.status || 'requested',
                 declineReason: item.declineReason || existing?.declineReason,
+                cancellation_requested: item.cancellation_requested ?? (item.status === 'cancellation_requested'),
+                cancel_reason: item.cancel_reason || item.cancelled_reason || existing?.cancel_reason,
+                rawBooking: item.rawBooking || item,
               });
             }
           }
@@ -388,6 +394,9 @@ export function loadTransportRideOrders(
                 notes: lb.special_requests,
                 specialRequests: lb.special_requests,
                 declineReason: lb.decline_reason,
+                cancellation_requested: lb.cancellation_requested ?? (lb.status === 'cancellation_requested'),
+                cancel_reason: lb.cancel_reason || lb.cancelled_reason,
+                rawBooking: lb,
               });
             }
           }
@@ -1084,6 +1093,8 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                 payment_status,
                 deposit_amount,
                 declineReason: b.decline_reason,
+                cancellation_requested: b.cancellation_requested ?? (b.status === 'cancellation_requested' || b.cancelled_by === 'tourist_requested'),
+                cancel_reason: b.cancel_reason,
                 roomType,
                 roomsCount,
                 nights,
@@ -1164,7 +1175,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
       try {
         const stats = await fetchBusinessStats();
-        if (isMounted && stats) {
+        if (isMounted && stats && typeof stats.earnings_week === 'number') {
           setBusinessStats(stats);
         }
       } catch {
@@ -1342,6 +1353,83 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
     );
   };
 
+  const handleAcceptCancellation = async (bookingIdOrRef: string) => {
+    try {
+      await acceptBookingCancellation(bookingIdOrRef);
+    } catch {
+      // Offline / demo fallback
+    }
+
+    setBookings((prev) =>
+      prev.map((b) => {
+        const matches =
+          b.id === bookingIdOrRef ||
+          b.reference === bookingIdOrRef ||
+          (b.reference && bookingIdOrRef && b.reference.toUpperCase() === bookingIdOrRef.toUpperCase());
+        if (matches) {
+          return {
+            ...b,
+            status: 'cancelled',
+            payment_status: 'refunded',
+            rawBooking: b.rawBooking
+              ? {
+                  ...b.rawBooking,
+                  status: 'cancelled',
+                  payment_status: 'refunded',
+                  cancelled_by: 'tourist',
+                  cancellation_requested: false,
+                }
+              : undefined,
+          };
+        }
+        return b;
+      })
+    );
+
+    // If transport, sync ride order locally
+    if (currentBizType === 'transport') {
+      syncRideOrderStatusLocally(bookingIdOrRef, 'cancelled');
+    }
+
+    // Persist in localStorage swat_local_bookings
+    try {
+      const raw = localStorage.getItem('swat_local_bookings');
+      if (raw) {
+        const list = JSON.parse(raw);
+        const updatedList = list.map((b: any) =>
+          b.id === bookingIdOrRef || b.reference === bookingIdOrRef || b.booking_reference === bookingIdOrRef
+            ? {
+                ...b,
+                status: 'cancelled',
+                payment_status: 'refunded',
+                cancelled_by: 'tourist',
+                cancellation_requested: false,
+              }
+            : b
+        );
+        localStorage.setItem('swat_local_bookings', JSON.stringify(updatedList));
+        window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedList }));
+      }
+    } catch {}
+
+    // Persist in localStorage swat_ride_orders
+    try {
+      const rawRide = localStorage.getItem('swat_ride_orders');
+      if (rawRide) {
+        const orders = JSON.parse(rawRide);
+        const updatedOrders = orders.map((o: any) =>
+          o.id === bookingIdOrRef || o.reference === bookingIdOrRef
+            ? { ...o, status: 'cancelled', cancellation_requested: false }
+            : o
+        );
+        localStorage.setItem('swat_ride_orders', JSON.stringify(updatedOrders));
+        window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: updatedOrders }));
+      }
+    } catch {}
+
+    showToast('Cancellation accepted. Booking cancelled and inventory / fleet restored.');
+  };
+
   const handleUploadDocument = async () => {
     if (!uploadDocFile) return;
     try {
@@ -1470,6 +1558,13 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
   // Filter bookings by status
   const filteredBookings = bookings.filter((b) => {
     if (bookingFilter === 'all') return true;
+    if (bookingFilter === 'cancellation_requested') {
+      return (
+        b.status === 'cancellation_requested' ||
+        Boolean(b.rawBooking?.cancellation_requested) ||
+        b.rawBooking?.cancelled_by === 'tourist_requested'
+      );
+    }
     return b.status === bookingFilter;
   });
 
@@ -1502,11 +1597,24 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       key: 'status',
       header: 'Status',
       render: (item) => {
+        const isCancelReq =
+          item.status === 'cancellation_requested' ||
+          Boolean(item.rawBooking?.cancellation_requested) ||
+          item.rawBooking?.cancelled_by === 'tourist_requested';
+
+        if (isCancelReq) {
+          return (
+            <Tag variant="bad" style={{ textTransform: 'capitalize' }}>
+              Cancellation Requested
+            </Tag>
+          );
+        }
+
         let variant: 'ok' | 'accent' | 'bad' | 'neutral' = 'neutral';
         if (item.status === 'confirmed') variant = 'ok';
         else if (item.status === 'accepted') variant = 'ok';
         else if (item.status === 'requested' || item.status === 'pending') variant = 'accent';
-        else if (item.status === 'declined') variant = 'bad';
+        else if (item.status === 'declined' || item.status === 'cancelled') variant = 'bad';
         return (
           <Tag variant={variant} style={{ textTransform: 'capitalize' }}>
             {item.status}
@@ -1517,34 +1625,57 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
     {
       key: 'actions',
       header: 'Actions',
-      render: (item) => (
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {(item.status === 'requested' || item.status === 'pending') && (
-            <>
+      render: (item) => {
+        const isCancelReq =
+          item.status === 'cancellation_requested' ||
+          Boolean(item.rawBooking?.cancellation_requested) ||
+          item.rawBooking?.cancelled_by === 'tourist_requested';
+
+        return (
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {isCancelReq && (
               <Button
                 variant="accent"
                 size="sm"
-                onClick={() => handleAccept(item.id)}
-                data-testid={`btn-accept-${item.reference}`}
+                onClick={() => handleAcceptCancellation(item.id || item.reference)}
+                data-testid={`btn-accept-cancellation-${item.reference}`}
+                style={{
+                  background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontWeight: 700,
+                }}
               >
-                {currentBizType === 'transport' ? 'Confirm Order' : 'Accept'}
+                Accept Cancellation
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  setDeclineModal({
-                    open: true,
-                    bookingId: item.id,
-                    reference: item.reference,
-                  })
-                }
-                data-testid={`btn-decline-${item.reference}`}
-              >
-                Decline
-              </Button>
-            </>
-          )}
+            )}
+
+            {!isCancelReq && (item.status === 'requested' || item.status === 'pending') && (
+              <>
+                <Button
+                  variant="accent"
+                  size="sm"
+                  onClick={() => handleAccept(item.id)}
+                  data-testid={`btn-accept-${item.reference}`}
+                >
+                  {currentBizType === 'transport' ? 'Confirm Order' : 'Accept'}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() =>
+                    setDeclineModal({
+                      open: true,
+                      bookingId: item.id,
+                      reference: item.reference,
+                    })
+                  }
+                  data-testid={`btn-decline-${item.reference}`}
+                >
+                  Decline
+                </Button>
+              </>
+            )}
           {item.status === 'accepted' && (
             <span style={{ fontSize: 'var(--font-xs)', color: 'var(--ok)', fontWeight: 600 }}>
               Awaiting payment
@@ -1583,9 +1714,10 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
             </span>
           )}
         </div>
-      ),
+      );
     },
-  ];
+  },
+];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1678,6 +1810,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
           onTabChange={onTabChange}
           onAcceptBooking={handleAccept}
           onDeclineBooking={(id, ref) => setDeclineModal({ open: true, bookingId: id, reference: ref })}
+          onAcceptCancellation={handleAcceptCancellation}
           onCollectBalance={handleCollectBookingBalance}
           isMobile={isMobile}
           isDemoUser={isDemoAccount}
@@ -1734,7 +1867,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                     : 'Earnings This Week'}
                 </div>
                 <div className="kpi-number">
-                  Rs {businessStats.earnings_week.toLocaleString()}
+                  Rs {(businessStats.earnings_week ?? 0).toLocaleString()}
                 </div>
               </div>
             </div>
@@ -1794,6 +1927,20 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                 <Chip active={bookingFilter === 'all'} onClick={() => setBookingFilter('all')}>
                   All ({bookings.length})
                 </Chip>
+                <Chip
+                  active={bookingFilter === 'cancellation_requested'}
+                  onClick={() => setBookingFilter('cancellation_requested')}
+                  data-testid="filter-cancellation-requests"
+                >
+                  Cancellation Requests (
+                  {bookings.filter(
+                    (b) =>
+                      b.status === 'cancellation_requested' ||
+                      Boolean(b.rawBooking?.cancellation_requested) ||
+                      b.rawBooking?.cancelled_by === 'tourist_requested'
+                  ).length}
+                  )
+                </Chip>
                 <Chip active={bookingFilter === 'requested'} onClick={() => setBookingFilter('requested')}>
                   Requested ({bookings.filter((b) => b.status === 'requested' || b.status === 'pending').length})
                 </Chip>
@@ -1843,6 +1990,24 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', paddingTop: '8px', borderTop: '1px solid var(--line)' }}>
                     <span style={{ fontWeight: 700 }}>{item.amount}</span>
                     <div style={{ display: 'flex', gap: '6px' }}>
+                      {(item.status === 'cancellation_requested' ||
+                        Boolean(item.rawBooking?.cancellation_requested) ||
+                        item.rawBooking?.cancelled_by === 'tourist_requested') && (
+                        <Button
+                          variant="accent"
+                          size="sm"
+                          onClick={() => handleAcceptCancellation(item.id || item.reference)}
+                          data-testid={`btn-accept-cancellation-mobile-${item.reference}`}
+                          style={{
+                            background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            fontWeight: 700,
+                          }}
+                        >
+                          Accept Cancellation
+                        </Button>
+                      )}
                       {(item.status === 'requested' || item.status === 'pending') && (
                         <>
                           <Button variant="accent" size="sm" onClick={() => handleAccept(item.id)}>

@@ -364,3 +364,57 @@ async def test_activity_season_booking_rejection(async_client: AsyncClient):
     )
     assert in_season_res.status_code == 201
     assert in_season_res.json()["status"] == "requested"
+
+
+@pytest.mark.asyncio
+async def test_tourist_request_cancellation_and_host_accept(async_client: AsyncClient):
+    biz_token = await register_user(async_client, "biz_host_cancel@test.com", "business")
+    listing = await create_published_listing_with_item(async_client, biz_token, default_units=2)
+    price_item_id = listing["price_items"][0]["id"]
+    b_headers = {"Authorization": f"Bearer {biz_token}"}
+
+    tourist_token = await register_user(async_client, "tourist_cancel_req@test.com", "tourist")
+    t_headers = {"Authorization": f"Bearer {tourist_token}"}
+
+    start = date.today() + timedelta(days=25)
+    booking_payload = {
+        "listing_id": listing["id"],
+        "start_date": str(start),
+        "end_date": str(start + timedelta(days=2)),
+        "travellers": 2,
+        "items": [{"price_item_id": price_item_id, "quantity": 1}],
+    }
+
+    req_res = await async_client.post("/api/v1/bookings/request", json=booking_payload, headers=t_headers)
+    assert req_res.status_code == 201
+    booking_id = req_res.json()["id"]
+
+    # Host accepts booking
+    acc_res = await async_client.post(f"/api/v1/bookings/{booking_id}/accept", headers=b_headers)
+    assert acc_res.status_code == 200
+    assert acc_res.json()["status"] == "accepted"
+
+    # 2. Tourist requests cancellation
+    req_cancel_res = await async_client.post(
+        f"/api/v1/bookings/{booking_id}/request-cancellation",
+        headers=t_headers,
+        json={"reason": "Emergency flight change", "note": "Cannot travel on scheduled dates."},
+    )
+    assert req_cancel_res.status_code == 200
+    cancel_data = req_cancel_res.json()
+    assert cancel_data["cancellation_requested"] is True
+    assert cancel_data["cancelled_by"] == "tourist_requested"
+    assert "Emergency flight change" in cancel_data["cancel_reason"]
+
+    # 3. Host accepts the cancellation request
+    accept_cancel_res = await async_client.post(
+        f"/api/v1/bookings/{booking_id}/accept-cancellation",
+        headers=b_headers,
+        json={"note": "Cancellation accepted by hotel management."},
+    )
+    assert accept_cancel_res.status_code == 200
+    final_data = accept_cancel_res.json()
+    assert final_data["status"] == "cancelled"
+    assert final_data["cancelled_by"] == "tourist"
+    assert final_data["cancellation_requested"] is False
+

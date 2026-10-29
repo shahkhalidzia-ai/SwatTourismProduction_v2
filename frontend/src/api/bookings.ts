@@ -7,7 +7,8 @@ export type BookingStatus =
   | 'confirmed'
   | 'cancelled'
   | 'completed'
-  | 'no_show';
+  | 'no_show'
+  | 'cancellation_requested';
 
 export type PaymentStatus = 'unpaid' | 'deposit_paid' | 'paid' | 'refunded';
 
@@ -55,6 +56,7 @@ export interface Booking {
   cancelled_by?: string;
   cancel_reason?: string;
   cancelled_at?: string;
+  cancellation_requested?: boolean;
   driver_name?: string;
   driver_phone?: string;
   driver_vehicle?: string;
@@ -190,6 +192,27 @@ export async function cancelBooking(bookingId: string, reason?: string, note?: s
   return apiRequest<Booking>(`/bookings/${bookingId}/cancel`, {
     method: 'POST',
     body: JSON.stringify({ reason, note }),
+  });
+}
+
+export async function requestBookingCancellation(
+  bookingId: string,
+  reason?: string,
+  note?: string
+): Promise<Booking> {
+  return apiRequest<Booking>(`/bookings/${bookingId}/request-cancellation`, {
+    method: 'POST',
+    body: JSON.stringify({ reason, note }),
+  });
+}
+
+export async function acceptBookingCancellation(
+  bookingId: string,
+  note?: string
+): Promise<Booking> {
+  return apiRequest<Booking>(`/bookings/${bookingId}/accept-cancellation`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
   });
 }
 

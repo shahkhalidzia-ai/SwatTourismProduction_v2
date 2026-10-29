@@ -179,6 +179,30 @@ async def cancel_booking(
     return await BookingService.cancel_booking(db, booking_id, user_id, action)
 
 
+@router.post("/{booking_id}/request-cancellation", response_model=BookingOut)
+async def request_booking_cancellation(
+    booking_id: uuid.UUID,
+    action: BookingActionRequest = BookingActionRequest(),
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tourist requests cancellation for an accepted or confirmed booking."""
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.request_cancellation(db, booking_id, user_id, action)
+
+
+@router.post("/{booking_id}/accept-cancellation", response_model=BookingOut)
+async def accept_booking_cancellation(
+    booking_id: uuid.UUID,
+    action: BookingActionRequest = BookingActionRequest(),
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Hotel / Guide / Transport provider accepts tourist cancellation request."""
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.accept_cancellation(db, booking_id, user_id, action)
+
+
 @router.post("/{booking_id}/remove-from-trip", response_model=BookingOut)
 async def remove_booking_from_trip(
     booking_id: uuid.UUID,

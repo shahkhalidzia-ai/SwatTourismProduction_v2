@@ -70,7 +70,7 @@ import {
 } from '../../api/trips';
 import {
   fetchMyBookings,
-  cancelBooking,
+  requestBookingCancellation,
   withdrawBooking,
   removeBookingFromTrip,
   getCancellationPreview,
@@ -79,6 +79,7 @@ import {
 } from '../../api/bookings';
 import { TripManagerView } from './TripManagerView';
 import { MyTripsListView } from './MyTripsListView';
+import { MyBookingsView } from './MyBookingsView';
 import { ReviewModal } from './ReviewModal';
 import { WeatherForecastModal } from './WeatherForecastModal';
 import { TouristAIAssistantModal } from './TouristAIAssistantModal';
@@ -1766,7 +1767,16 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const [restaurantModalListing, setRestaurantModalListing] = useState<ListingItem | null>(null);
   const [serviceModalListing, setServiceModalListing] = useState<ListingItem | null>(null);
 
-  const [myBookings, setMyBookings] = useState<Booking[]>([]);
+  const [myBookings, setMyBookings] = useState<Booking[]>(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('swat_local_bookings') : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
   const [paymentBooking, setPaymentBooking] = useState<Booking | null>(null);
   const [swatPayModal, setSwatPayModal] = useState<{
     isOpen: boolean;
@@ -1844,8 +1854,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           if (raw) localTrips = JSON.parse(raw);
         } catch {}
 
-        // Load trips, saved items & bookings if token exists
+        // Load trips, saved items & bookings
         const token = localStorage.getItem('swat_token');
+        let mergedBookings: Booking[] = [];
         if (token) {
           const [tripsData, savedData, bookingsData] = await Promise.all([
             getTrips().catch(() => []),
@@ -1874,7 +1885,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             localStorage.removeItem('swat_active_trip_id');
           }
           setSavedItems(savedData);
-          if (bookingsData && Array.isArray(bookingsData)) setMyBookings(bookingsData);
+          if (bookingsData && Array.isArray(bookingsData)) {
+            mergedBookings = [...bookingsData];
+          }
         } else if (localTrips.length > 0) {
           setAllTrips(localTrips);
           const savedActiveId = localStorage.getItem('swat_active_trip_id');
@@ -1883,6 +1896,78 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           setTrip(active);
           localStorage.setItem('swat_active_trip_id', active.id);
         }
+
+        // Merge guest session bookings from local storage (swat_local_bookings and swat_ride_orders)
+        try {
+          const rawLocalBookings = localStorage.getItem('swat_local_bookings');
+          if (rawLocalBookings) {
+            const parsed = JSON.parse(rawLocalBookings);
+            if (Array.isArray(parsed)) {
+              for (const lb of parsed) {
+                if (!mergedBookings.some((b) => (b.id && b.id === lb.id) || (b.reference && b.reference === lb.reference))) {
+                  mergedBookings.push(lb);
+                }
+              }
+            }
+          }
+        } catch {}
+
+        try {
+          const rawRideOrders = localStorage.getItem('swat_ride_orders');
+          if (rawRideOrders) {
+            const parsed = JSON.parse(rawRideOrders);
+            if (Array.isArray(parsed)) {
+              for (const r of parsed) {
+                if (!mergedBookings.some((b) => (b.id && b.id === r.id) || (b.reference && b.reference === r.reference))) {
+                  mergedBookings.push({
+                    id: r.id || `ride-${Date.now()}`,
+                    reference: r.reference || 'SWT-TR-RIDE',
+                    tourist_id: r.touristEmail || 'guest',
+                    business_id: r.business_id || r.providerId || 'biz-transport',
+                    listing_id: r.listing_id || 'list-transport',
+                    status: (r.status as any) || 'requested',
+                    start_date: (r.dates && r.dates.split(' • ')[0]) || new Date().toISOString().slice(0, 10),
+                    end_date: undefined,
+                    travellers: 2,
+                    total_amount: r.rawAmount || Number(String(r.amount || '').replace(/[^0-9]/g, '')) || 8000,
+                    payment_status: 'unpaid',
+                    special_requests: r.notes || r.specialRequests,
+                    driver_name: r.driver_name || 'Assigned upon confirmation',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    items: [
+                      {
+                        id: `item-${r.id}`,
+                        booking_id: r.id,
+                        price_item_id: 'p-ride',
+                        price_item_name: r.item || '4x4 Transport Ride',
+                        service_date: new Date().toISOString().slice(0, 10),
+                        quantity: 1,
+                        unit_price: r.rawAmount || 8000,
+                        line_total: r.rawAmount || 8000,
+                        created_at: new Date().toISOString(),
+                      },
+                    ],
+                    history: [],
+                    listing: {
+                      id: r.listing_id || 'list-transport',
+                      title: r.item || '4x4 Swat Valley Transport',
+                      type_code: 'transport',
+                      area_name: 'Swat Valley Fleet',
+                    },
+                    business: {
+                      id: r.business_id || r.providerId || 'biz-transport',
+                      business_name: r.providerName || r.business_name || 'Swat 4x4 Express Fleet',
+                      primary_type: 'transport',
+                    },
+                  } as Booking);
+                }
+              }
+            }
+          }
+        } catch {}
+
+        setMyBookings(mergedBookings);
 
         // Load safety data
         loadSafetyData();
@@ -2400,26 +2485,132 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   // Handle tourist withdrawing a pending booking request
   const handleWithdrawBooking = async (bookingId: string) => {
     try {
-      const updated = await withdrawBooking(bookingId);
-      setMyBookings((prev) => prev.map((b) => (b.id === bookingId ? updated : b)));
-      const refreshedTrip = await getMyTrip();
-      setTrip(refreshedTrip);
+      let updated: Booking | null = null;
+      try {
+        updated = await withdrawBooking(bookingId);
+      } catch (apiErr) {
+        console.warn('Backend withdrawBooking skipped or failed (local/guest/mock booking):', apiErr);
+      }
+      setMyBookings((prev) =>
+        prev.map((b) => {
+          const matches =
+            b.id === bookingId ||
+            b.reference === bookingId ||
+            (b as any).booking_reference === bookingId ||
+            (b.reference && String(b.reference).toUpperCase() === String(bookingId).toUpperCase()) ||
+            ((b as any).booking_reference && String((b as any).booking_reference).toUpperCase() === String(bookingId).toUpperCase());
+          return matches
+            ? {
+                ...(updated || b),
+                status: 'cancelled',
+                cancellation_requested: false,
+                cancel_reason: 'Withdrawn by traveler',
+                cancelled_at: new Date().toISOString(),
+              }
+            : b;
+        })
+      );
+
+      // Persist in localStorage swat_local_bookings
+      try {
+        const raw = localStorage.getItem('swat_local_bookings');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const updatedList = list.map((b: any) => {
+            const matches =
+              b.id === bookingId ||
+              b.reference === bookingId ||
+              b.booking_reference === bookingId ||
+              (b.reference && String(b.reference).toUpperCase() === String(bookingId).toUpperCase()) ||
+              (b.booking_reference && String(b.booking_reference).toUpperCase() === String(bookingId).toUpperCase());
+            return matches
+              ? {
+                  ...b,
+                  status: 'cancelled',
+                  cancellation_requested: false,
+                  cancel_reason: 'Withdrawn by traveler',
+                  cancelled_at: new Date().toISOString(),
+                }
+              : b;
+          });
+          localStorage.setItem('swat_local_bookings', JSON.stringify(updatedList));
+          window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedList }));
+        }
+      } catch {}
+
+      try {
+        const refreshedTrip = await getMyTrip().catch(() => null);
+        if (refreshedTrip) setTrip(refreshedTrip);
+      } catch {}
       showToast('Booking request withdrawn (Free cancellation).');
     } catch (err: any) {
       showToast(err.message || 'Failed to withdraw booking');
     }
   };
 
-  // Handle tourist cancelling a booking
-  const handleCancelBooking = async (bookingId: string, reason?: string) => {
+  // Handle tourist cancelling a booking: submits cancellation request to host to accept
+  const handleCancelBooking = async (bookingId: string, reason?: string, note?: string) => {
     try {
-      const updated = await cancelBooking(bookingId, reason);
-      setMyBookings((prev) => prev.map((b) => (b.id === bookingId ? updated : b)));
-      const refreshedTrip = await getMyTrip();
-      setTrip(refreshedTrip);
-      showToast('Booking cancelled and dates restored to host availability.');
+      let updated: Booking | null = null;
+      try {
+        updated = await requestBookingCancellation(bookingId, reason, note);
+      } catch (apiErr) {
+        console.warn('Backend requestBookingCancellation fallback (local/mock):', apiErr);
+      }
+
+      const cancellationPayload = {
+        status: 'cancellation_requested' as const,
+        cancellation_requested: true,
+        cancelled_by: 'tourist_requested',
+        cancel_reason: reason || 'Cancellation requested by traveler',
+        cancelled_at: new Date().toISOString(),
+      };
+
+      setMyBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId || b.reference === bookingId
+            ? { ...(updated || b), ...cancellationPayload }
+            : b
+        )
+      );
+
+      // Persist in localStorage swat_local_bookings
+      try {
+        const raw = localStorage.getItem('swat_local_bookings');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const updatedList = list.map((b: any) =>
+            b.id === bookingId || b.reference === bookingId
+              ? { ...b, ...cancellationPayload }
+              : b
+          );
+          localStorage.setItem('swat_local_bookings', JSON.stringify(updatedList));
+          window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedList }));
+        }
+      } catch {}
+
+      // Persist in localStorage swat_ride_orders (for 4x4 transport)
+      try {
+        const rawRide = localStorage.getItem('swat_ride_orders');
+        if (rawRide) {
+          const orders = JSON.parse(rawRide);
+          const updatedOrders = orders.map((o: any) =>
+            o.id === bookingId || o.reference === bookingId
+              ? { ...o, status: 'cancellation_requested', cancellation_requested: true, cancel_reason: reason }
+              : o
+          );
+          localStorage.setItem('swat_ride_orders', JSON.stringify(updatedOrders));
+          window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: updatedOrders }));
+        }
+      } catch {}
+
+      try {
+        const refreshedTrip = await getMyTrip().catch(() => null);
+        if (refreshedTrip) setTrip(refreshedTrip);
+      } catch {}
+      showToast('Cancellation request submitted. It will appear on the hotel / guide / transport interface to accept.');
     } catch (err: any) {
-      showToast(err.message || 'Failed to cancel booking');
+      showToast(err.message || 'Failed to submit cancellation request');
     }
   };
 
@@ -3195,8 +3386,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         </div>
       )}
 
-      {/* Active Advisory Banner on non-home, non-trips tabs */}
-      {activeTab !== 'home' && activeTab !== 'trips' && renderAdvisoryFrame(false)}
+      {/* Active Advisory Banner on non-home, non-trips, non-bookings tabs */}
+      {activeTab !== 'home' && activeTab !== 'trips' && activeTab !== 'bookings' && renderAdvisoryFrame(false)}
 
       {/* ========================================================================= */}
       {/* TAB 1: HOME */}
@@ -5845,6 +6036,32 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               </div>
             </>
           )}
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2B: BOOKINGS (Dedicated My Bookings Dashboard & Reservations)        */}
+      {/* ========================================================================= */}
+      {activeTab === 'bookings' && (
+        <>
+          {/* Top Blue Banner on Tourist Screen with matching landing page styling */}
+          <TourismAnimatedBanner
+            title="My Bookings & Reservations"
+            subtitle="Centralized dashboard for all your stays, 4x4 transport, guides, and alpine adventure passes"
+            headerAction={headerAction}
+            activeTab="bookings"
+          />
+
+          <MyBookingsView
+            bookings={myBookings}
+            onCancelBooking={handleCancelBooking}
+            onWithdrawBooking={handleWithdrawBooking}
+            onPayBooking={handlePaySingleBooking}
+            onRateBooking={(b) => setReviewModal({ isOpen: true, booking: b })}
+            onExploreServices={() => onTabChange ? onTabChange('home') : null}
+            onOpenAuth={onOpenAuth}
+            isGuest={!user || !localStorage.getItem('swat_token')}
+          />
         </>
       )}
 

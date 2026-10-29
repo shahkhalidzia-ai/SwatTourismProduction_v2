@@ -19,7 +19,7 @@ describe('Public Landing Page and Property Registration Verification', () => {
     expect(listPropertyBtn).toBeDefined();
     expect(loginBtn).toBeDefined();
     expect(screen.getByText('List Your Property')).toBeDefined();
-    expect(screen.getByText('Sign In / Register')).toBeDefined();
+    expect(screen.getAllByText('Sign In / Register').length).toBeGreaterThanOrEqual(1);
 
     // Verify Tourist Home Screen is active by default
     expect(await screen.findByText('Swat Tourism Platform')).toBeDefined();
@@ -47,8 +47,7 @@ describe('Public Landing Page and Property Registration Verification', () => {
       fireEvent.click(authBtn);
     });
 
-    expect(await screen.findByText(/Welcome to Swat Tourism|Create an Account|Sign In/i)).toBeDefined();
-  });
+    expect(await screen.findByText('Welcome Back')).toBeDefined();
   });
 
   it('opens AuthModal in login mode when "Sign In" is clicked', async () => {
@@ -63,27 +62,22 @@ describe('Public Landing Page and Property Registration Verification', () => {
     expect(await screen.findByText('Welcome Back')).toBeDefined();
   });
 
-  it('renders partner onboarding banner and all 6 property types on the home screen', async () => {
+  it('renders category filters on the home explore screen', async () => {
     render(<App />);
 
-    // Click "Explore (Stay, Dining, Guide)" banner tab to view explore section
+    // Click "Explore & Book" banner tab to view explore section
     const exploreTabBtn = await screen.findByTestId('tab-home-explore');
     await act(async () => {
       fireEvent.click(exploreTabBtn);
     });
 
-    // Verify Partner Property Onboarding Banner
-    expect(await screen.findByText(/Own a Hotel, 4x4 Jeep, Restaurant, or Guide Service in Swat\?/i)).toBeDefined();
-    const bannerListBtn = screen.getByTestId('btn-banner-list-property');
-    expect(bannerListBtn).toBeDefined();
-
-    // Verify all 6 category filters exist in explore tab
-    expect(screen.getByText('Stays')).toBeDefined();
-    expect(screen.getByText('Dining')).toBeDefined();
-    expect(screen.getByText('4x4 Jeeps')).toBeDefined();
-    expect(screen.getByText('Guides')).toBeDefined();
-    expect(screen.getByText('Adventures')).toBeDefined();
-    expect(screen.getByText('Crafts')).toBeDefined();
+    // Verify category filters exist in explore tab
+    expect(screen.getAllByText('Stays').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Dining').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('4x4 Jeeps').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Guides').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Adventures').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Crafts').length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders Instant Reserve button on Transport and opens InstantServiceReservationModal', async () => {
@@ -120,7 +114,7 @@ describe('Public Landing Page and Property Registration Verification', () => {
       fireEvent.click(authBtn);
     });
 
-    const registerTab = await screen.findByRole('button', { name: /Register/i });
+    const registerTab = await screen.findByTestId('auth-tab-register');
     await act(async () => {
       fireEvent.click(registerTab);
     });

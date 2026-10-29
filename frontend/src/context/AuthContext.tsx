@@ -72,16 +72,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('swat_token'));
+  const [token, setToken] = useState<string | null>(() => {
+    const isExplicit = localStorage.getItem('swat_auth_explicit') === 'true';
+    return isExplicit ? localStorage.getItem('swat_token') : null;
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const role: UserRole = user?.role || 'tourist';
 
   const refreshUser = useCallback(async () => {
+    const isExplicit = localStorage.getItem('swat_auth_explicit') === 'true';
     const savedToken = localStorage.getItem('swat_token');
 
-    if (!savedToken) {
+    // On initial browse or without explicit user login, ensure unauthenticated guest state
+    if (!savedToken || !isExplicit) {
+      if (!isExplicit && savedToken) {
+        localStorage.removeItem('swat_token');
+        localStorage.removeItem('swat_refresh_token');
+        localStorage.removeItem('swat_demo_user');
+      }
       setUser(null);
+      setToken(null);
       setIsLoading(false);
       return;
     }
@@ -101,6 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch {
+      localStorage.removeItem('swat_auth_explicit');
       localStorage.removeItem('swat_token');
       localStorage.removeItem('swat_refresh_token');
       localStorage.removeItem('swat_demo_user');
@@ -116,6 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshUser]);
 
   const handleAuthSuccess = (data: AuthResponse): UserProfile => {
+    localStorage.setItem('swat_auth_explicit', 'true');
     localStorage.setItem('swat_token', data.access_token);
     localStorage.setItem('swat_refresh_token', data.refresh_token);
     setToken(data.access_token);
@@ -160,6 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    localStorage.removeItem('swat_auth_explicit');
     localStorage.removeItem('swat_token');
     localStorage.removeItem('swat_refresh_token');
     localStorage.removeItem('swat_demo_user');
@@ -225,10 +239,10 @@ const mockDefaultUser: UserProfile = {
 };
 
 const defaultTestContext: AuthContextType = {
-  user: mockDefaultUser,
+  user: null,
   role: 'tourist',
-  token: 'mock_jwt_token',
-  isAuthenticated: true,
+  token: null,
+  isAuthenticated: false,
   isLoading: false,
   login: async () => mockDefaultUser,
   demoLogin: async () => mockDefaultUser,

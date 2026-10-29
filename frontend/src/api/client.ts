@@ -21,33 +21,7 @@ export async function apiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const BASE_URL = getBaseUrl();
-  let token = localStorage.getItem('swat_token');
-
-  const isTest = typeof (globalThis as { process?: { env?: Record<string, string> } }).process !== 'undefined' &&
-    ((globalThis as { process?: { env?: Record<string, string> } }).process?.env?.NODE_ENV === 'test' ||
-     (globalThis as { process?: { env?: Record<string, string> } }).process?.env?.VITEST);
-
-  // In demo/prototype browser mode: auto-acquire demo tourist token if unauthenticated
-  if (!token && !isTest && !endpoint.includes('/auth/')) {
-    try {
-      const demoRes = await fetch(`${BASE_URL}/auth/demo-login/tourist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (demoRes.ok) {
-        const demoData = await demoRes.json();
-        if (demoData?.access_token) {
-          localStorage.setItem('swat_token', demoData.access_token);
-          if (demoData.refresh_token) {
-            localStorage.setItem('swat_refresh_token', demoData.refresh_token);
-          }
-          token = demoData.access_token;
-        }
-      }
-    } catch {
-      // Non-blocking fallback
-    }
-  }
+  const token = typeof window !== 'undefined' ? localStorage.getItem('swat_token') : null;
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',

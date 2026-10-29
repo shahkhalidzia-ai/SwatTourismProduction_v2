@@ -93,3 +93,7 @@ ehthumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Uploads
+uploads/
+backend/uploads/

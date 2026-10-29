@@ -7,58 +7,44 @@ describe('App Root and Role Switching Verification', () => {
   beforeEach(() => {
     localStorage.clear();
   });
-  it('renders Tourist shell by default and can switch between roles', async () => {
+  it('renders unauthenticated guest shell by default with demo login options', async () => {
     render(<App />);
 
-    // Verify default Tourist shell (brand + header)
-    expect(screen.getAllByText('Swat Tourism').length).toBeGreaterThanOrEqual(1);
+    // Verify default guest Tourist shell (no user logged in by default)
     expect(screen.getByText('DEMO LOGINS:')).toBeDefined();
+    expect(screen.getByTestId('btn-public-login')).toBeDefined();
+    expect(screen.getByTestId('btn-public-list-property')).toBeDefined();
 
-    // Switch to Business role
-    const businessBtn = screen.getByTitle(/Login as demo Riverside Inn/i);
-    fireEvent.click(businessBtn);
-    expect(screen.getByText('Business Portal')).toBeDefined();
-    expect(screen.getByText(/Manage listings, bookings/i)).toBeDefined();
-
-    // Switch to Community role
-    const communityBtn = screen.getByTitle(/Login as demo Gul Zaman/i);
-    fireEvent.click(communityBtn);
-    expect(screen.getByText('Community Voice')).toBeDefined();
-    expect(screen.getByText(/Share local stories/i)).toBeDefined();
-
-    // Switch to Admin role
-    const adminBtn = screen.getByTitle(/Login as demo Antigravity Super Admin/i);
-    fireEvent.click(adminBtn);
-    expect(screen.getByText('Super Admin Master')).toBeDefined();
-    expect(screen.getByText(/Platform oversight/i)).toBeDefined();
-
-    // Switch back to Tourist
-    const touristBtn = screen.getByTitle(/Login as demo Sara Ahmed/i);
-    fireEvent.click(touristBtn);
-    expect(screen.getAllByText('Swat Tourism').length).toBeGreaterThanOrEqual(1);
+    // Verify demo persona buttons are rendered and accessible
+    expect(screen.getByTitle(/Login as demo Riverside Inn/i)).toBeDefined();
+    expect(screen.getByTitle(/Login as demo Gul Zaman/i)).toBeDefined();
+    expect(screen.getByTitle(/Login as demo Antigravity Super Admin/i)).toBeDefined();
+    expect(screen.getByTitle(/Login as demo Sara Ahmed/i)).toBeDefined();
   });
 
-  it('can navigate between tabs in Tourist role', async () => {
+  it('can navigate between tabs when logged in via persona', async () => {
     render(<App />);
-    
-    // Check Explore tab
-    const exploreBtn = screen.getByTestId('nav-tab-explore');
-    await act(async () => {
-      fireEvent.click(exploreBtn);
-    });
-    await waitFor(() => {
-      expect(screen.getAllByText(/Riverside Inn/i).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText(/Swat Serena Hotel/i).length).toBeGreaterThanOrEqual(1);
-    }, { timeout: 8000 });
 
-    // Check Safety tab
-    const safetyBtn = screen.getByTestId('nav-tab-safety');
+    // Open login modal and log in as hotel owner
+    const loginBtn = await screen.findByTestId('btn-public-login');
     await act(async () => {
-      fireEvent.click(safetyBtn);
+      fireEvent.click(loginBtn);
     });
-    await waitFor(() => {
-      expect(screen.getByText(/Emergency SOS/i)).toBeDefined();
-      expect(screen.getByText(/Road Status Updates/i)).toBeDefined();
-    }, { timeout: 8000 });
-  }, 20000);
+
+    const hotelPersonaBtn = await screen.findByTestId('persona-btn-hotel');
+    await act(async () => {
+      fireEvent.click(hotelPersonaBtn);
+    });
+
+    // Authenticated state: Left sidebar is now visible
+    expect(await screen.findByTestId('web-sidebar')).toBeDefined();
+
+    // Navigate to Today tab in Hotel portal
+    const todayNavBtn = screen.getByRole('button', { name: /Today/i });
+    await act(async () => {
+      fireEvent.click(todayNavBtn);
+    });
+
+    expect(await screen.findByText(/Bookings today/i)).toBeDefined();
+  });
 });

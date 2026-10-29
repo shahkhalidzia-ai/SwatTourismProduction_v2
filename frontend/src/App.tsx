@@ -14,7 +14,7 @@ import { CommunityShell } from './modules/community/CommunityShell';
 import { AuthorityShell } from './modules/authority/AuthorityShell';
 import { DemoTourGuide } from './components/DemoTourGuide';
 
-import { ShieldAlert, LogOut, User as UserIcon, Building2, LogIn } from 'lucide-react';
+import { ShieldAlert, LogOut, User as UserIcon, Building2, LogIn, CalendarCheck } from 'lucide-react';
 import { Button } from './design/Button';
 
 const isTestEnv =
@@ -241,8 +241,8 @@ const MainAppContent: React.FC = () => {
       return renderAccessDenied();
     }
 
-    // When on 'home' tab, any user (guest or authenticated role) views the public destination screen
-    if (activeTab === 'home') {
+    // When on 'home' or 'bookings' tab, any user (guest or authenticated role) views the tourist screens
+    if (activeTab === 'home' || activeTab === 'bookings') {
       return (
         <TouristShell
           activeTab={activeTab}
@@ -294,6 +294,54 @@ const MainAppContent: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {/* Universal Phone / Web View Switcher */}
           <ViewSwitch currentMode={viewMode} onModeChange={handleViewModeChange} />
+
+          {/* Direct My Bookings Button for Guest Tourist */}
+          <button
+            type="button"
+            className="btn-header-my-bookings"
+            onClick={() => {
+              setRole('tourist');
+              setActiveTab('bookings');
+            }}
+            data-testid="btn-header-my-bookings"
+            title="View your bookings, reservations, and digital travel passes"
+            aria-label="My Bookings"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '30px',
+              minHeight: '0px',
+              maxHeight: '30px',
+              boxSizing: 'border-box',
+              padding: '0 12px',
+              borderRadius: '20px',
+              backgroundColor: activeTab === 'bookings' ? 'var(--acc)' : 'rgba(255, 255, 255, 0.16)',
+              backdropFilter: 'blur(6px)',
+              color: '#FFFFFF',
+              border: activeTab === 'bookings' ? '1px solid var(--acc)' : '1px solid rgba(255, 255, 255, 0.35)',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--acc)';
+              e.currentTarget.style.borderColor = 'var(--acc)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'bookings') {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
+              }
+              e.currentTarget.style.transform = 'none';
+            }}
+          >
+            <CalendarCheck size={13} />
+            <span>My Bookings</span>
+          </button>
 
           {/* List Your Property Partner CTA */}
           <button
@@ -428,6 +476,54 @@ const MainAppContent: React.FC = () => {
           </div>
         )}
 
+        {/* Direct My Bookings Button for Authenticated Traveler */}
+        <button
+          type="button"
+          className="btn-header-my-bookings"
+          onClick={() => {
+            setRole('tourist');
+            setActiveTab('bookings');
+          }}
+          data-testid="btn-header-my-bookings"
+          title="View your bookings, reservations, and digital travel passes"
+          aria-label="My Bookings"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            height: '30px',
+            minHeight: '0px',
+            maxHeight: '30px',
+            boxSizing: 'border-box',
+            padding: '0 12px',
+            borderRadius: '20px',
+            backgroundColor: activeTab === 'bookings' ? 'var(--acc)' : 'rgba(255, 255, 255, 0.16)',
+            backdropFilter: 'blur(6px)',
+            color: '#FFFFFF',
+            border: activeTab === 'bookings' ? '1px solid var(--acc)' : '1px solid rgba(255, 255, 255, 0.35)',
+            fontSize: '11.5px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--acc)';
+            e.currentTarget.style.borderColor = 'var(--acc)';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            if (activeTab !== 'bookings') {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
+            }
+            e.currentTarget.style.transform = 'none';
+          }}
+        >
+          <CalendarCheck size={13} />
+          <span>My Bookings</span>
+        </button>
+
         <button
           type="button"
           onClick={handleLogout}
@@ -508,7 +604,7 @@ const MainAppContent: React.FC = () => {
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         headerAction={renderHeaderAction()}
-        hideTopBanner={activeTab === 'home' || activeTab === 'trips'}
+        hideTopBanner={activeTab === 'home' || activeTab === 'trips' || activeTab === 'bookings'}
       >
         {renderActiveShell()}
 

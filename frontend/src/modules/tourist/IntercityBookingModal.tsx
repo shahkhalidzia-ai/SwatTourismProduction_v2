@@ -9,6 +9,7 @@ import {
   Printer,
 } from 'lucide-react';
 import { Button } from '../../design/Button';
+import { useAuth } from '../../context/AuthContext';
 import type { TransportSchedule, TransportBookingRecord } from '../../api/intercityTransport';
 import { bookIntercitySeat } from '../../api/intercityTransport';
 
@@ -27,8 +28,9 @@ export const IntercityBookingModal: React.FC<IntercityBookingModalProps> = ({
   defaultDate = new Date().toISOString().split('T')[0],
   onBookingSuccess,
 }) => {
-  const [passengerName, setPassengerName] = useState('Sara Ahmed');
-  const [passengerPhone, setPassengerPhone] = useState('+92 300 1234567');
+  const { user } = useAuth();
+  const [passengerName, setPassengerName] = useState(user?.full_name || '');
+  const [passengerPhone, setPassengerPhone] = useState(user?.tourist_profile?.emergency_contact_phone || '');
   const [seatCount, setSeatCount] = useState(1);
   const [travelDate, setTravelDate] = useState(defaultDate);
   const [confirmedBooking, setConfirmedBooking] = useState<TransportBookingRecord | null>(null);

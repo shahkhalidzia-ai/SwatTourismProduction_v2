@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, date
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 
 
 class BookingItemCreateInput(BaseModel):
@@ -128,6 +128,11 @@ class BookingOut(BaseModel):
     tourist: Optional[BookingBriefTourist] = None
     business: Optional[BookingBriefBusiness] = None
     listing: Optional[BookingBriefListing] = None
+
+    @computed_field
+    @property
+    def cancellation_requested(self) -> bool:
+        return self.cancelled_by == "tourist_requested"
 
 
 class BusinessBookingSummaryOut(BaseModel):

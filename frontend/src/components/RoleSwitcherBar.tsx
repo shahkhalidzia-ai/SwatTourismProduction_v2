@@ -103,8 +103,9 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
               currentRole === 'business' &&
               user?.business_profile?.primary_type === p.role;
             const active =
-              (p.targetRole === 'business' ? isBizMatch : p.targetRole === currentRole) ||
-              (p.role === 'hotel' && currentRole === 'business' && !user?.business_profile?.primary_type);
+              Boolean(user) &&
+              ((p.targetRole === 'business' ? isBizMatch : p.targetRole === currentRole) ||
+              (p.role === 'hotel' && currentRole === 'business' && !user?.business_profile?.primary_type));
             return (
               <button
                 key={p.key}

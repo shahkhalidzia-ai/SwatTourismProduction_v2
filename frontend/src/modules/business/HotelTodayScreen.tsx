@@ -14,6 +14,8 @@ import {
   QrCode,
   Building2,
   Trash2,
+  Bell,
+  Calendar,
 } from 'lucide-react';
 import { AssignRoomModal } from './AssignRoomModal';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
@@ -33,6 +35,93 @@ import {
   type PhysicalRoom,
 } from './physicalRooms';
 
+export function loadHotelLocalBookings(listingId?: string, businessName?: string): BookingRow[] {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('swat_local_bookings') : null;
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+
+    const safeName = (businessName || '').toLowerCase().trim();
+    const isSerena = safeName.includes('serena') || safeName === 'swat serena hotel';
+
+    const result: BookingRow[] = [];
+    for (const b of list) {
+      if (!b) continue;
+      const ref = (b.reference || b.booking_reference || b.id || '').toUpperCase();
+      const isHotel =
+        b.listing?.type_code === 'hotel' ||
+        b.type_code === 'hotel' ||
+        ref.startsWith('SWAT-HTL-') ||
+        (b.listing?.title && b.listing.title.toLowerCase().includes('hotel')) ||
+        (b.item && (b.item.toLowerCase().includes('room') || b.item.toLowerCase().includes('suite')));
+
+      const matchesBiz =
+        !safeName ||
+        (listingId && b.listing_id === listingId) ||
+        (b.listing?.title && b.listing.title.toLowerCase().includes(safeName)) ||
+        (b.business_name && b.business_name.toLowerCase().includes(safeName)) ||
+        (isSerena && (ref.startsWith('SWAT-HTL-') || !b.business_name));
+
+      if (isHotel && matchesBiz) {
+        const primaryItem = b.items && b.items.length > 0 ? b.items[0] : null;
+        const roomType =
+          b.roomType ||
+          primaryItem?.price_item_name ||
+          (b.items && b.items.length > 0
+            ? b.items.map((it: any) => it.price_item_name).filter(Boolean).join(', ')
+            : '') ||
+          b.listing?.title ||
+          b.item ||
+          'Executive Deluxe Room';
+
+        const rawAmount = Number(b.total_price || b.total_amount || 37000);
+        const isCancelled = Boolean(
+          b.status === 'cancelled' ||
+          b.status === 'declined' ||
+          b.rawBooking?.status === 'cancelled' ||
+          b.rawBooking?.status === 'declined'
+        );
+        const isCancellationReq = !isCancelled && Boolean(
+          b.cancellation_requested ||
+          b.status === 'cancellation_requested' ||
+          b.cancelled_by === 'tourist_requested' ||
+          b.rawBooking?.cancellation_requested ||
+          b.rawBooking?.cancelled_by === 'tourist_requested' ||
+          b.rawBooking?.status === 'cancellation_requested'
+        );
+
+        result.push({
+          id: b.id || `book-${ref}`,
+          reference: b.reference || b.booking_reference || ref,
+          tourist: b.tourist?.full_name || b.passenger_name || 'Tourist Guest',
+          touristEmail: b.tourist?.email || 'tourist@swat.pk',
+          item: roomType,
+          dates:
+            b.end_date && b.end_date !== b.start_date
+              ? `${b.start_date} – ${b.end_date}`
+              : b.start_date || 'Upcoming Stay',
+          amount: b.total_price || b.total_amount ? `Rs ${Number(b.total_price || b.total_amount).toLocaleString()}` : 'Rs 37,000',
+          rawAmount,
+          status: isCancelled ? 'cancelled' : isCancellationReq ? 'cancellation_requested' : (b.status || 'requested'),
+          cancellation_requested: isCancellationReq,
+          cancel_reason: b.cancel_reason || b.cancelled_reason || b.rawBooking?.cancel_reason,
+          roomType,
+          roomsCount: Number(b.roomsCount || 1),
+          nights: Number(b.nights || 1),
+          payment_status: b.payment_status || 'paid',
+          deposit_amount: Number(b.deposit_amount || rawAmount),
+          specialRequests: b.special_requests,
+          rawBooking: b,
+        });
+      }
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
 interface HotelTodayScreenProps {
   businessName: string;
   businessAddress?: string;
@@ -44,6 +133,7 @@ interface HotelTodayScreenProps {
   onTabChange?: (tabId: string) => void;
   onAcceptBooking: (bookingId: string) => void;
   onDeclineBooking: (bookingId: string, reference: string) => void;
+  onAcceptCancellation?: (bookingId: string) => void;
   onCollectBalance?: (bookingIdOrRef: string) => void;
   isMobile?: boolean;
   isDemoUser?: boolean;
@@ -66,6 +156,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   onTabChange,
   onAcceptBooking,
   onDeclineBooking,
+  onAcceptCancellation,
   onCollectBalance,
   isMobile = false,
   isDemoUser = false,
@@ -79,7 +170,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   const [roomRackFilter, setRoomRackFilter] = useState<'all' | 'available' | 'reserved' | 'occupied' | 'cleaning'>('all');
 
   // Front Desk Console Filter State
-  const [frontDeskFilter, setFrontDeskFilter] = useState<'all' | 'requests' | 'arrivals' | 'in_house' | 'departures' | 'ledger'>('all');
+  const [frontDeskFilter, setFrontDeskFilter] = useState<'all' | 'requests' | 'cancellations' | 'arrivals' | 'in_house' | 'departures' | 'ledger'>('all');
 
   // Folio & Receipt Modal State
   const [receiptModal, setReceiptModal] = useState<{
@@ -125,6 +216,23 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     };
   }, [effectiveListingId, safeBusinessName, roomTypesKey]);
 
+  // Synchronize local hotel bookings from swat_local_bookings
+  const [localHotelBookings, setLocalHotelBookings] = useState<BookingRow[]>(() => {
+    return loadHotelLocalBookings(effectiveListingId, safeBusinessName);
+  });
+
+  useEffect(() => {
+    const reloadLocal = () => {
+      setLocalHotelBookings(loadHotelLocalBookings(effectiveListingId, safeBusinessName));
+    };
+    window.addEventListener('swat_bookings_updated', reloadLocal);
+    window.addEventListener('storage', reloadLocal);
+    return () => {
+      window.removeEventListener('swat_bookings_updated', reloadLocal);
+      window.removeEventListener('storage', reloadLocal);
+    };
+  }, [effectiveListingId, safeBusinessName]);
+
   const handleLocalAccept = (booking: BookingRow) => {
     const key = booking.id || booking.reference;
     setLocalStatusMap((prev) => ({
@@ -147,6 +255,54 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
       ...(key ? { [key]: 'declined' } : {}),
     }));
     onDeclineBooking(booking.id || booking.reference, booking.reference);
+  };
+
+  const handleLocalAcceptCancellation = (booking: BookingRow) => {
+    const key = booking.id || booking.reference;
+    setLocalStatusMap((prev) => ({
+      ...prev,
+      [booking.id]: 'cancelled',
+      [booking.reference]: 'cancelled',
+      ...(key ? { [key]: 'cancelled' } : {}),
+    }));
+
+    // If physical rooms were assigned to this reservation, unassign them immediately
+    try {
+      const storedAssignments = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+      if (storedAssignments[booking.id] || storedAssignments[booking.reference] || storedAssignments[key]) {
+        delete storedAssignments[booking.id];
+        delete storedAssignments[booking.reference];
+        delete storedAssignments[key];
+        localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedAssignments));
+      }
+    } catch {}
+
+    setPhysicalRooms((prevRooms) =>
+      prevRooms.map((r) =>
+        r.current_booking_id === booking.id || r.current_booking_id === booking.reference
+          ? { ...r, status: 'available', current_booking_id: undefined, current_guest_name: undefined }
+          : r
+      )
+    );
+
+    // Sync in swat_local_bookings
+    try {
+      const raw = localStorage.getItem('swat_local_bookings');
+      if (raw) {
+        const list = JSON.parse(raw);
+        const updatedList = list.map((b: any) =>
+          b.id === booking.id || b.reference === booking.reference || b.booking_reference === booking.reference
+            ? { ...b, status: 'cancelled', payment_status: 'refunded', cancellation_requested: false }
+            : b
+        );
+        localStorage.setItem('swat_local_bookings', JSON.stringify(updatedList));
+        window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedList }));
+      }
+    } catch {}
+
+    if (onAcceptCancellation) {
+      onAcceptCancellation(booking.id || booking.reference);
+    }
   };
 
   // Track guest in-house stay states (reserved -> checked_in -> checked_out)
@@ -443,7 +599,40 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     });
   }, [roomTypes, weekDays, physicalRooms, bookings, isDemoSerena]);
 
-  const rawList = bookings && bookings.length > 0 ? bookings : [];
+  const rawList = useMemo(() => {
+    const listMap = new Map<string, BookingRow>();
+
+    // 1. Base prop bookings
+    if (bookings && bookings.length > 0) {
+      for (const b of bookings) {
+        const ref = (b.reference || b.id || '').toUpperCase();
+        if (ref) listMap.set(ref, b);
+      }
+    }
+
+    // 2. Local hotel bookings from swat_local_bookings (and merge cancellation requested status!)
+    for (const lb of localHotelBookings) {
+      const ref = (lb.reference || lb.id || '').toUpperCase();
+      if (!ref) continue;
+      const existing = listMap.get(ref);
+      if (existing) {
+        const isCancelled = lb.status === 'cancelled' || existing.status === 'cancelled';
+        listMap.set(ref, {
+          ...existing,
+          status: isCancelled ? 'cancelled' : lb.cancellation_requested ? 'cancellation_requested' : lb.status || existing.status,
+          cancellation_requested: !isCancelled && (lb.cancellation_requested || existing.cancellation_requested),
+          cancel_reason: lb.cancel_reason || existing.cancel_reason,
+          rawBooking: (existing.rawBooking
+            ? { ...existing.rawBooking, ...(lb.rawBooking || {}) }
+            : lb.rawBooking) as any,
+        });
+      } else {
+        listMap.set(ref, lb);
+      }
+    }
+
+    return Array.from(listMap.values());
+  }, [bookings, localHotelBookings]);
 
   const displayedRequests = rawList.map((b) => {
     const override = localStatusMap[b.id] || localStatusMap[b.reference];
@@ -473,6 +662,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   }, 0);
   const getBookingBalanceDue = (b: BookingRow): number => {
     const bKey = b.id || b.reference;
+    const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
+    if (effStatus === 'cancelled' || effStatus === 'declined') return 0;
     const isBalanceCollected = Boolean(
       collectedBalanceMap[bKey] ||
       (b.id && collectedBalanceMap[b.id]) ||
@@ -492,6 +683,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   const getBookingStayState = (b: BookingRow): 'reserved' | 'checked_in' | 'checked_out' => {
     const bKey = b.id || b.reference;
+    const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
+    if (effStatus === 'cancelled' || effStatus === 'declined') return 'checked_out';
     const raw = stayStateMap[bKey] || (b.id ? stayStateMap[b.id] : undefined) || (b.reference ? stayStateMap[b.reference] : undefined);
     if (raw === 'checked_out') return 'checked_out';
     if (raw === 'checked_in') return 'checked_in';
@@ -523,18 +716,39 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     return getBookingStayState(b) === 'checked_in';
   }).length;
 
+  const cancellationsCount = displayedRequests.filter((b) => {
+    const bKey = b.id || b.reference;
+    const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
+    return (
+      effStatus === 'cancellation_requested' ||
+      Boolean((b as any).cancellation_requested) ||
+      (b as any).cancelled_by === 'tourist_requested' ||
+      Boolean(b.rawBooking?.cancellation_requested) ||
+      b.rawBooking?.cancelled_by === 'tourist_requested' ||
+      b.rawBooking?.status === 'cancellation_requested'
+    );
+  }).length;
+
   const requestsCount = displayedRequests.filter((b) => {
     const bKey = b.id || b.reference;
     const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
-    return effStatus === 'requested' || effStatus === 'pending';
+    const isCancelReq =
+      effStatus === 'cancellation_requested' ||
+      Boolean((b as any).cancellation_requested) ||
+      (b as any).cancelled_by === 'tourist_requested' ||
+      Boolean(b.rawBooking?.cancellation_requested) ||
+      b.rawBooking?.cancelled_by === 'tourist_requested' ||
+      b.rawBooking?.status === 'cancellation_requested';
+    return effStatus === 'requested' || effStatus === 'pending' || isCancelReq;
   }).length;
 
   const arrivalsCount = displayedRequests.filter((b) => {
     const bKey = b.id || b.reference;
     const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
     const isConf = effStatus === 'confirmed' || effStatus === 'accepted';
+    const isCancelled = effStatus === 'cancelled' || effStatus === 'declined';
     const st = getBookingStayState(b);
-    return isConf && st !== 'checked_in' && st !== 'checked_out';
+    return isConf && st !== 'checked_in' && st !== 'checked_out' && !isCancelled;
   }).length;
 
   const inHouseCount = displayedRequests.filter((b) => {
@@ -554,12 +768,25 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
     const isConf = effStatus === 'confirmed' || effStatus === 'completed' || effStatus === 'accepted';
     const isReq = effStatus === 'requested' || effStatus === 'pending';
+    const isCancelled = effStatus === 'cancelled' || effStatus === 'declined';
+    const isCancelReq =
+      !isCancelled && (
+        effStatus === 'cancellation_requested' ||
+        Boolean((b as any).cancellation_requested) ||
+        (b as any).cancelled_by === 'tourist_requested' ||
+        Boolean(b.rawBooking?.cancellation_requested) ||
+        b.rawBooking?.cancelled_by === 'tourist_requested' ||
+        b.rawBooking?.status === 'cancellation_requested'
+      );
 
     if (frontDeskFilter === 'requests') {
-      return isReq;
+      return (isReq || isCancelReq) && !isCancelled;
+    }
+    if (frontDeskFilter === 'cancellations') {
+      return isCancelReq;
     }
     if (frontDeskFilter === 'arrivals') {
-      return isConf && st !== 'checked_in' && st !== 'checked_out';
+      return isConf && st !== 'checked_in' && st !== 'checked_out' && !isCancelReq && !isCancelled;
     }
     if (frontDeskFilter === 'in_house') {
       return st === 'checked_in';
@@ -910,6 +1137,9 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
           {[
             { id: 'all', label: `All Operations (${displayedRequests.length})`, icon: '🛎️' },
             { id: 'requests', label: `Booking Requests (${requestsCount})`, icon: '📬' },
+            ...(cancellationsCount > 0
+              ? [{ id: 'cancellations', label: `Cancellation Requests (${cancellationsCount})`, icon: '⚠️' }]
+              : []),
             { id: 'arrivals', label: `Arrivals & Check-In (${arrivalsCount})`, icon: '📥' },
             { id: 'in_house', label: `In-House Guests (${inHouseCount})`, icon: '🛏️' },
             { id: 'departures', label: `Departures & Settle (${departuresCount})`, icon: '📤' },
@@ -917,6 +1147,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
           ].map((tab) => {
             const isActive = frontDeskFilter === tab.id;
             const isRequestsTab = tab.id === 'requests';
+            const isCancellationsTab = tab.id === 'cancellations';
             return (
               <button
                 key={tab.id}
@@ -928,16 +1159,22 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                   borderRadius: '10px',
                   border: isActive
                     ? '1px solid #088395'
+                    : isCancellationsTab
+                    ? '1.5px solid #F87171'
                     : isRequestsTab && requestsCount > 0
                     ? '1px solid #F59E0B'
                     : '1px solid #CBD5E1',
                   background: isActive
                     ? '#088395'
+                    : isCancellationsTab
+                    ? '#FEE2E2'
                     : isRequestsTab && requestsCount > 0
                     ? '#FEF3C7'
                     : '#FFFFFF',
                   color: isActive
                     ? '#FFFFFF'
+                    : isCancellationsTab
+                    ? '#991B1B'
                     : isRequestsTab && requestsCount > 0
                     ? '#92400E'
                     : '#334155',
@@ -953,7 +1190,21 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
               >
                 <span>{tab.icon}</span>
                 <span>{tab.label}</span>
-                {isRequestsTab && requestsCount > 0 && !isActive && (
+                {isCancellationsTab && cancellationsCount > 0 && !isActive && (
+                  <span
+                    style={{
+                      background: '#DC2626',
+                      color: '#FFFFFF',
+                      borderRadius: '9999px',
+                      padding: '1px 6px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                    }}
+                  >
+                    Action Needed
+                  </span>
+                )}
+                {isRequestsTab && requestsCount > 0 && !isActive && !isCancellationsTab && (
                   <span
                     style={{
                       background: '#D97706',
@@ -972,11 +1223,66 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
           })}
         </div>
 
+        {/* Urgent Alert Banner when Tourist Requested Cancellation */}
+        {cancellationsCount > 0 && (
+          <div
+            data-testid="banner-hotel-cancellations-pending"
+            style={{
+              background: '#FEF2F2',
+              border: '1.5px solid #FECACA',
+              borderRadius: '12px',
+              padding: '14px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              marginBottom: '4px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <XCircle size={22} color="#DC2626" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#991B1B' }}>
+                  ⚠️ Tourist Cancellation Request ({cancellationsCount} Pending Host Confirmation)
+                </div>
+                <div style={{ fontSize: '12px', color: '#7F1D1D', marginTop: '2px' }}>
+                  A traveler has requested to cancel their reservation. Confirm cancellation below to release room inventory.
+                </div>
+              </div>
+            </div>
+            {frontDeskFilter !== 'cancellations' && (
+              <button
+                type="button"
+                data-testid="btn-view-cancellation-requests"
+                onClick={() => setFrontDeskFilter('cancellations')}
+                style={{
+                  background: '#DC2626',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '7px 14px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>View Cancellation Requests ({cancellationsCount})</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Front Desk Folio Cards List */}
         {frontDeskBookings.length === 0 ? (
           <div style={{ padding: '28px 16px', textAlign: 'center', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
             <p style={{ margin: 0, fontSize: '13.5px', color: '#64748B', fontWeight: 500 }}>
-              {frontDeskFilter === 'requests'
+              {frontDeskFilter === 'cancellations'
+                ? '✓ No pending cancellation requests. All reservations are in good standing.'
+                : frontDeskFilter === 'requests'
                 ? 'No pending booking requests. All incoming reservations have been accepted and processed.'
                 : frontDeskFilter === 'ledger'
                 ? '✓ All guest folios are fully settled. There are no outstanding desk balances due.'
@@ -988,14 +1294,25 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             {frontDeskBookings.map((booking) => {
               const bKey = booking.id || booking.reference;
               const effStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
-              const isPendingOrRequested = effStatus === 'requested' || effStatus === 'pending';
-              const stayState = getBookingStayState(booking);
+              const isCancelled = effStatus === 'cancelled' || effStatus === 'declined';
+              const isCancellationRequested =
+                !isCancelled && (
+                  effStatus === 'cancellation_requested' ||
+                  (booking as any).cancellation_requested ||
+                  (booking as any).cancelled_by === 'tourist_requested' ||
+                  (booking.rawBooking &&
+                    ((booking.rawBooking as any).cancellation_requested ||
+                      booking.rawBooking.cancelled_by === 'tourist_requested' ||
+                      booking.rawBooking.status === 'cancellation_requested'))
+                );
+              const isPendingOrRequested = (effStatus === 'requested' || effStatus === 'pending') && !isCancellationRequested && !isCancelled;
+              const stayState = isCancelled ? 'checked_out' : getBookingStayState(booking);
               const rawAmt = Number(booking.rawAmount) || 24000;
               const isDeposit = (booking as any).payment_status === 'deposit_paid' || Boolean((booking as any).deposit_amount);
               const isFullPaid = (booking as any).payment_status === 'full_paid' || (booking as any).payment_status === 'paid' || effStatus === 'completed';
               const depositAmt = (booking as any).deposit_amount || (isFullPaid ? rawAmt : Math.round(rawAmt * 0.25));
               const isBalanceCollected = collectedBalanceMap[bKey];
-              const balanceDue = isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
+              const balanceDue = isCancelled || isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
 
               const storedAssignment = (() => {
                 try {
@@ -1034,8 +1351,16 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                   key={booking.id || booking.reference}
                   style={{
                     borderRadius: '16px',
-                    border: isPendingOrRequested ? '1.5px solid #FCD34D' : '1px solid #E2E8F0',
-                    borderLeft: isPendingOrRequested
+                    border: isCancellationRequested
+                      ? '1.5px solid #F87171'
+                      : isPendingOrRequested
+                      ? '1.5px solid #FCD34D'
+                      : '1px solid #E2E8F0',
+                    borderLeft: isCancelled
+                      ? '5px solid #94A3B8'
+                      : isCancellationRequested
+                      ? '5px solid #DC2626'
+                      : isPendingOrRequested
                       ? '5px solid #F59E0B'
                       : stayState === 'checked_in'
                       ? '5px solid #10B981'
@@ -1044,7 +1369,9 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       : '5px solid #088395',
                     background: '#FFFFFF',
                     padding: '20px 22px',
-                    boxShadow: isPendingOrRequested
+                    boxShadow: isCancellationRequested
+                      ? '0 6px 20px -2px rgba(220, 38, 38, 0.12)'
+                      : isPendingOrRequested
                       ? '0 6px 20px -2px rgba(245, 158, 11, 0.10)'
                       : '0 4px 18px -2px rgba(15, 23, 42, 0.05)',
                     display: 'flex',
@@ -1106,48 +1433,55 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           )}
                         </div>
 
-                        {/* Room Type Requested & Number of Rooms Requested Specs */}
+                        {/* Stay Schedule Dates / Nights / Guests */}
                         <div style={{ fontSize: '13px', color: '#475569', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span
-                            data-testid={`badge-room-type-${booking.reference}`}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              background: '#EFF6FF',
-                              color: '#1E40AF',
-                              border: '1px solid #BFDBFE',
-                              padding: '3px 9px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                            }}
-                          >
-                            <Bed size={13} color="#2563EB" />
-                            <span>Room Type: <strong>{roomDetails.roomType}</strong></span>
-                          </span>
+                          {!isPendingOrRequested && (
+                            <>
+                              <span
+                                data-testid={`badge-room-type-${booking.reference}`}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  background: '#EFF6FF',
+                                  color: '#1E40AF',
+                                  border: '1px solid #BFDBFE',
+                                  padding: '3px 9px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                <Bed size={13} color="#2563EB" />
+                                <span>Room Type: <strong>{roomDetails.roomType}</strong></span>
+                              </span>
 
-                          <span
-                            data-testid={`badge-rooms-count-${booking.reference}`}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              background: isPendingOrRequested ? '#FEF3C7' : '#F1F5F9',
-                              color: isPendingOrRequested ? '#92400E' : '#334155',
-                              border: isPendingOrRequested ? '1px solid #FCD34D' : '1px solid #CBD5E1',
-                              padding: '3px 9px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                            }}
-                          >
-                            <Building2 size={13} color={isPendingOrRequested ? '#D97706' : '#64748B'} />
-                            <span>Requested: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'}</strong></span>
-                          </span>
+                              <span
+                                data-testid={`badge-rooms-count-${booking.reference}`}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '5px',
+                                  background: '#F1F5F9',
+                                  color: '#334155',
+                                  border: '1px solid #CBD5E1',
+                                  padding: '3px 9px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                <Building2 size={13} color="#64748B" />
+                                <span>Allocated: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'}</strong></span>
+                              </span>
+                            </>
+                          )}
 
-                          <span style={{ fontSize: '12px', color: '#64748B', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <span>📅 {booking.dates}</span>
+                          <span style={{ fontSize: '12.5px', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Calendar size={13} color="#64748B" />
+                              <strong style={{ color: '#1E293B' }}>{booking.dates}</strong>
+                            </span>
                             <span style={{ color: '#CBD5E1' }}>•</span>
                             <span>🌙 {roomDetails.nights} {roomDetails.nights === 1 ? 'night' : 'nights'}</span>
                             <span style={{ color: '#CBD5E1' }}>•</span>
@@ -1159,7 +1493,45 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                     {/* Stay State Pill */}
                     <div>
-                      {isPendingOrRequested ? (
+                      {isCancelled ? (
+                        <span
+                          data-testid={`badge-cancelled-${booking.reference}`}
+                          style={{
+                            background: '#F1F5F9',
+                            color: '#475569',
+                            border: '1px solid #CBD5E1',
+                            padding: '5px 12px',
+                            borderRadius: '9999px',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                        >
+                          <XCircle size={13} color="#64748B" />
+                          <span>Cancelled • Withdrawn by Traveler</span>
+                        </span>
+                      ) : isCancellationRequested ? (
+                        <span
+                          data-testid={`badge-cancellation-requested-${booking.reference}`}
+                          style={{
+                            background: '#FEE2E2',
+                            color: '#991B1B',
+                            border: '1px solid #FCA5A5',
+                            padding: '5px 12px',
+                            borderRadius: '9999px',
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                          }}
+                        >
+                          <XCircle size={13} color="#DC2626" />
+                          <span>Cancellation Requested • Action Required</span>
+                        </span>
+                      ) : isPendingOrRequested ? (
                         <span style={{ background: '#FFE7BD', color: '#7A4A00', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                           <Clock size={13} color="#D97706" />
                           <span>Waiting for you • Incoming Request</span>
@@ -1187,13 +1559,40 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                     </div>
                   </div>
 
-                  {/* Booking Request Specification Callout (When status is pending / requested) */}
-                  {isPendingOrRequested && (
+                  {/* Cancelled / Withdrawn Notice */}
+                  {isCancelled && (
                     <div
-                      data-testid={`callout-request-spec-${booking.reference}`}
+                      data-testid={`notice-booking-cancelled-${booking.reference}`}
                       style={{
-                        backgroundColor: '#FFFDF5',
-                        border: '1.5px dashed #F59E0B',
+                        background: '#F8FAFC',
+                        border: '1.5px solid #E2E8F0',
+                        borderRadius: '12px',
+                        padding: '12px 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        color: '#475569',
+                      }}
+                    >
+                      <XCircle size={22} color="#94A3B8" style={{ flexShrink: 0 }} />
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#1E293B' }}>
+                          Booking Request Withdrawn / Cancelled by Tourist
+                        </div>
+                        <div style={{ fontSize: '12px', marginTop: '2px', color: '#64748B' }}>
+                          Reason: <strong>{booking.cancel_reason || (booking.rawBooking && booking.rawBooking.cancel_reason) || 'Withdrawn by traveler with zero fee before check-in.'}</strong> Room capacity is restored to available inventory.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cancellation Requested Alert Notice */}
+                  {isCancellationRequested && (
+                    <div
+                      data-testid={`notice-cancellation-requested-${booking.reference}`}
+                      style={{
+                        background: '#FEF2F2',
+                        border: '1.5px solid #FECACA',
                         borderRadius: '12px',
                         padding: '12px 16px',
                         display: 'flex',
@@ -1201,58 +1600,123 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         justifyContent: 'space-between',
                         flexWrap: 'wrap',
                         gap: '12px',
+                        color: '#991B1B',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                        <div
-                          style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '10px',
-                            backgroundColor: '#FEF3C7',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#D97706',
-                            fontSize: '18px',
-                          }}
-                        >
-                          🛎️
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <XCircle size={20} color="#DC2626" style={{ flexShrink: 0 }} />
                         <div>
-                          <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#B45309', letterSpacing: '0.5px' }}>
-                            New Booking Request Specification
+                          <div style={{ fontWeight: 800, fontSize: '13.5px' }}>
+                            ⚠️ Tourist Requested Booking Cancellation
                           </div>
-                          <div style={{ fontSize: '14px', fontWeight: 800, color: '#1E293B', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span>
-                              Room Type: <strong style={{ color: '#1E40AF' }}>{roomDetails.roomType}</strong>
-                            </span>
-                            <span style={{ color: '#CBD5E1' }}>•</span>
-                            <span>
-                              Quantity: <strong style={{ color: '#B45309' }}>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'} Requested</strong>
-                            </span>
-                            <span style={{ color: '#CBD5E1' }}>•</span>
-                            <span style={{ color: '#64748B', fontWeight: 600 }}>
-                              Stay: {roomDetails.nights} {roomDetails.nights === 1 ? 'Night' : 'Nights'} ({booking.dates})
-                            </span>
+                          <div style={{ fontSize: '12px', marginTop: '2px', color: '#7F1D1D' }}>
+                            Reason: <strong>{booking.cancel_reason || (booking.rawBooking && booking.rawBooking.cancel_reason) || 'Change of travel dates or itinerary'}</strong>
                           </div>
                         </div>
                       </div>
-                      <div
+                      <button
+                        type="button"
+                        data-testid={`btn-accept-cancellation-${booking.reference}`}
+                        onClick={() => handleLocalAcceptCancellation(booking)}
                         style={{
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          color: '#92400E',
-                          background: '#FEF3C7',
-                          padding: '6px 12px',
+                          background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                          color: '#FFFFFF',
+                          border: 'none',
                           borderRadius: '8px',
-                          border: '1px solid #FDE68A',
+                          padding: '9px 18px',
+                          fontSize: '12.5px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
+                          boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
                         }}
                       >
-                        <span>⚡ Action: Accept to allocate {roomDetails.roomsCount} physical {roomDetails.roomsCount === 1 ? 'room & key' : 'rooms & keys'}</span>
+                        <CheckCircle size={15} />
+                        <span>Confirm & Accept Cancellation</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Booking Request Specification Callout (When status is pending / requested) */}
+                  {isPendingOrRequested && (
+                    <div
+                      data-testid={`callout-request-spec-${booking.reference}`}
+                      style={{
+                        background: 'linear-gradient(135deg, #FFFDF7 0%, #FEF9EE 100%)',
+                        border: '1px solid #FCD34D',
+                        borderRadius: '10px',
+                        padding: '10px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '10px',
+                        boxShadow: '0 1px 3px rgba(245, 158, 11, 0.05)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: '#FEF3C7',
+                            color: '#92400E',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            letterSpacing: '0.4px',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          <Bell size={12} color="#D97706" />
+                          <span>New Request</span>
+                        </span>
+
+                        <span
+                          data-testid={`badge-room-type-${booking.reference}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: '#EFF6FF',
+                            color: '#1E40AF',
+                            border: '1px solid #BFDBFE',
+                            padding: '3px 9px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <Bed size={13} color="#2563EB" />
+                          <span>Room Type: <strong>{roomDetails.roomType}</strong></span>
+                        </span>
+
+                        <span
+                          data-testid={`badge-rooms-count-${booking.reference}`}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            background: '#FEF3C7',
+                            color: '#92400E',
+                            border: '1px solid #FCD34D',
+                            padding: '3px 9px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          <Building2 size={13} color="#D97706" />
+                          <span>Requested: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room Requested' : 'Rooms Requested'}</strong></span>
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '12px', color: '#92400E', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span>⚡ Action: Accept below to allocate {roomDetails.roomsCount} physical {roomDetails.roomsCount === 1 ? 'room & key' : 'rooms & keys'}</span>
                       </div>
                     </div>
                   )}
@@ -1283,33 +1747,35 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           <Key size={13} color="#088395" />
                           <span>Room Key Allocation</span>
                         </div>
-                        <button
-                          type="button"
-                          disabled={stayState === 'checked_out'}
-                          onClick={() => setAssignModalBooking(booking)}
-                          data-testid={`btn-assign-key-${booking.reference}`}
-                          id={`btn-assign-key-bottom-${booking.reference}`}
-                          style={{
-                            background: stayState === 'checked_out' ? '#F1F5F9' : '#FFFFFF',
-                            border: stayState === 'checked_out' ? '1px solid #E2E8F0' : '1px solid #CBD5E1',
-                            borderRadius: '6px',
-                            padding: '4px 10px',
-                            fontSize: '11.5px',
-                            fontWeight: 700,
-                            color: stayState === 'checked_out' ? '#94A3B8' : '#088395',
-                            cursor: stayState === 'checked_out' ? 'not-allowed' : 'pointer',
-                            opacity: stayState === 'checked_out' ? 0.6 : 1,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-                            transition: 'all 0.15s ease',
-                          }}
-                          title={stayState === 'checked_out' ? 'Stay completed & settled - room key returned' : undefined}
-                        >
-                          {assignedRoom ? 'Change Key / Room' : '🔑 Assign Key'}
-                        </button>
-                        {assignedRoom && (
+                        {!isCancelled && (
+                          <button
+                            type="button"
+                            disabled={stayState === 'checked_out'}
+                            onClick={() => setAssignModalBooking(booking)}
+                            data-testid={`btn-assign-key-${booking.reference}`}
+                            id={`btn-assign-key-bottom-${booking.reference}`}
+                            style={{
+                              background: stayState === 'checked_out' ? '#F1F5F9' : '#FFFFFF',
+                              border: stayState === 'checked_out' ? '1px solid #E2E8F0' : '1px solid #CBD5E1',
+                              borderRadius: '6px',
+                              padding: '4px 10px',
+                              fontSize: '11.5px',
+                              fontWeight: 700,
+                              color: stayState === 'checked_out' ? '#94A3B8' : '#088395',
+                              cursor: stayState === 'checked_out' ? 'not-allowed' : 'pointer',
+                              opacity: stayState === 'checked_out' ? 0.6 : 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                              transition: 'all 0.15s ease',
+                            }}
+                            title={stayState === 'checked_out' ? 'Stay completed & settled - room key returned' : undefined}
+                          >
+                            {assignedRoom ? 'Change Key / Room' : '🔑 Assign Key'}
+                          </button>
+                        )}
+                        {!isCancelled && assignedRoom && (
                           <button
                             type="button"
                             disabled={stayState === 'checked_out'}
@@ -1321,7 +1787,11 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {assignedRooms.length > 0 ? (
+                        {isCancelled ? (
+                          <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <span>Reservation Cancelled • Room inventory released</span>
+                          </div>
+                        ) : assignedRooms.length > 0 ? (
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '15.5px', fontWeight: 800, color: '#0A4D68' }}>
                               {assignedRoomsLabel}
@@ -1388,8 +1858,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         </div>
                         <div>
                           <span style={{ fontSize: '11px', color: '#78350F', display: 'block', fontWeight: 500 }}>Balance Due:</span>
-                          <strong style={{ fontSize: '14.5px', color: balanceDue > 0 ? '#B45309' : '#059669', fontWeight: 800 }}>
-                            {balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()}` : '✓ Fully Settled'}
+                          <strong style={{ fontSize: '14.5px', color: isCancelled ? '#64748B' : balanceDue > 0 ? '#B45309' : '#059669', fontWeight: 800 }}>
+                            {isCancelled ? 'PKR 0 (Cancelled)' : balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()}` : '✓ Fully Settled'}
                           </strong>
                         </div>
                       </div>
@@ -1408,8 +1878,51 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       gap: '12px',
                     }}
                   >
-                    {/* Primary Operations (Check in / Check out / Accept / Decline) */}
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {isCancelled ? (
+                      <div
+                        data-testid={`toolbar-cancelled-${booking.reference}`}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          fontSize: '13px',
+                          color: '#64748B',
+                          fontWeight: 700,
+                          padding: '4px 0',
+                        }}
+                      >
+                        <XCircle size={16} color="#94A3B8" />
+                        <span>Reservation cancelled/withdrawn by traveler. Room capacity released — desk check-in closed.</span>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Primary Operations (Check in / Check out / Accept / Decline / Accept Cancellation) */}
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {isCancellationRequested && (
+                        <button
+                          type="button"
+                          data-testid={`btn-accept-cancellation-bottom-${booking.reference}`}
+                          onClick={() => handleLocalAcceptCancellation(booking)}
+                          style={{
+                            background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px 18px',
+                            fontSize: '12.5px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
+                          }}
+                        >
+                          <CheckCircle size={15} />
+                          <span>Confirm & Accept Cancellation</span>
+                        </button>
+                      )}
+
                       {isPendingOrRequested && (
                         <>
                           <button
@@ -1699,8 +2212,10 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         <span>Tax Invoice &amp; Receipt</span>
                       </button>
                     </div>
-                  </div>
-                </div>
+                  </>
+                )}
+              </div>
+            </div>
               );
             })}
           </div>

@@ -206,8 +206,8 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
           const rideOrder = {
             id: newBooking.id || `ride-${Date.now()}`,
             reference: newBooking.reference || (newBooking as any).booking_reference || `SWT-TR-${Math.floor(100000 + Math.random() * 900000)}`,
-            tourist: user?.full_name || (user as any)?.name || 'Sara Ahmed',
-            touristEmail: user?.email || 'sara@swat.pk',
+            tourist: user?.full_name || (user as any)?.name || 'Guest Traveler',
+            touristEmail: user?.email || 'guest@swat.pk',
             item: `${listing.title} (${listing.details?.vehicle_model || selectedPriceItem?.name || '4x4 Vehicle'})`,
             dates: datesFormatted,
             amount: `Rs ${Number(totalAmount).toLocaleString()}`,

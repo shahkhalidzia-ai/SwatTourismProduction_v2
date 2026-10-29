@@ -3,6 +3,7 @@ import {
   Compass,
   ShieldAlert,
   CalendarDays,
+  CalendarCheck,
   Store,
   Star,
   User,
@@ -70,6 +71,7 @@ export const getBusinessNavItems = (primaryType?: string): NavItemConfig[] => {
 export const ROLE_NAV_ITEMS: Record<UserRole, NavItemConfig[]> = {
   tourist: [
     { id: 'home', label: 'Explore Swat', icon: React.createElement(Compass, { size: 20 }) },
+    { id: 'bookings', label: 'My Bookings', icon: React.createElement(CalendarCheck, { size: 20 }) },
     { id: 'trips', label: 'Trips', icon: React.createElement(CalendarDays, { size: 20 }) },
     { id: 'safety', label: 'Safety', icon: React.createElement(ShieldAlert, { size: 20 }) },
     { id: 'profile', label: 'Profile', icon: React.createElement(User, { size: 20 }) },

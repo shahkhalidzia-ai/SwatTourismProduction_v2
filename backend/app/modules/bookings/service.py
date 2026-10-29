@@ -845,6 +845,130 @@ class BookingService:
         return await BookingService.get_booking_by_id(db, booking.id)
 
     @staticmethod
+    async def request_cancellation(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        user_id: uuid.UUID,
+        action: BookingActionRequest,
+    ) -> Booking:
+        """Tourist requests cancellation for an accepted or confirmed reservation; sent to host to accept."""
+        booking = await BookingService.get_booking_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        is_tourist = booking.tourist_id == user_id
+        if not is_tourist:
+            user_q = select(User).where(User.id == user_id)
+            user_res = await db.execute(user_q)
+            current_user = user_res.scalar_one_or_none()
+            if not current_user or current_user.role not in ("authority", "admin"):
+                raise HTTPException(status_code=403, detail="Only the tourist can request cancellation")
+
+        if booking.status in ("cancelled", "completed", "declined"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot request cancellation for a booking that is {booking.status}",
+            )
+
+        if booking.status == "requested":
+            return await BookingService.withdraw_booking(db, booking_id, user_id)
+
+        old_status = booking.status
+        booking.cancelled_by = "tourist_requested"
+        booking.cancel_reason = action.reason or action.note or "Tourist requested cancellation"
+        booking.cancelled_at = datetime.now(timezone.utc)
+        booking.updated_at = datetime.now(timezone.utc)
+
+        history = BookingStatusHistory(
+            id=uuid.uuid4(),
+            booking_id=booking.id,
+            from_status=old_status,
+            to_status="cancellation_requested",
+            changed_by=user_id,
+            note=f"Cancellation requested by tourist. Reason: {booking.cancel_reason}",
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(history)
+
+        recipient_id = booking.business.owner_id
+        await NotificationService.create_notification(
+            db=db,
+            user_id=recipient_id,
+            type="booking",
+            title=f"Cancellation Request ({booking.reference})",
+            body=f"Tourist requested cancellation for {booking.listing.title}. Reason: {booking.cancel_reason}. Please review and accept.",
+            related_type="booking",
+            related_id=booking.id,
+        )
+
+        await db.commit()
+        return await BookingService.get_booking_by_id(db, booking.id)
+
+    @staticmethod
+    async def accept_cancellation(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        user_id: uuid.UUID,
+        action: BookingActionRequest,
+    ) -> Booking:
+        """Hotel / Guide / Transport provider accepts tourist cancellation request."""
+        booking = await BookingService.get_booking_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        is_business = booking.business.owner_id == user_id
+        if not is_business:
+            user_q = select(User).where(User.id == user_id)
+            user_res = await db.execute(user_q)
+            current_user = user_res.scalar_one_or_none()
+            if not current_user or current_user.role not in ("authority", "admin"):
+                raise HTTPException(status_code=403, detail="Not authorized to accept cancellation for this booking")
+
+        if booking.status == "cancelled":
+            return booking
+
+        old_status = booking.status
+        booking.status = "cancelled"
+        booking.updated_at = datetime.now(timezone.utc)
+
+        preview = BookingService.get_cancellation_preview(booking)
+        fee = preview["cancellation_fee"]
+        booking.cancellation_fee = fee
+        booking.cancelled_by = "tourist"
+        booking.cancel_reason = booking.cancel_reason or action.reason or action.note or "Cancellation accepted by host"
+        booking.cancelled_at = datetime.now(timezone.utc)
+
+        if booking.payment_status == "paid":
+            booking.payment_status = "refunded"
+
+        if old_status in ("requested", "accepted", "confirmed"):
+            await BookingService._restore_units_booked(db, booking)
+
+        history = BookingStatusHistory(
+            id=uuid.uuid4(),
+            booking_id=booking.id,
+            from_status=old_status,
+            to_status="cancelled",
+            changed_by=user_id,
+            note=f"Host accepted cancellation request. Cancellation fee: PKR {fee:,.2f}.",
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(history)
+
+        await NotificationService.create_notification(
+            db=db,
+            user_id=booking.tourist_id,
+            type="booking",
+            title=f"Cancellation Accepted ({booking.reference})",
+            body=f"Your cancellation request for {booking.listing.title} has been accepted by the host. Fee: PKR {fee:,.2f}.",
+            related_type="booking",
+            related_id=booking.id,
+        )
+
+        await db.commit()
+        return await BookingService.get_booking_by_id(db, booking.id)
+
+    @staticmethod
     async def remove_booking_from_trip(
         db: AsyncSession,
         booking_id: uuid.UUID,

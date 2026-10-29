@@ -232,6 +232,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           >
             <button
               type="button"
+              data-testid="auth-tab-login"
               onClick={() => {
                 setMode('login');
                 setError(null);
@@ -255,6 +256,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             </button>
             <button
               type="button"
+              data-testid="auth-tab-register"
               onClick={() => {
                 setMode('register');
                 setError(null);

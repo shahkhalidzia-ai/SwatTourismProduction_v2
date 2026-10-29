@@ -87,6 +87,7 @@ describe('Login Screen and Role Isolation Verification', () => {
 
   it('renders RoleSwitcherBar only when logged in as demo user, hides it for specific users', async () => {
     // When swat_demo_user is 'false', user is specific persona
+    localStorage.setItem('swat_auth_explicit', 'true');
     localStorage.setItem('swat_token', 'test-token');
     localStorage.setItem('swat_demo_user', 'false');
 
@@ -99,6 +100,7 @@ describe('Login Screen and Role Isolation Verification', () => {
   });
 
   it('renders Web View and Phone View options on portal and allows switching views', async () => {
+    localStorage.setItem('swat_auth_explicit', 'true');
     localStorage.setItem('swat_token', 'test-token');
     localStorage.setItem('swat_demo_user', 'true');
 
