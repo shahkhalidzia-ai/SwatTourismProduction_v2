@@ -155,20 +155,39 @@ export const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
           booking_reference: refCode,
           reference: refCode,
           listing_id: listingId,
-          tourist_id: user?.id || 'tourist-active',
+          tourist_id: user?.id || 'guest-tourist',
           status: 'confirmed',
           total_price: effectivePrice,
+          total_amount: effectivePrice,
           start_date: selectedDate,
           end_date: checkOutStr,
           travellers: currentPriceItem.capacity || 2,
           special_requests: noteText,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          tourist: {
+            id: user?.id || 'guest-tourist',
+            full_name: user?.full_name || 'Guest Tourist',
+            email: user?.email || 'guest@swat.tourism',
+          },
           listing: {
             title: listing?.title || listingTitle,
             type_code: listing?.type_code || 'hotel',
             area_name: listing?.area_name,
           },
+          items: [
+            {
+              id: `item-${Date.now()}`,
+              booking_id: `book-${Date.now()}`,
+              price_item_id: currentPriceItem.id || '',
+              price_item_name: currentPriceItem.name,
+              service_date: selectedDate,
+              quantity: 1,
+              unit_price: effectivePrice,
+              line_total: effectivePrice,
+              created_at: new Date().toISOString(),
+            },
+          ],
         } as unknown as Booking;
       }
 

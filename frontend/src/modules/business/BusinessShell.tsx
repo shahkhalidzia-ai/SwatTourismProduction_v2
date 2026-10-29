@@ -1048,64 +1048,82 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
             }
           })();
 
-          if (bData && bData.length > 0) {
-            const mappedB: BookingRow[] = bData.map((b) => {
-              const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
-              const payment_status = isCollected ? 'paid' : b.payment_status;
-              const deposit_amount = isCollected ? Number(b.total_amount) : b.deposit_amount;
+          const mapBookingToRow = (b: Booking): BookingRow => {
+            const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
+            const payment_status = isCollected ? 'paid' : b.payment_status;
+            const deposit_amount = isCollected ? Number(b.total_amount) : b.deposit_amount;
 
-              // Parse room details for accommodation listings
-              const primaryItem = b.items && b.items.length > 0 ? b.items[0] : null;
-              const roomType =
-                primaryItem?.price_item_name ||
-                (b.items && b.items.length > 0
-                  ? b.items.map((it) => it.price_item_name).filter(Boolean).join(', ')
-                  : '') ||
-                (currentBizType === 'hotel' ? 'Executive Deluxe Room' : b.listing?.title || 'Booking Service');
+            // Parse room details for accommodation listings
+            const primaryItem = b.items && b.items.length > 0 ? b.items[0] : null;
+            const roomType =
+              primaryItem?.price_item_name ||
+              (b.items && b.items.length > 0
+                ? b.items.map((it) => it.price_item_name).filter(Boolean).join(', ')
+                : '') ||
+              (currentBizType === 'hotel' ? 'Executive Deluxe Room' : b.listing?.title || 'Booking Service');
 
-              const roomsCount =
-                b.items && b.items.length > 0
-                  ? b.items.reduce(
-                      (sum, it) => sum + (Number(it.quantity || (it as any).units || (it as any).default_units) || 1),
-                      0
-                    )
-                  : 1;
+            const roomsCount =
+              b.items && b.items.length > 0
+                ? b.items.reduce(
+                    (sum, it) => sum + (Number(it.quantity || (it as any).units || (it as any).default_units) || 1),
+                    0
+                  )
+                : 1;
 
-              let nights = 1;
-              if (b.start_date && b.end_date) {
-                const d1 = new Date(b.start_date);
-                const d2 = new Date(b.end_date);
-                if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
-                  nights = Math.max(1, Math.round(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
-                }
+            let nights = 1;
+            if (b.start_date && b.end_date) {
+              const d1 = new Date(b.start_date);
+              const d2 = new Date(b.end_date);
+              if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+                nights = Math.max(1, Math.round(Math.abs(d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
               }
+            }
 
-              return {
-                id: b.id,
-                reference: b.reference,
-                tourist: b.tourist?.full_name || 'Tourist',
-                touristEmail: b.tourist?.email,
-                item: currentBizType === 'hotel' && roomType ? roomType : (b.listing?.title || roomType || 'Booking Service'),
-                dates: b.end_date ? `${b.start_date} – ${b.end_date}` : b.start_date,
-                amount: `Rs ${Number(b.total_amount).toLocaleString()}`,
-                rawAmount: Number(b.total_amount),
-                status: b.status,
+            return {
+              id: b.id,
+              reference: b.reference,
+              tourist: b.tourist?.full_name || 'Guest Tourist',
+              touristEmail: b.tourist?.email,
+              item: currentBizType === 'hotel' && roomType ? roomType : (b.listing?.title || roomType || 'Booking Service'),
+              dates: b.end_date ? `${b.start_date} – ${b.end_date}` : b.start_date,
+              amount: `Rs ${Number(b.total_amount).toLocaleString()}`,
+              rawAmount: Number(b.total_amount),
+              status: b.status,
+              payment_status,
+              deposit_amount,
+              declineReason: b.decline_reason,
+              cancellation_requested: b.cancellation_requested ?? (b.status === 'cancellation_requested' || b.cancelled_by === 'tourist_requested'),
+              cancel_reason: b.cancel_reason,
+              roomType,
+              roomsCount,
+              nights,
+              specialRequests: b.special_requests,
+              rawBooking: {
+                ...b,
                 payment_status,
                 deposit_amount,
-                declineReason: b.decline_reason,
-                cancellation_requested: b.cancellation_requested ?? (b.status === 'cancellation_requested' || b.cancelled_by === 'tourist_requested'),
-                cancel_reason: b.cancel_reason,
-                roomType,
-                roomsCount,
-                nights,
-                specialRequests: b.special_requests,
-                rawBooking: {
-                  ...b,
-                  payment_status,
-                  deposit_amount,
-                },
-              };
-            });
+              },
+            };
+          };
+
+          if (bData && bData.length > 0) {
+            const mappedB: BookingRow[] = bData.map(mapBookingToRow);
+
+            // Merge local guest bookings for current business
+            const localRaw = localStorage.getItem('swat_local_bookings');
+            if (localRaw) {
+              try {
+                const localBookings: Booking[] = JSON.parse(localRaw);
+                if (Array.isArray(localBookings)) {
+                  for (const lb of localBookings) {
+                    if (!mappedB.some(x => x.id === lb.id || x.reference === lb.reference)) {
+                      mappedB.unshift(mapBookingToRow(lb));
+                    }
+                  }
+                }
+              } catch {}
+            }
+
             if (currentBizType === 'transport') {
               const combined = loadTransportRideOrders(mappedB, currentProviderContext);
               setBookings(combined);
@@ -1131,6 +1149,22 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                 }
                 return b;
               });
+
+              // Merge local guest bookings for current business
+              const localRaw = localStorage.getItem('swat_local_bookings');
+              if (localRaw) {
+                try {
+                  const localBookings: Booking[] = JSON.parse(localRaw);
+                  if (Array.isArray(localBookings)) {
+                    for (const lb of localBookings) {
+                      if (!mappedDemo.some(x => x.id === lb.id || x.reference === lb.reference)) {
+                        mappedDemo.unshift(mapBookingToRow(lb));
+                      }
+                    }
+                  }
+                } catch {}
+              }
+
               setBookings(mappedDemo);
               if (!isDemoAccount) {
                 setBusinessStats({ bookings_today: 0, earnings_week: 0, pending_requests: 0, confirmed_count: 0 });
@@ -1147,6 +1181,37 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               return {};
             }
           })();
+
+          const mapBookingToRowFallback = (b: Booking): BookingRow => {
+            const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
+            const payment_status = isCollected ? 'paid' : b.payment_status;
+            const deposit_amount = isCollected ? Number(b.total_amount) : b.deposit_amount;
+            const primaryItem = b.items && b.items.length > 0 ? b.items[0] : null;
+            const roomType =
+              primaryItem?.price_item_name ||
+              (currentBizType === 'hotel' ? 'Executive Deluxe Room' : b.listing?.title || 'Booking Service');
+            return {
+              id: b.id,
+              reference: b.reference,
+              tourist: b.tourist?.full_name || 'Guest Tourist',
+              touristEmail: b.tourist?.email,
+              item: currentBizType === 'hotel' && roomType ? roomType : (b.listing?.title || roomType || 'Booking Service'),
+              dates: b.end_date ? `${b.start_date} – ${b.end_date}` : b.start_date,
+              amount: `Rs ${Number(b.total_amount).toLocaleString()}`,
+              rawAmount: Number(b.total_amount),
+              status: b.status,
+              payment_status,
+              deposit_amount,
+              declineReason: b.decline_reason,
+              cancellation_requested: b.cancellation_requested ?? (b.status === 'cancellation_requested' || b.cancelled_by === 'tourist_requested'),
+              cancel_reason: b.cancel_reason,
+              roomType,
+              roomsCount: 1,
+              nights: 1,
+              specialRequests: b.special_requests,
+              rawBooking: b,
+            };
+          };
 
           if (currentBizType === 'transport') {
             const localOrders = loadTransportRideOrders(undefined, currentProviderContext);
@@ -1165,6 +1230,22 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               }
               return b;
             });
+
+            // Merge local guest bookings for current business
+            const localRaw = localStorage.getItem('swat_local_bookings');
+            if (localRaw) {
+              try {
+                const localBookings: Booking[] = JSON.parse(localRaw);
+                if (Array.isArray(localBookings)) {
+                  for (const lb of localBookings) {
+                    if (!mappedDemo.some(x => x.id === lb.id || x.reference === lb.reference)) {
+                      mappedDemo.unshift(mapBookingToRowFallback(lb));
+                    }
+                  }
+                }
+              } catch {}
+            }
+
             setBookings(mappedDemo);
             if (!isDemoAccount) {
               setBusinessStats({ bookings_today: 0, earnings_week: 0, pending_requests: 0, confirmed_count: 0 });
@@ -1189,6 +1270,8 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
         const refreshed = loadTransportRideOrders(undefined, currentProviderContext);
         setBookings(refreshed);
         updateTransportStats(refreshed);
+      } else {
+        load();
       }
     };
     window.addEventListener('swat_ride_orders_updated', handleRideOrdersSync);

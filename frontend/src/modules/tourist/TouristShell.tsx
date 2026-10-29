@@ -2045,17 +2045,43 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
     const handleCommunityServicesUpdate = () => {
       setCommunityServicesVersion((v) => v + 1);
     };
+    const handleBookingsUpdate = () => {
+      try {
+        const raw = localStorage.getItem('swat_local_bookings');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setMyBookings((prev) => {
+              const map = new Map<string, Booking>();
+              for (const b of parsed) {
+                if (b.reference) map.set(b.reference, b);
+                else if (b.id) map.set(b.id, b);
+              }
+              for (const b of prev) {
+                const key = b.reference || b.id;
+                if (!map.has(key)) map.set(key, b);
+              }
+              return Array.from(map.values());
+            });
+          }
+        }
+      } catch {}
+    };
     window.addEventListener('swat_transport_fleet_updated', handleFleetUpdate);
     window.addEventListener('swat_explore_services_updated', handleCommunityServicesUpdate);
     window.addEventListener(SWAT_COMMUNITY_APPS_EVENT, handleCommunityServicesUpdate);
+    window.addEventListener('swat_bookings_updated', handleBookingsUpdate);
     window.addEventListener('storage', handleFleetUpdate);
     window.addEventListener('storage', handleCommunityServicesUpdate);
+    window.addEventListener('storage', handleBookingsUpdate);
     return () => {
       window.removeEventListener('swat_transport_fleet_updated', handleFleetUpdate);
       window.removeEventListener('swat_explore_services_updated', handleCommunityServicesUpdate);
       window.removeEventListener(SWAT_COMMUNITY_APPS_EVENT, handleCommunityServicesUpdate);
+      window.removeEventListener('swat_bookings_updated', handleBookingsUpdate);
       window.removeEventListener('storage', handleFleetUpdate);
       window.removeEventListener('storage', handleCommunityServicesUpdate);
+      window.removeEventListener('storage', handleBookingsUpdate);
     };
   }, []);
 
@@ -7329,9 +7355,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           }}
           onBookingSuccess={(b) => {
             showToast(`Stay reservation (${b.reference}) registered for ${hotelModalListing.title}!`);
+            setMyBookings((prev) => [b, ...prev.filter((x) => x.id !== b.id && x.reference !== b.reference)]);
             fetchMyBookings().then(setMyBookings).catch(() => {});
             getTrips().then(setAllTrips).catch(() => {});
           }}
+          onOpenAuth={onOpenAuth}
+          onNavigateBookings={() => onTabChange ? onTabChange('bookings') : null}
           onAddActivityToTrip={(actName) => {
             handleAddStop('custom', undefined, `${hotelModalListing.title}: ${actName}`);
             setHotelModalListing(null);

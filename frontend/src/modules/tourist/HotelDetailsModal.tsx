@@ -23,13 +23,18 @@ import {
   AlertCircle,
   BookmarkCheck,
   ArrowRight,
+  ArrowLeft,
   Search,
+  User,
+  Mail,
+  Copy,
 } from 'lucide-react';
 import { Tag } from '../../design/Tag';
 import { Button } from '../../design/Button';
 import type { ListingItem, PriceItem, AvailabilityRecord } from '../../api/listings';
 import { fetchAvailability } from '../../api/listings';
 import { createBookingRequest, type Booking } from '../../api/bookings';
+import { useAuth } from '../../context/AuthContext';
 
 interface HotelDetailsModalProps {
   hotel: ListingItem | null;
@@ -45,6 +50,8 @@ interface HotelDetailsModalProps {
   onAddActivityToTrip?: (activityName: string) => void;
   onCheckDates?: () => void;
   onBookingSuccess?: (booking: Booking) => void;
+  onOpenAuth?: (mode?: 'login' | 'register', role?: any, primaryType?: string) => void;
+  onNavigateBookings?: () => void;
   initialTab?: 'rooms' | 'calendar' | 'facilities' | 'activities';
 }
 
@@ -56,6 +63,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
   onAddActivityToTrip,
   onCheckDates: _onCheckDates,
   onBookingSuccess,
+  onOpenAuth,
+  onNavigateBookings,
   initialTab = 'rooms',
 }) => {
   const [activeTab, setActiveTab] = useState<'rooms' | 'calendar' | 'facilities' | 'activities'>(initialTab);
@@ -87,6 +96,19 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
   // Live availability state
   const [availabilityData, setAvailabilityData] = useState<AvailabilityRecord[]>([]);
   const [isLoadingAvail, setIsLoadingAvail] = useState<boolean>(false);
+
+  // Auth context for preserving existing logged-in user flow
+  const { user } = useAuth();
+
+  // Guest booking flow state for unauthenticated users
+  const [showGuestCheckout, setShowGuestCheckout] = useState<boolean>(false);
+  const [guestName, setGuestName] = useState<string>('');
+  const [guestPhone, setGuestPhone] = useState<string>('');
+  const [guestEmail, setGuestEmail] = useState<string>('');
+  const [guestCity, setGuestCity] = useState<string>('');
+  const [guestPaymentMethod, setGuestPaymentMethod] = useState<'pay_at_hotel' | 'online'>('pay_at_hotel');
+  const [guestValidationErr, setGuestValidationErr] = useState<string | null>(null);
+  const [copiedRef, setCopiedRef] = useState<boolean>(false);
 
   // Direct booking state
   const [isBooking, setIsBooking] = useState<boolean>(false);
@@ -280,6 +302,14 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
   // Direct Booking Action
   const handleInstantBook = async () => {
     if (!currentSelectedRoom) return;
+
+    // For unauthenticated guests, transition seamlessly to guest checkout drawer
+    if (!user) {
+      setShowGuestCheckout(true);
+      return;
+    }
+
+    // Existing Logged-in user flow (100% untouched and preserved):
     setIsBooking(true);
     setBookingError(null);
     try {
@@ -303,6 +333,95 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
     } finally {
       setIsBooking(false);
     }
+  };
+
+  // Guest booking submission handler (for unauthenticated guests)
+  const handleGuestSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!currentSelectedRoom) return;
+
+    if (!guestName.trim()) {
+      setGuestValidationErr('Please enter your primary guest full name.');
+      return;
+    }
+    if (!guestPhone.trim() || guestPhone.trim().length < 7) {
+      setGuestValidationErr('Please provide a valid Mobile / WhatsApp contact number.');
+      return;
+    }
+
+    setGuestValidationErr(null);
+    setIsBooking(true);
+    setBookingError(null);
+
+    const refCode = `SWT-HTL-${Math.floor(100000 + Math.random() * 900000)}`;
+    const guestBooking: Booking = {
+      id: `book-guest-${Date.now()}`,
+      reference: refCode,
+      listing_id: hotel.id,
+      tourist_id: 'guest-tourist',
+      business_id: hotel.business_id || 'biz-serena',
+      status: 'requested',
+      payment_status: guestPaymentMethod === 'pay_at_hotel' ? 'unpaid' : 'unpaid',
+      total_amount: totalAmount,
+      start_date: checkInDate,
+      end_date: checkOutDate,
+      travellers,
+      special_requests: `Guest: ${guestName.trim()} | WhatsApp: ${guestPhone.trim()}${guestCity.trim() ? ' | Origin: ' + guestCity.trim() : ''} | Guarantee: ${guestPaymentMethod === 'pay_at_hotel' ? 'Pay at Hotel on Arrival' : 'Digital SwatPay'}${specialRequests.trim() ? ' | Note: ' + specialRequests.trim() : ''}`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      tourist: {
+        id: 'guest-tourist',
+        full_name: guestName.trim(),
+        email: guestEmail.trim() || `${guestPhone.replace(/\D/g, '')}@guest.swat`,
+      },
+      listing: {
+        id: hotel.id,
+        title: hotel.title,
+        type_code: hotel.type_code || 'hotel',
+        area_name: hotel.area_name || 'Swat',
+      },
+      business: {
+        id: hotel.business_id || 'biz-serena',
+        business_name: hotel.business_name || hotel.title,
+        primary_type: 'hotel',
+      },
+      items: [
+        {
+          id: `item-${Date.now()}`,
+          booking_id: `book-guest-${Date.now()}`,
+          price_item_id: currentSelectedRoom.id || '',
+          price_item_name: currentSelectedRoom.name,
+          service_date: checkInDate,
+          quantity: roomsCount,
+          unit_price: currentSelectedRoom.price,
+          line_total: totalAmount,
+          created_at: new Date().toISOString(),
+        },
+      ],
+      history: [
+        {
+          id: `hist-${Date.now()}`,
+          booking_id: `book-guest-${Date.now()}`,
+          to_status: 'requested',
+          note: `Guest room reservation registered by ${guestName.trim()} (${guestPhone.trim()})`,
+          created_at: new Date().toISOString(),
+        },
+      ],
+    };
+
+    // Save to localStorage.swat_local_bookings
+    try {
+      const stored = JSON.parse(localStorage.getItem('swat_local_bookings') || '[]');
+      const filtered = stored.filter((b: any) => b.reference !== guestBooking.reference && b.id !== guestBooking.id);
+      const updated = [guestBooking, ...filtered];
+      localStorage.setItem('swat_local_bookings', JSON.stringify(updated));
+      window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updated }));
+    } catch {}
+
+    setIsBooking(false);
+    setShowGuestCheckout(false);
+    setBookingSuccess(guestBooking);
+    if (onBookingSuccess) onBookingSuccess(guestBooking);
   };
 
   return (
@@ -769,25 +888,55 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     <BookmarkCheck size={32} />
                   </div>
                   <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
-                    Booking Request Sent!
+                    {user ? 'Booking Request Sent!' : 'Guest Reservation Confirmed!'}
                   </h3>
                   <p style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)', margin: 0, maxWidth: '480px' }}>
                     Your stay request for <strong>{currentSelectedRoom.name}</strong> at{' '}
                     <strong>{hotel.title}</strong> has been registered with reference:
                   </p>
-                  <div
-                    style={{
-                      padding: '8px 18px',
-                      borderRadius: '8px',
-                      backgroundColor: 'var(--card)',
-                      border: '1px solid var(--line)',
-                      fontSize: 'var(--font-base)',
-                      fontWeight: 700,
-                      color: 'var(--pri)',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
-                    {bookingSuccess.reference}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        padding: '8px 18px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--card)',
+                        border: '1px solid var(--line)',
+                        fontSize: 'var(--font-base)',
+                        fontWeight: 700,
+                        color: 'var(--pri)',
+                        letterSpacing: '0.5px',
+                      }}
+                      data-testid="booking-reference-code"
+                    >
+                      {bookingSuccess.reference}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (bookingSuccess.reference && navigator.clipboard) {
+                          navigator.clipboard.writeText(bookingSuccess.reference);
+                          setCopiedRef(true);
+                          setTimeout(() => setCopiedRef(false), 2000);
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '7px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--line)',
+                        backgroundColor: 'var(--card)',
+                        color: copiedRef ? 'var(--ok)' : 'var(--ink)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                      title="Copy reference code"
+                    >
+                      {copiedRef ? <Check size={13} color="var(--ok)" /> : <Copy size={13} />}
+                      {copiedRef ? 'Copied' : 'Copy'}
+                    </button>
                   </div>
                   <p style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', margin: 0 }}>
                     Check-in: <strong>{checkInDate}</strong> • Check-out: <strong>{checkOutDate}</strong> ({nightsCount} night{nightsCount > 1 ? 's' : ''})
@@ -795,9 +944,14 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     Total Estimated Amount: <strong>PKR {totalAmount.toLocaleString()}</strong>
                   </p>
                   <p style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', margin: 0 }}>
-                    This booking has been dispatched directly to the Swat Serena Hotel Manager portal for confirmation.
+                    This booking has been dispatched directly to the {hotel.title} Hotel Manager portal for confirmation.
+                    {!user && (
+                      <span style={{ display: 'block', marginTop: '4px', color: 'var(--ink)', fontWeight: 600 }}>
+                        Payment Method: Pay at Hotel upon arrival. Please present this reference code or your mobile number ({guestPhone}) at check-in.
+                      </span>
+                    )}
                   </p>
-                  <div style={{ marginTop: '8px', display: 'flex', gap: '10px' }}>
+                  <div style={{ marginTop: '8px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
                     <Button
                       variant="primary"
                       size="sm"
@@ -808,6 +962,20 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     >
                       Done & Back to Explore
                     </Button>
+                    {onNavigateBookings && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setBookingSuccess(null);
+                          onClose();
+                          onNavigateBookings();
+                        }}
+                        data-testid="btn-view-guest-bookings"
+                      >
+                        View in My Bookings
+                      </Button>
+                    )}
                     <Button
                       variant="secondary"
                       size="sm"
@@ -817,6 +985,298 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     >
                       Book Another Room
                     </Button>
+                  </div>
+                </div>
+              ) : showGuestCheckout ? (
+                /* GUEST CHECKOUT FORM (UNAUTHENTICATED USERS) */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }} data-testid="guest-checkout-drawer">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowGuestCheckout(false)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: 'var(--font-xs)',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: '4px 0',
+                      }}
+                    >
+                      <ArrowLeft size={14} /> Back to Room Options
+                    </button>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--mute)' }}>
+                      <Tag variant="accent">{currentSelectedRoom.name}</Tag>
+                      <span>•</span>
+                      <strong>{nightsCount} Night{nightsCount > 1 ? 's' : ''}</strong>
+                      <span>•</span>
+                      <strong style={{ color: 'var(--pri)' }}>PKR {totalAmount.toLocaleString()}</strong>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: '16px 20px',
+                      borderRadius: 'var(--radius-card)',
+                      backgroundColor: 'var(--soft)',
+                      border: '1px solid var(--line)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '14px',
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ fontSize: 'var(--font-base)', fontWeight: 700, color: 'var(--ink)', margin: 0 }}>
+                        Guest Reservation Details
+                      </h3>
+                      <p style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', margin: '3px 0 0' }}>
+                        No account required. Enter your contact details so {hotel.title} can welcome and verify your check-in.
+                      </p>
+                    </div>
+
+                    {guestValidationErr && (
+                      <div
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          backgroundColor: 'rgba(214, 86, 74, 0.1)',
+                          border: '1px solid var(--bad)',
+                          color: 'var(--bad)',
+                          fontSize: 'var(--font-xs)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <AlertCircle size={14} /> {guestValidationErr}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                          Primary Guest Full Name <span style={{ color: 'var(--bad)' }}>*</span>
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <User size={14} color="var(--mute)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                          <input
+                            type="text"
+                            required
+                            value={guestName}
+                            onChange={(e) => setGuestName(e.target.value)}
+                            placeholder="e.g. Tariq Mehmood"
+                            data-testid="guest-input-name"
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px 8px 32px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              fontSize: 'var(--font-sm)',
+                              boxSizing: 'border-box',
+                              outline: 'none',
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                          WhatsApp / Mobile Number <span style={{ color: 'var(--bad)' }}>*</span>
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <Phone size={14} color="var(--mute)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                          <input
+                            type="tel"
+                            required
+                            value={guestPhone}
+                            onChange={(e) => setGuestPhone(e.target.value)}
+                            placeholder="+92 3XX XXXXXXX"
+                            data-testid="guest-input-phone"
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px 8px 32px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              fontSize: 'var(--font-sm)',
+                              boxSizing: 'border-box',
+                              outline: 'none',
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                          Email Address (Optional)
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <Mail size={14} color="var(--mute)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                          <input
+                            type="email"
+                            value={guestEmail}
+                            onChange={(e) => setGuestEmail(e.target.value)}
+                            placeholder="guest@example.com"
+                            data-testid="guest-input-email"
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px 8px 32px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              fontSize: 'var(--font-sm)',
+                              boxSizing: 'border-box',
+                              outline: 'none',
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                          Origin City / Home District (Optional)
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <MapPin size={14} color="var(--mute)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                          <input
+                            type="text"
+                            value={guestCity}
+                            onChange={(e) => setGuestCity(e.target.value)}
+                            placeholder="e.g. Islamabad, Lahore, Peshawar"
+                            data-testid="guest-input-city"
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px 8px 32px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              fontSize: 'var(--font-sm)',
+                              boxSizing: 'border-box',
+                              outline: 'none',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                        Payment &amp; Guarantee Option:
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
+                        <div
+                          onClick={() => setGuestPaymentMethod('pay_at_hotel')}
+                          style={{
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: guestPaymentMethod === 'pay_at_hotel' ? '2px solid var(--pri)' : '1px solid var(--line)',
+                            backgroundColor: guestPaymentMethod === 'pay_at_hotel' ? 'rgba(47, 127, 193, 0.08)' : 'var(--card)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '10px',
+                          }}
+                          data-testid="pay-option-hotel"
+                        >
+                          <input
+                            type="radio"
+                            name="guestPayment"
+                            checked={guestPaymentMethod === 'pay_at_hotel'}
+                            onChange={() => setGuestPaymentMethod('pay_at_hotel')}
+                            style={{ marginTop: '3px' }}
+                          />
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: 700, fontSize: 'var(--font-sm)', color: 'var(--ink)' }}>
+                                Pay at Hotel on Arrival
+                              </span>
+                              <Tag variant="ok">Recommended</Tag>
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--mute)', marginTop: '2px' }}>
+                              No advance charge. Pay cash or card at hotel check-in desk upon arrival.
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          onClick={() => setGuestPaymentMethod('online')}
+                          style={{
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: guestPaymentMethod === 'online' ? '2px solid var(--pri)' : '1px solid var(--line)',
+                            backgroundColor: guestPaymentMethod === 'online' ? 'rgba(47, 127, 193, 0.08)' : 'var(--card)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '10px',
+                          }}
+                          data-testid="pay-option-online"
+                        >
+                          <input
+                            type="radio"
+                            name="guestPayment"
+                            checked={guestPaymentMethod === 'online'}
+                            onChange={() => setGuestPaymentMethod('online')}
+                            style={{ marginTop: '3px' }}
+                          />
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ fontWeight: 700, fontSize: 'var(--font-sm)', color: 'var(--ink)' }}>
+                                Digital SwatPay / Wallet
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--mute)', marginTop: '2px' }}>
+                              Pay via Easypaisa, JazzCash, or SwatPay digital wallet after reservation.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {onOpenAuth && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          backgroundColor: 'var(--card)',
+                          borderRadius: '6px',
+                          border: '1px solid var(--line)',
+                          fontSize: 'var(--font-xs)',
+                          color: 'var(--mute)',
+                          flexWrap: 'wrap',
+                          gap: '8px',
+                        }}
+                      >
+                        <span>Already have an account? Sign in to link bookings.</span>
+                        <button
+                          type="button"
+                          onClick={() => onOpenAuth('login', 'tourist')}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--pri)',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            padding: 0,
+                            textDecoration: 'underline',
+                          }}
+                          data-testid="guest-sign-in-link"
+                        >
+                          Sign In Now
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1681,17 +2141,41 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                 Add Room to Trip
               </Button>
 
-              <Button
-                variant="accent"
-                size="sm"
-                disabled={isBooking}
-                icon={isBooking ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
-                onClick={handleInstantBook}
-                id="btn-modal-reserve-now"
-                data-testid="btn-modal-reserve-now"
-              >
-                {isBooking ? 'Reserving...' : 'Instant Reserve Stay'}
-              </Button>
+              {showGuestCheckout ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setShowGuestCheckout(false)}
+                    data-testid="btn-guest-cancel"
+                  >
+                    Back to Rooms
+                  </Button>
+                  <Button
+                    variant="accent"
+                    size="sm"
+                    disabled={isBooking}
+                    icon={isBooking ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                    onClick={handleGuestSubmit}
+                    id="btn-confirm-guest-booking"
+                    data-testid="btn-confirm-guest-booking"
+                  >
+                    {isBooking ? 'Confirming...' : 'Confirm Guest Reservation'}
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="accent"
+                  size="sm"
+                  disabled={isBooking}
+                  icon={isBooking ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
+                  onClick={handleInstantBook}
+                  id="btn-modal-reserve-now"
+                  data-testid="btn-modal-reserve-now"
+                >
+                  {isBooking ? 'Reserving...' : 'Instant Reserve Stay'}
+                </Button>
+              )}
             </div>
           </div>
         ) : (
