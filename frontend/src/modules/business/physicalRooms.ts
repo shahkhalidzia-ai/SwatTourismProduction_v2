@@ -252,14 +252,55 @@ export function assignRoomsToBooking(
   roomIds: string[],
   bookingId: string,
   guestName: string,
-  stayDates: string
+  stayDates: string,
+  bookingReference?: string
 ): { success: boolean; rooms: PhysicalRoom[] } {
   const all = getAllPhysicalRooms();
-  const rooms = all[listingId] || [];
+  let targetListingKey = listingId;
+  let rooms = all[targetListingKey] || [];
+
+  // 1. If no rooms found under listingId, find the key in `all` that actually contains these room IDs
+  if (rooms.length === 0) {
+    for (const [key, keyRooms] of Object.entries(all)) {
+      if (Array.isArray(keyRooms) && keyRooms.some((r) => roomIds.includes(r.id) || roomIds.includes(r.room_number))) {
+        targetListingKey = key;
+        rooms = keyRooms;
+        break;
+      }
+    }
+  }
+
+  // 2. If still no rooms, search alias keys (e.g. 'serena', or slug)
+  if (rooms.length === 0) {
+    const safeListing = (listingId || '').toLowerCase();
+    const isSerena = safeListing.includes('serena');
+    const aliasKey = Object.keys(all).find((k) => {
+      const kl = k.toLowerCase();
+      if (isSerena && kl.includes('serena')) return true;
+      if (safeListing && (kl.includes(safeListing) || safeListing.includes(kl))) return true;
+      return false;
+    });
+    if (aliasKey && all[aliasKey] && all[aliasKey].length > 0) {
+      targetListingKey = aliasKey;
+      rooms = all[aliasKey];
+    }
+  }
+
+  // 3. If still empty, seed/fetch default rooms
+  if (rooms.length === 0) {
+    rooms = getPhysicalRoomsForHotel(listingId);
+    targetListingKey = listingId;
+  }
+
+  const primaryId = bookingId || bookingReference || 'booking';
 
   // 1. Release any room previously assigned to this booking that is not in roomIds
   const updatedRooms = rooms.map((r) => {
-    if (r.current_booking_id === bookingId && !roomIds.includes(r.id) && !roomIds.includes(r.room_number)) {
+    if (
+      (r.current_booking_id === bookingId || (bookingReference && r.current_booking_id === bookingReference)) &&
+      !roomIds.includes(r.id) &&
+      !roomIds.includes(r.room_number)
+    ) {
       return {
         ...r,
         status: 'available' as const,
@@ -279,8 +320,8 @@ export function assignRoomsToBooking(
       const assigned: PhysicalRoom = {
         ...r,
         status: 'reserved' as const,
-        current_booking_id: bookingId,
-        current_guest_name: guestName,
+        current_booking_id: primaryId,
+        current_guest_name: guestName || 'Guest',
         stay_dates: stayDates,
         updated_at: new Date().toISOString(),
       };
@@ -291,8 +332,12 @@ export function assignRoomsToBooking(
   });
 
   if (assignedRooms.length > 0) {
-    all[listingId] = finalRooms;
+    all[targetListingKey] = finalRooms;
+    if (targetListingKey !== listingId && listingId) {
+      all[listingId] = finalRooms;
+    }
     saveAllPhysicalRooms(all);
+
     try {
       const storedMap = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
       const assignmentRecord = {
@@ -305,15 +350,42 @@ export function assignRoomsToBooking(
         wing: assignedRooms[0].wing,
         status: assignedRooms[0].status,
       };
-      storedMap[bookingId] = assignmentRecord;
+      if (bookingId) storedMap[bookingId] = assignmentRecord;
+      if (bookingReference) storedMap[bookingReference] = assignmentRecord;
+      if (primaryId) storedMap[primaryId] = assignmentRecord;
       localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
+    } catch {}
+
+    // Update swat_local_bookings if booking exists in localStorage
+    try {
+      const rawLocal = localStorage.getItem('swat_local_bookings');
+      if (rawLocal) {
+        const localList = JSON.parse(rawLocal);
+        if (Array.isArray(localList)) {
+          const updatedLocal = localList.map((lb: any) => {
+            const matches =
+              (bookingId && (lb.id === bookingId || lb.reference === bookingId)) ||
+              (bookingReference && (lb.id === bookingReference || lb.reference === bookingReference));
+            if (matches) {
+              return {
+                ...lb,
+                assigned_room_id: assignedRooms[0].id,
+                assigned_room_number: assignedRooms.map((r) => r.room_number).join(', '),
+                assigned_room_ids: assignedRooms.map((r) => r.id),
+              };
+            }
+            return lb;
+          });
+          localStorage.setItem('swat_local_bookings', JSON.stringify(updatedLocal));
+        }
+      }
     } catch {}
 
     // Persist room assignment to backend database API
     assignRoomsToBookingApi(listingId, {
-      room_ids: roomIds,
-      booking_id: bookingId,
-      guest_name: guestName,
+      room_ids: assignedRooms.map((r) => r.id),
+      booking_id: primaryId,
+      guest_name: guestName || 'Guest',
       stay_dates: stayDates,
     }).catch((err) => {
       console.warn('[physicalRooms] Background sync to assign-rooms API:', err);

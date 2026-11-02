@@ -16,6 +16,9 @@ import {
   Trash2,
   Bell,
   Calendar,
+  LayoutGrid,
+  List,
+  X,
 } from 'lucide-react';
 import { AssignRoomModal } from './AssignRoomModal';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
@@ -43,7 +46,6 @@ export function loadHotelLocalBookings(listingId?: string, businessName?: string
     if (!Array.isArray(list)) return [];
 
     const safeName = (businessName || '').toLowerCase().trim();
-    const isSerena = safeName.includes('serena') || safeName === 'swat serena hotel';
 
     const result: BookingRow[] = [];
     for (const b of list) {
@@ -184,6 +186,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     booking: null,
     receiptType: 'checkout_receipt',
   });
+
+  // Front Desk View Mode: 'grid' (high-density table view) or 'cards' (card view)
+  const [viewMode, setViewMode] = useState<'grid' | 'cards'>('grid');
+  // Selected booking for detailed decent card view
+  const [selectedBookingRef, setSelectedBookingRef] = useState<string | null>(null);
+  // Controls popup modal dialog for selected reservation decent card
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
 
   const safeBusinessName = _businessName || 'Swat Serena Hotel';
   const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
@@ -802,6 +811,959 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     return true;
   });
 
+  const activeBooking = useMemo(() => {
+    if (selectedBookingRef) {
+      const found = frontDeskBookings.find(
+        (b) => b.reference === selectedBookingRef || b.id === selectedBookingRef
+      );
+      if (found) return found;
+    }
+    return frontDeskBookings[0] || null;
+  }, [frontDeskBookings, selectedBookingRef]);
+
+  const renderBookingCard = (booking: BookingRow, isSelectedDecentCard: boolean = false) => {
+    const bKey = booking.id || booking.reference;
+    const effStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
+    const isCancelled = effStatus === 'cancelled' || effStatus === 'declined';
+    const isCancellationRequested =
+      !isCancelled && (
+        effStatus === 'cancellation_requested' ||
+        (booking as any).cancellation_requested ||
+        (booking as any).cancelled_by === 'tourist_requested' ||
+        (booking.rawBooking &&
+          ((booking.rawBooking as any).cancellation_requested ||
+            booking.rawBooking.cancelled_by === 'tourist_requested' ||
+            booking.rawBooking.status === 'cancellation_requested'))
+      );
+    const isPendingOrRequested = (effStatus === 'requested' || effStatus === 'pending') && !isCancellationRequested && !isCancelled;
+    const stayState = isCancelled ? 'checked_out' : getBookingStayState(booking);
+    const rawAmt = Number(booking.rawAmount) || 24000;
+    const isDeposit = (booking as any).payment_status === 'deposit_paid' || Boolean((booking as any).deposit_amount);
+    const isFullPaid = (booking as any).payment_status === 'full_paid' || (booking as any).payment_status === 'paid' || effStatus === 'completed';
+    const depositAmt = (booking as any).deposit_amount || (isFullPaid ? rawAmt : Math.round(rawAmt * 0.25));
+    const isBalanceCollected = collectedBalanceMap[bKey];
+    const balanceDue = isCancelled || isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
+
+    const storedAssignment = (() => {
+      try {
+        const m = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+        return m[booking.id] || m[booking.reference] || m[bKey];
+      } catch {
+        return null;
+      }
+    })();
+
+    const assignedRooms = physicalRooms.filter(
+      (r) =>
+        r.current_booking_id === booking.id ||
+        r.current_booking_id === booking.reference ||
+        r.id === (booking as any).assigned_room_id ||
+        r.room_number === (booking as any).assigned_room_number ||
+        (storedAssignment && (
+          r.id === storedAssignment.roomId ||
+          r.room_number === storedAssignment.roomNumber ||
+          (storedAssignment.roomIds && storedAssignment.roomIds.includes(r.id)) ||
+          (storedAssignment.roomNumbers && storedAssignment.roomNumbers.includes(r.room_number))
+        )) ||
+        r.last_booking_id === booking.id ||
+        r.last_booking_id === booking.reference
+    );
+
+    const assignedRoom = assignedRooms[0];
+    const assignedRoomsLabel = assignedRooms.length > 0
+      ? (assignedRooms.length === 1 ? `Room ${assignedRooms[0].room_number}` : `Rooms ${assignedRooms.map((r) => r.room_number).join(', ')}`)
+      : (storedAssignment?.roomNumber ? (String(storedAssignment.roomNumber).startsWith('Room') ? storedAssignment.roomNumber : `Rooms ${storedAssignment.roomNumber}`) : null);
+
+    const roomDetails = getBookingRoomDetails(booking);
+
+    return (
+      <div
+        key={booking.id || booking.reference}
+        style={{
+          borderRadius: isSelectedDecentCard ? '16px' : '12px',
+          border: isSelectedDecentCard
+            ? '2px solid #2563EB'
+            : isCancellationRequested
+            ? '1.5px solid #F87171'
+            : isPendingOrRequested
+            ? '1.5px solid #FCD34D'
+            : '1px solid #E2E8F0',
+          borderLeft: isCancelled
+            ? '4px solid #94A3B8'
+            : isCancellationRequested
+            ? '4px solid #DC2626'
+            : isPendingOrRequested
+            ? '4px solid #F59E0B'
+            : stayState === 'checked_in'
+            ? '4px solid #10B981'
+            : stayState === 'checked_out'
+            ? '4px solid #94A3B8'
+            : '4px solid #088395',
+          background: '#FFFFFF',
+          padding: isSelectedDecentCard ? '14px 18px' : '8px 12px',
+          boxShadow: isSelectedDecentCard
+            ? '0 10px 25px -5px rgba(37, 99, 235, 0.12), 0 8px 10px -6px rgba(37, 99, 235, 0.08)'
+            : isCancellationRequested
+            ? '0 2px 8px -2px rgba(220, 38, 38, 0.10)'
+            : isPendingOrRequested
+            ? '0 2px 8px -2px rgba(245, 158, 11, 0.08)'
+            : '0 1px 4px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: isSelectedDecentCard ? '10px' : '6px',
+        }}
+      >
+        {isSelectedDecentCard && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#1E40AF', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+              <Sparkles size={13} color="#2563EB" />
+              <span>Decent Card View • Active Reservation Record</span>
+            </div>
+            <span style={{ fontSize: '11px', color: '#64748B' }}>
+              REF: <strong style={{ color: '#0F172A' }}>#{booking.reference}</strong>
+            </span>
+          </div>
+        )}
+
+        {/* Folio Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                background: isPendingOrRequested
+                  ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+                  : stayState === 'checked_in'
+                  ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                  : 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '11.5px',
+                letterSpacing: '0.4px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                flexShrink: 0,
+              }}
+            >
+              {((booking.tourist || (booking as any).customer_name || 'G').split(' ').map((n: string) => n[0]).slice(0, 2).join('') || 'G').toUpperCase()}
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.2px' }}>
+                  <span style={{ color: '#64748B', fontWeight: 600 }}>Guest: </span>
+                  <span>{booking.tourist || (booking as any).customer_name || 'Guest'}</span>
+                </span>
+                <span style={{ color: '#CBD5E1' }}>•</span>
+                <span
+                  style={{
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    color: '#088395',
+                    background: '#EBF4F6',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    letterSpacing: '0.3px',
+                  }}
+                >
+                  <span style={{ fontSize: '8.5px', textTransform: 'uppercase', marginRight: '2px', opacity: 0.8 }}>REF</span>
+                  <span>{booking.reference}</span>
+                </span>
+                {booking.touristEmail && (
+                  <span style={{ fontSize: '11px', color: '#64748B' }}>
+                    ({booking.touristEmail})
+                  </span>
+                )}
+              </div>
+
+              {/* Stay Schedule Dates / Nights / Guests */}
+              <div style={{ fontSize: '11.5px', color: '#475569', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                {!isPendingOrRequested && (
+                  <>
+                    <span
+                      data-testid={`badge-room-type-${booking.reference}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        background: '#EFF6FF',
+                        color: '#1E40AF',
+                        border: '1px solid #BFDBFE',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Bed size={11} color="#2563EB" />
+                      <span>Room Type: <strong>{roomDetails.roomType}</strong></span>
+                    </span>
+
+                    <span
+                      data-testid={`badge-rooms-count-${booking.reference}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        background: '#F1F5F9',
+                        color: '#334155',
+                        border: '1px solid #CBD5E1',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Building2 size={11} color="#64748B" />
+                      <span>Allocated: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'}</strong></span>
+                    </span>
+                  </>
+                )}
+
+                <span style={{ fontSize: '11px', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    <Calendar size={11} color="#64748B" />
+                    <strong style={{ color: '#1E293B' }}>{booking.dates}</strong>
+                  </span>
+                  <span style={{ color: '#CBD5E1' }}>•</span>
+                  <span>🌙 {roomDetails.nights} {roomDetails.nights === 1 ? 'night' : 'nights'}</span>
+                  <span style={{ color: '#CBD5E1' }}>•</span>
+                  <span>👥 {roomDetails.travellers} {roomDetails.travellers === 1 ? 'Guest' : 'Guests'}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stay State Pill */}
+          <div>
+            {isCancelled ? (
+              <span
+                data-testid={`badge-cancelled-${booking.reference}`}
+                style={{
+                  background: '#F1F5F9',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  padding: '3px 8px',
+                  borderRadius: '9999px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <XCircle size={12} color="#64748B" />
+                <span>Cancelled • Withdrawn by Traveler</span>
+              </span>
+            ) : isCancellationRequested ? (
+              <span
+                data-testid={`badge-cancellation-requested-${booking.reference}`}
+                style={{
+                  background: '#FEE2E2',
+                  color: '#991B1B',
+                  border: '1px solid #FCA5A5',
+                  padding: '3px 8px',
+                  borderRadius: '9999px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <XCircle size={12} color="#DC2626" />
+                <span>Cancellation Requested</span>
+              </span>
+            ) : isPendingOrRequested ? (
+              <span style={{ background: '#FFE7BD', color: '#7A4A00', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={12} color="#D97706" />
+                <span>Incoming Request</span>
+              </span>
+            ) : stayState === 'checked_in' ? (
+              <span style={{ background: '#D1FAE5', color: '#065F46', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <CheckCircle size={12} color="#059669" />
+                <span>Guest In-House • {assignedRoomsLabel || 'Room 204'}</span>
+              </span>
+            ) : stayState === 'checked_out' ? (
+              <span style={{ background: '#F1F5F9', color: '#475569', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <span>✓ Stay Completed &amp; Settled</span>
+              </span>
+            ) : effStatus === 'accepted' && balanceDue > 0 ? (
+              <span style={{ background: '#D3E6F7', color: '#0C447C', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={12} />
+                <span>Waiting for payment</span>
+              </span>
+            ) : (
+              <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={12} />
+                <span>Ready for Check-In</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Cancelled / Withdrawn Notice */}
+        {isCancelled && (
+          <div
+            data-testid={`notice-booking-cancelled-${booking.reference}`}
+            style={{
+              background: '#F8FAFC',
+              border: '1.5px solid #E2E8F0',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              color: '#475569',
+            }}
+          >
+            <XCircle size={22} color="#94A3B8" style={{ flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#1E293B' }}>
+                Booking Request Withdrawn / Cancelled by Tourist
+              </div>
+              <div style={{ fontSize: '12px', marginTop: '2px', color: '#64748B' }}>
+                Reason: <strong>{booking.cancel_reason || (booking.rawBooking && booking.rawBooking.cancel_reason) || 'Withdrawn by traveler with zero fee before check-in.'}</strong> Room capacity is restored to available inventory.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cancellation Requested Alert Notice */}
+        {isCancellationRequested && (
+          <div
+            data-testid={`notice-cancellation-requested-${booking.reference}`}
+            style={{
+              background: '#FEF2F2',
+              border: '1.5px solid #FECACA',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              color: '#991B1B',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <XCircle size={20} color="#DC2626" style={{ flexShrink: 0 }} />
+              <div>
+                <div style={{ fontWeight: 800, fontSize: '13.5px' }}>
+                  ⚠️ Tourist Requested Booking Cancellation
+                </div>
+                <div style={{ fontSize: '12px', marginTop: '2px', color: '#7F1D1D' }}>
+                  Reason: <strong>{booking.cancel_reason || (booking.rawBooking && booking.rawBooking.cancel_reason) || 'Change of travel dates or itinerary'}</strong>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              data-testid={`btn-accept-cancellation-${booking.reference}`}
+              onClick={() => handleLocalAcceptCancellation(booking)}
+              style={{
+                background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '9px 18px',
+                fontSize: '12.5px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
+              }}
+            >
+              <CheckCircle size={15} />
+              <span>Confirm &amp; Accept Cancellation</span>
+            </button>
+          </div>
+        )}
+
+        {/* Booking Request Specification Callout (When status is pending / requested) */}
+        {isPendingOrRequested && (
+          <div
+            data-testid={`callout-request-spec-${booking.reference}`}
+            style={{
+              background: 'linear-gradient(135deg, #FFFDF7 0%, #FEF9EE 100%)',
+              border: '1px solid #FCD34D',
+              borderRadius: '6px',
+              padding: '4px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '4px',
+              boxShadow: '0 1px 2px rgba(245, 158, 11, 0.03)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: '#FEF3C7',
+                  color: '#92400E',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  fontSize: '9.5px',
+                  fontWeight: 800,
+                  letterSpacing: '0.3px',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <Bell size={10} color="#D97706" />
+                <span>New</span>
+              </span>
+
+              <span
+                data-testid={`badge-room-type-${booking.reference}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: '#EFF6FF',
+                  color: '#1E40AF',
+                  border: '1px solid #BFDBFE',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                }}
+              >
+                <Bed size={11} color="#2563EB" />
+                <span>Room: <strong>{roomDetails.roomType}</strong></span>
+              </span>
+
+              <span
+                data-testid={`badge-rooms-count-${booking.reference}`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  background: '#FEF3C7',
+                  color: '#92400E',
+                  border: '1px solid #FCD34D',
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                }}
+              >
+                <Building2 size={11} color="#D97706" />
+                <span>Requested: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room Requested' : 'Rooms Requested'}</strong></span>
+              </span>
+            </div>
+
+            <div style={{ fontSize: '10px', color: '#92400E', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+              <span>⚡ Action: Accept to allocate key</span>
+            </div>
+          </div>
+        )}
+
+        {/* Mid-Section: Unified Room Key & Financial Ledger Grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1fr 1.2fr',
+            gap: '6px',
+          }}
+        >
+          {/* Panel 1: Physical Room Allocation */}
+          <div
+            style={{
+              background: '#F8FAFC',
+              border: '1px solid #E2E8F0',
+              borderRadius: '6px',
+              padding: '4px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '3px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+              <div style={{ fontSize: '9.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <Key size={10} color="#088395" />
+                <span>Key Allocation</span>
+              </div>
+              {!isCancelled && (
+                <button
+                  type="button"
+                  disabled={stayState === 'checked_out'}
+                  onClick={() => setAssignModalBooking(booking)}
+                  data-testid={`btn-assign-key-${booking.reference}`}
+                  id={`btn-assign-key-bottom-${booking.reference}`}
+                  style={{
+                    background: stayState === 'checked_out' ? '#F1F5F9' : '#FFFFFF',
+                    border: stayState === 'checked_out' ? '1px solid #E2E8F0' : '1px solid #CBD5E1',
+                    borderRadius: '4px',
+                    padding: '1px 6px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: stayState === 'checked_out' ? '#94A3B8' : '#088395',
+                    cursor: stayState === 'checked_out' ? 'not-allowed' : 'pointer',
+                    opacity: stayState === 'checked_out' ? 0.6 : 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease',
+                  }}
+                  title={stayState === 'checked_out' ? 'Stay completed & settled - room key returned' : undefined}
+                >
+                  {assignedRoom ? 'Change Room' : '🔑 Assign Key'}
+                </button>
+              )}
+              {!isCancelled && assignedRoom && (
+                <button
+                  type="button"
+                  disabled={stayState === 'checked_out'}
+                  data-testid={`btn-change-room-${booking.reference}`}
+                  style={{ display: 'none' }}
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {isCancelled ? (
+                <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span>Cancelled • Released</span>
+                </div>
+              ) : assignedRooms.length > 0 ? (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0A4D68' }}>
+                    {assignedRoomsLabel}
+                  </span>
+                  <span style={{ fontSize: '10px', color: '#475569', fontWeight: 500 }}>
+                    ({assignedRooms[0]?.category_name})
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      background: '#E0F2FE',
+                      color: '#0369A1',
+                      padding: '1px 4px',
+                      borderRadius: '3px',
+                    }}
+                  >
+                    {assignedRooms.length} of {roomDetails.roomsCount} alloc
+                  </span>
+                </div>
+              ) : (
+                <div style={{ fontSize: '10.5px', color: '#D97706', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                  <span>⚠️ Key not assigned</span>
+                  <span style={{ color: '#CBD5E1' }}>•</span>
+                  <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>
+                    Requested: <strong style={{ color: '#1E40AF' }}>{roomDetails.roomType}</strong> ({roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'})
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Panel 2: Stay Folio & Balance Ledger */}
+          <div
+            style={{
+              background: '#FFFDF7',
+              border: '1px solid #FDE68A',
+              borderRadius: '6px',
+              padding: '4px 8px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              gap: '3px',
+            }}
+          >
+            <div style={{ fontSize: '9.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#92400E', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <DollarSign size={10} color="#D97706" />
+              <span>Folio Ledger</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
+              <div>
+                <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Total</span>
+                <strong style={{ fontSize: '12px', color: '#0F172A', fontWeight: 800 }}>PKR {rawAmt.toLocaleString()}</strong>
+              </div>
+              <div>
+                <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Deposit Paid:</span>
+                <strong style={{ fontSize: '12px', color: '#059669', fontWeight: 800 }}>
+                  PKR {depositAmt.toLocaleString()}
+                </strong>
+                <span style={{ fontSize: '8.5px', color: '#047857', display: 'block' }}>
+                  ({isDeposit ? 'Deposit' : '100% Paid'})
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Balance Due:</span>
+                <strong style={{ fontSize: '12px', color: isCancelled ? '#64748B' : balanceDue > 0 ? '#B45309' : '#059669', fontWeight: 800 }}>
+                  {isCancelled ? 'PKR 0 (Cancelled)' : balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()}` : '✓ Fully Settled'}
+                </strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Reception Consolidated Actions Toolbar */}
+        <div
+          style={{
+            borderTop: '1px solid #F1F5F9',
+            paddingTop: '6px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '4px',
+          }}
+        >
+          {isCancelled ? (
+            <div
+              data-testid={`toolbar-cancelled-${booking.reference}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '11px',
+                color: '#64748B',
+                fontWeight: 700,
+                padding: '1px 0',
+              }}
+            >
+              <XCircle size={13} color="#94A3B8" />
+              <span>Reservation cancelled/withdrawn by traveler. Room capacity released — desk check-in closed.</span>
+            </div>
+          ) : (
+            <>
+              {/* Primary Operations (Check in / Check out / Accept / Decline / Accept Cancellation) */}
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {isCancellationRequested && (
+                  <button
+                    type="button"
+                    data-testid={`btn-accept-cancellation-bottom-${booking.reference}`}
+                    onClick={() => handleLocalAcceptCancellation(booking)}
+                    style={{
+                      background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '5px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      boxShadow: '0 1px 4px rgba(220, 38, 38, 0.2)',
+                    }}
+                  >
+                    <CheckCircle size={12} />
+                    <span>Accept Cancellation</span>
+                  </button>
+                )}
+
+                {isPendingOrRequested && (
+                  <>
+                    <button
+                      type="button"
+                      data-testid={`btn-accept-${booking.reference}`}
+                      onClick={() => handleLocalAccept(booking)}
+                      style={{
+                        background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '5px',
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: '0 1px 3px rgba(16, 185, 129, 0.2)',
+                        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                      }}
+                    >
+                      <CheckCircle size={12} />
+                      <span>Accept &amp; Assign Room</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      data-testid={`btn-decline-${booking.reference}`}
+                      onClick={() => handleLocalDecline(booking)}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: '5px',
+                        backgroundColor: '#FEF2F2',
+                        color: '#991B1B',
+                        border: '1px solid #FECACA',
+                        fontWeight: 700,
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        transition: 'background 0.15s ease',
+                      }}
+                    >
+                      <XCircle size={12} />
+                      <span>Decline</span>
+                    </button>
+                  </>
+                )}
+
+                {!isPendingOrRequested && effStatus === 'accepted' && balanceDue > 0 && stayState !== 'checked_in' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#0C447C', fontWeight: 600, padding: '3px 6px', background: '#EFF6FF', borderRadius: '5px', border: '1px solid #BFDBFE' }}>
+                    <Clock size={11} />
+                    <span>Awaiting payment</span>
+                  </div>
+                )}
+
+                {!isPendingOrRequested && stayState === 'reserved' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleCheckInGuest(booking)}
+                      data-testid={`btn-fd-checkin-${booking.reference}`}
+                      style={{
+                        background: 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '5px',
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: '0 1px 3px rgba(8, 131, 149, 0.2)',
+                      }}
+                    >
+                      <CheckCircle size={12} />
+                      <span>Check In Guest</span>
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="btn-checkin-guest"
+                      onClick={() => handleCheckInGuest(booking)}
+                      style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                    >
+                      Check In Guest
+                    </button>
+                  </>
+                )}
+
+                {!isPendingOrRequested && (stayState === 'checked_in' || (assignedRoom && stayState !== 'checked_out')) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleCheckOutGuest(booking)}
+                      data-testid={`btn-fd-checkout-${booking.reference}`}
+                      style={{
+                        background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '5px',
+                        padding: '4px 10px',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: '0 1px 3px rgba(185, 28, 28, 0.2)',
+                      }}
+                    >
+                      <Building2 size={12} />
+                      <span>Check Out &amp; Settle</span>
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="btn-checkout-guest"
+                      onClick={() => handleCheckOutGuest(booking)}
+                      style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
+                      aria-hidden="true"
+                      tabIndex={-1}
+                    >
+                      Check Out &amp; Settle
+                    </button>
+                  </>
+                )}
+
+                {!isPendingOrRequested && stayState === 'checked_out' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                    {(!assignedRoom || assignedRoom.status === 'cleaning') ? (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#D97706', fontWeight: 700 }}>
+                          <Clock size={11} color="#D97706" />
+                          <span>Stay Completed • Room Moved to Cleaning (Ready for Clean)</span>
+                        </div>
+                        <button
+                          type="button"
+                          data-testid={`btn-mark-cleaned-${booking.reference}`}
+                          onClick={() => handleMarkCleanedRoom(assignedRoom?.id || 'serena-hotel-swat-102', assignedRoom?.room_number || '102')}
+                          style={{
+                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: '5px',
+                            padding: '4px 8px',
+                            fontSize: '10.5px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            boxShadow: '0 1px 3px rgba(5, 150, 105, 0.15)',
+                          }}
+                        >
+                          <Sparkles size={11} />
+                          <span>Mark Room {assignedRoom?.room_number || '102'} Cleaned &amp; Ready</span>
+                        </button>
+                      </>
+                    ) : (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '11px',
+                          color: '#047857',
+                          fontWeight: 700,
+                          background: '#ECFDF5',
+                          border: '1px solid #A7F3D0',
+                          padding: '3px 6px',
+                          borderRadius: '5px',
+                        }}
+                      >
+                        <CheckCircle size={11} color="#059669" />
+                        <span>✓ Stay Completed • Room {assignedRoom.room_number} Cleaned &amp; Ready for Next Guest</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Secondary & Financial Utilities (Collect Balance, Key Pass, Receipt) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                {balanceDue > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => handleCollectBalance(booking)}
+                    data-testid={`btn-collect-balance-${booking.reference}`}
+                    style={{
+                      background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '5px',
+                      padding: '4px 8px',
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      boxShadow: '0 1px 3px rgba(217, 119, 6, 0.15)',
+                    }}
+                  >
+                    <CreditCard size={11} />
+                    <span>Collect Balance (Rs. {balanceDue.toLocaleString()})</span>
+                  </button>
+                ) : (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      color: '#059669',
+                      background: '#ECFDF5',
+                      border: '1px solid #A7F3D0',
+                      padding: '3px 6px',
+                      borderRadius: '5px',
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                    }}
+                  >
+                    <CheckCircle size={11} />
+                    <span>Zero Balance • Folio Settle Complete</span>
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReceiptModal({
+                      isOpen: true,
+                      booking,
+                      receiptType: 'arrival_pass',
+                    })
+                  }
+                  data-testid={`btn-fd-pass-${booking.reference}`}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    color: '#0A4D68',
+                    borderRadius: '5px',
+                    padding: '4px 8px',
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  }}
+                >
+                  <QrCode size={11} color="#088395" />
+                  <span>Arrival Key Pass</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReceiptModal({
+                      isOpen: true,
+                      booking,
+                      receiptType: 'checkout_receipt',
+                    })
+                  }
+                  data-testid={`btn-fd-receipt-${booking.reference}`}
+                  style={{
+                    background: '#0F172A',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    borderRadius: '5px',
+                    padding: '4px 8px',
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.15)',
+                  }}
+                >
+                  <FileText size={11} color="#38BDF8" />
+                  <span>Tax Invoice &amp; Receipt</span>
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
   return (
     <div
       className="hotel-today-dashboard"
@@ -1006,6 +1968,68 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
               Front Desk Online
             </span>
+
+            {/* View Mode Toggle: Grid View vs Card View */}
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: '#F1F5F9',
+                borderRadius: '8px',
+                padding: '2px',
+                border: '1px solid #CBD5E1',
+                gap: '2px',
+              }}
+            >
+              <button
+                type="button"
+                data-testid="toggle-view-grid"
+                onClick={() => setViewMode('grid')}
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  background: viewMode === 'grid' ? '#088395' : 'transparent',
+                  color: viewMode === 'grid' ? '#FFFFFF' : '#475569',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease',
+                  boxShadow: viewMode === 'grid' ? '0 1px 3px rgba(8, 131, 149, 0.25)' : 'none',
+                }}
+                title="High-density Grid view (inspect many records at once)"
+              >
+                <LayoutGrid size={13} />
+                <span>Grid View</span>
+              </button>
+              <button
+                type="button"
+                data-testid="toggle-view-cards"
+                onClick={() => setViewMode('cards')}
+                style={{
+                  padding: '5px 11px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  background: viewMode === 'cards' ? '#088395' : 'transparent',
+                  color: viewMode === 'cards' ? '#FFFFFF' : '#475569',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease',
+                  boxShadow: viewMode === 'cards' ? '0 1px 3px rgba(8, 131, 149, 0.25)' : 'none',
+                }}
+                title="Traditional card view"
+              >
+                <List size={13} />
+                <span>Cards View</span>
+              </button>
+            </div>
 
             <button
               type="button"
@@ -1278,7 +2302,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
           </div>
         )}
 
-        {/* Front Desk Folio Cards List */}
+        {/* Front Desk Operations Roster List */}
         {frontDeskBookings.length === 0 ? (
           <div style={{ padding: '28px 16px', textAlign: 'center', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #CBD5E1' }}>
             <p style={{ margin: 0, fontSize: '13.5px', color: '#64748B', fontWeight: 500 }}>
@@ -1291,935 +2315,381 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 : `No bookings matching filter "${frontDeskFilter}". Switch to "All Operations" to see full guest roster.`}
             </p>
           </div>
-        ) : (
+        ) : viewMode === 'cards' ? (
+          /* Cards View Mode */
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: '10px', alignItems: 'start' }}>
-            {frontDeskBookings.map((booking) => {
-              const bKey = booking.id || booking.reference;
-              const effStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
-              const isCancelled = effStatus === 'cancelled' || effStatus === 'declined';
-              const isCancellationRequested =
-                !isCancelled && (
-                  effStatus === 'cancellation_requested' ||
-                  (booking as any).cancellation_requested ||
-                  (booking as any).cancelled_by === 'tourist_requested' ||
-                  (booking.rawBooking &&
-                    ((booking.rawBooking as any).cancellation_requested ||
-                      booking.rawBooking.cancelled_by === 'tourist_requested' ||
-                      booking.rawBooking.status === 'cancellation_requested'))
-                );
-              const isPendingOrRequested = (effStatus === 'requested' || effStatus === 'pending') && !isCancellationRequested && !isCancelled;
-              const stayState = isCancelled ? 'checked_out' : getBookingStayState(booking);
-              const rawAmt = Number(booking.rawAmount) || 24000;
-              const isDeposit = (booking as any).payment_status === 'deposit_paid' || Boolean((booking as any).deposit_amount);
-              const isFullPaid = (booking as any).payment_status === 'full_paid' || (booking as any).payment_status === 'paid' || effStatus === 'completed';
-              const depositAmt = (booking as any).deposit_amount || (isFullPaid ? rawAmt : Math.round(rawAmt * 0.25));
-              const isBalanceCollected = collectedBalanceMap[bKey];
-              const balanceDue = isCancelled || isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
-
-              const storedAssignment = (() => {
-                try {
-                  const m = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
-                  return m[booking.id] || m[booking.reference] || m[bKey];
-                } catch {
-                  return null;
-                }
-              })();
-
-              const assignedRooms = physicalRooms.filter(
-                (r) =>
-                  r.current_booking_id === booking.id ||
-                  r.current_booking_id === booking.reference ||
-                  r.id === (booking as any).assigned_room_id ||
-                  r.room_number === (booking as any).assigned_room_number ||
-                  (storedAssignment && (
-                    r.id === storedAssignment.roomId ||
-                    r.room_number === storedAssignment.roomNumber ||
-                    (storedAssignment.roomIds && storedAssignment.roomIds.includes(r.id)) ||
-                    (storedAssignment.roomNumbers && storedAssignment.roomNumbers.includes(r.room_number))
-                  )) ||
-                  r.last_booking_id === booking.id ||
-                  r.last_booking_id === booking.reference
-              );
-
-              const assignedRoom = assignedRooms[0];
-              const assignedRoomsLabel = assignedRooms.length > 0
-                ? (assignedRooms.length === 1 ? `Room ${assignedRooms[0].room_number}` : `Rooms ${assignedRooms.map((r) => r.room_number).join(', ')}`)
-                : (storedAssignment?.roomNumber ? (String(storedAssignment.roomNumber).startsWith('Room') ? storedAssignment.roomNumber : `Rooms ${storedAssignment.roomNumber}`) : null);
-
-              const roomDetails = getBookingRoomDetails(booking);
-
-              return (
-                <div
-                  key={booking.id || booking.reference}
-                  style={{
-                    borderRadius: '12px',
-                    border: isCancellationRequested
-                      ? '1.5px solid #F87171'
-                      : isPendingOrRequested
-                      ? '1.5px solid #FCD34D'
-                      : '1px solid #E2E8F0',
-                    borderLeft: isCancelled
-                      ? '4px solid #94A3B8'
-                      : isCancellationRequested
-                      ? '4px solid #DC2626'
-                      : isPendingOrRequested
-                      ? '4px solid #F59E0B'
-                      : stayState === 'checked_in'
-                      ? '4px solid #10B981'
-                      : stayState === 'checked_out'
-                      ? '4px solid #94A3B8'
-                      : '4px solid #088395',
-                    background: '#FFFFFF',
-                    padding: '8px 12px',
-                    boxShadow: isCancellationRequested
-                      ? '0 2px 8px -2px rgba(220, 38, 38, 0.10)'
-                      : isPendingOrRequested
-                      ? '0 2px 8px -2px rgba(245, 158, 11, 0.08)'
-                      : '0 1px 4px rgba(15, 23, 42, 0.04)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                  }}
-                >
-                  {/* Folio Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div
-                        style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '6px',
-                          background: isPendingOrRequested
-                            ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
-                            : stayState === 'checked_in'
-                            ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
-                            : 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
-                          color: '#FFFFFF',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 800,
-                          fontSize: '11.5px',
-                          letterSpacing: '0.4px',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {((booking.tourist || (booking as any).customer_name || 'G').split(' ').map((n: string) => n[0]).slice(0, 2).join('') || 'G').toUpperCase()}
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.2px' }}>
-                            <span style={{ color: '#64748B', fontWeight: 600 }}>Guest: </span>
-                            <span>{booking.tourist || (booking as any).customer_name || 'Guest'}</span>
-                          </span>
-                          <span style={{ color: '#CBD5E1' }}>•</span>
-                          <span
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: 800,
-                              color: '#088395',
-                              background: '#EBF4F6',
-                              padding: '1px 5px',
-                              borderRadius: '4px',
-                              letterSpacing: '0.3px',
-                            }}
-                          >
-                            <span style={{ fontSize: '8.5px', textTransform: 'uppercase', marginRight: '2px', opacity: 0.8 }}>REF</span>
-                            <span>{booking.reference}</span>
-                          </span>
-                          {booking.touristEmail && (
-                            <span style={{ fontSize: '11px', color: '#64748B' }}>
-                              ({booking.touristEmail})
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Stay Schedule Dates / Nights / Guests */}
-                        <div style={{ fontSize: '11.5px', color: '#475569', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                          {!isPendingOrRequested && (
-                            <>
-                              <span
-                                data-testid={`badge-room-type-${booking.reference}`}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  background: '#EFF6FF',
-                                  color: '#1E40AF',
-                                  border: '1px solid #BFDBFE',
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '10.5px',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                <Bed size={11} color="#2563EB" />
-                                <span>Room Type: <strong>{roomDetails.roomType}</strong></span>
-                              </span>
-
-                              <span
-                                data-testid={`badge-rooms-count-${booking.reference}`}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  background: '#F1F5F9',
-                                  color: '#334155',
-                                  border: '1px solid #CBD5E1',
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                  fontSize: '10.5px',
-                                  fontWeight: 700,
-                                }}
-                              >
-                                <Building2 size={11} color="#64748B" />
-                                <span>Allocated: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'}</strong></span>
-                              </span>
-                            </>
-                          )}
-
-                          <span style={{ fontSize: '11px', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                              <Calendar size={11} color="#64748B" />
-                              <strong style={{ color: '#1E293B' }}>{booking.dates}</strong>
-                            </span>
-                            <span style={{ color: '#CBD5E1' }}>•</span>
-                            <span>🌙 {roomDetails.nights} {roomDetails.nights === 1 ? 'night' : 'nights'}</span>
-                            <span style={{ color: '#CBD5E1' }}>•</span>
-                            <span>👥 {roomDetails.travellers} {roomDetails.travellers === 1 ? 'Guest' : 'Guests'}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Stay State Pill */}
-                    <div>
-                      {isCancelled ? (
-                        <span
-                          data-testid={`badge-cancelled-${booking.reference}`}
-                          style={{
-                            background: '#F1F5F9',
-                            color: '#475569',
-                            border: '1px solid #CBD5E1',
-                            padding: '3px 8px',
-                            borderRadius: '9999px',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <XCircle size={12} color="#64748B" />
-                          <span>Cancelled • Withdrawn by Traveler</span>
-                        </span>
-                      ) : isCancellationRequested ? (
-                        <span
-                          data-testid={`badge-cancellation-requested-${booking.reference}`}
-                          style={{
-                            background: '#FEE2E2',
-                            color: '#991B1B',
-                            border: '1px solid #FCA5A5',
-                            padding: '3px 8px',
-                            borderRadius: '9999px',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <XCircle size={12} color="#DC2626" />
-                          <span>Cancellation Requested</span>
-                        </span>
-                      ) : isPendingOrRequested ? (
-                        <span style={{ background: '#FFE7BD', color: '#7A4A00', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={12} color="#D97706" />
-                          <span>Incoming Request</span>
-                        </span>
-                      ) : stayState === 'checked_in' ? (
-                        <span style={{ background: '#D1FAE5', color: '#065F46', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <CheckCircle size={12} color="#059669" />
-                          <span>Guest In-House • {assignedRoomsLabel || 'Room 204'}</span>
-                        </span>
-                      ) : stayState === 'checked_out' ? (
-                        <span style={{ background: '#F1F5F9', color: '#475569', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <span>✓ Stay Completed &amp; Settled</span>
-                        </span>
-                      ) : effStatus === 'accepted' && balanceDue > 0 ? (
-                        <span style={{ background: '#D3E6F7', color: '#0C447C', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={12} />
-                          <span>Waiting for payment</span>
-                        </span>
-                      ) : (
-                        <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={12} />
-                          <span>Ready for Check-In</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Cancelled / Withdrawn Notice */}
-                  {isCancelled && (
-                    <div
-                      data-testid={`notice-booking-cancelled-${booking.reference}`}
-                      style={{
-                        background: '#F8FAFC',
-                        border: '1.5px solid #E2E8F0',
-                        borderRadius: '12px',
-                        padding: '12px 16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        color: '#475569',
-                      }}
-                    >
-                      <XCircle size={22} color="#94A3B8" style={{ flexShrink: 0 }} />
-                      <div>
-                        <div style={{ fontWeight: 800, fontSize: '13.5px', color: '#1E293B' }}>
-                          Booking Request Withdrawn / Cancelled by Tourist
-                        </div>
-                        <div style={{ fontSize: '12px', marginTop: '2px', color: '#64748B' }}>
-                          Reason: <strong>{booking.cancel_reason || (booking.rawBooking && booking.rawBooking.cancel_reason) || 'Withdrawn by traveler with zero fee before check-in.'}</strong> Room capacity is restored to available inventory.
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Cancellation Requested Alert Notice */}
-                  {isCancellationRequested && (
-                    <div
-                      data-testid={`notice-cancellation-requested-${booking.reference}`}
-                      style={{
-                        background: '#FEF2F2',
-                        border: '1.5px solid #FECACA',
-                        borderRadius: '12px',
-                        padding: '12px 16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '12px',
-                        color: '#991B1B',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <XCircle size={20} color="#DC2626" style={{ flexShrink: 0 }} />
-                        <div>
-                          <div style={{ fontWeight: 800, fontSize: '13.5px' }}>
-                            ⚠️ Tourist Requested Booking Cancellation
-                          </div>
-                          <div style={{ fontSize: '12px', marginTop: '2px', color: '#7F1D1D' }}>
-                            Reason: <strong>{booking.cancel_reason || (booking.rawBooking && booking.rawBooking.cancel_reason) || 'Change of travel dates or itinerary'}</strong>
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        data-testid={`btn-accept-cancellation-${booking.reference}`}
-                        onClick={() => handleLocalAcceptCancellation(booking)}
-                        style={{
-                          background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: '8px',
-                          padding: '9px 18px',
-                          fontSize: '12.5px',
-                          fontWeight: 800,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
-                        }}
-                      >
-                        <CheckCircle size={15} />
-                        <span>Confirm & Accept Cancellation</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Booking Request Specification Callout (When status is pending / requested) */}
-                  {isPendingOrRequested && (
-                    <div
-                      data-testid={`callout-request-spec-${booking.reference}`}
-                      style={{
-                        background: 'linear-gradient(135deg, #FFFDF7 0%, #FEF9EE 100%)',
-                        border: '1px solid #FCD34D',
-                        borderRadius: '6px',
-                        padding: '4px 8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        flexWrap: 'wrap',
-                        gap: '4px',
-                        boxShadow: '0 1px 2px rgba(245, 158, 11, 0.03)',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            background: '#FEF3C7',
-                            color: '#92400E',
-                            padding: '1px 5px',
-                            borderRadius: '4px',
-                            fontSize: '9.5px',
-                            fontWeight: 800,
-                            letterSpacing: '0.3px',
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          <Bell size={10} color="#D97706" />
-                          <span>New</span>
-                        </span>
-
-                        <span
-                          data-testid={`badge-room-type-${booking.reference}`}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            background: '#EFF6FF',
-                            color: '#1E40AF',
-                            border: '1px solid #BFDBFE',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                          }}
-                        >
-                          <Bed size={11} color="#2563EB" />
-                          <span>Room: <strong>{roomDetails.roomType}</strong></span>
-                        </span>
-
-                        <span
-                          data-testid={`badge-rooms-count-${booking.reference}`}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            background: '#FEF3C7',
-                            color: '#92400E',
-                            border: '1px solid #FCD34D',
-                            padding: '1px 6px',
-                            borderRadius: '4px',
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                          }}
-                        >
-                          <Building2 size={11} color="#D97706" />
-                          <span>Requested: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room Requested' : 'Rooms Requested'}</strong></span>
-                        </span>
-                      </div>
-
-                      <div style={{ fontSize: '10px', color: '#92400E', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                        <span>⚡ Action: Accept to allocate key</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Mid-Section: Unified Room Key & Financial Ledger Grid */}
-                  <div
+            {frontDeskBookings.map((b) => renderBookingCard(b, false))}
+          </div>
+        ) : (
+          /* High-Density Grid Table View Mode */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div
+              style={{
+                overflowX: 'auto',
+                borderRadius: '12px',
+                border: '1px solid #E2E8F0',
+                background: '#FFFFFF',
+                boxShadow: '0 2px 8px -2px rgba(15, 23, 42, 0.04)',
+              }}
+            >
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
+                <thead>
+                  <tr
                     style={{
-                      display: 'grid',
-                      gridTemplateColumns: isMobile ? '1fr' : '1fr 1.2fr',
-                      gap: '6px',
+                      background: '#F8FAFC',
+                      borderBottom: '1.5px solid #E2E8F0',
+                      color: '#475569',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.4px',
                     }}
                   >
-                    {/* Panel 1: Physical Room Allocation */}
-                    <div
-                      style={{
-                        background: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '6px',
-                        padding: '4px 8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '3px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                        <div style={{ fontSize: '9.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <Key size={10} color="#088395" />
-                          <span>Key Allocation</span>
-                        </div>
-                        {!isCancelled && (
-                          <button
-                            type="button"
-                            disabled={stayState === 'checked_out'}
-                            onClick={() => setAssignModalBooking(booking)}
-                            data-testid={`btn-assign-key-${booking.reference}`}
-                            id={`btn-assign-key-bottom-${booking.reference}`}
-                            style={{
-                              background: stayState === 'checked_out' ? '#F1F5F9' : '#FFFFFF',
-                              border: stayState === 'checked_out' ? '1px solid #E2E8F0' : '1px solid #CBD5E1',
-                              borderRadius: '4px',
-                              padding: '1px 6px',
-                              fontSize: '10px',
-                              fontWeight: 700,
-                              color: stayState === 'checked_out' ? '#94A3B8' : '#088395',
-                              cursor: stayState === 'checked_out' ? 'not-allowed' : 'pointer',
-                              opacity: stayState === 'checked_out' ? 0.6 : 1,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                              transition: 'all 0.15s ease',
-                            }}
-                            title={stayState === 'checked_out' ? 'Stay completed & settled - room key returned' : undefined}
-                          >
-                            {assignedRoom ? 'Change Room' : '🔑 Assign Key'}
-                          </button>
-                        )}
-                        {!isCancelled && assignedRoom && (
-                          <button
-                            type="button"
-                            disabled={stayState === 'checked_out'}
-                            data-testid={`btn-change-room-${booking.reference}`}
-                            style={{ display: 'none' }}
-                            aria-hidden="true"
-                          />
-                        )}
-                      </div>
+                    <th style={{ padding: '10px 14px' }}>Status</th>
+                    <th style={{ padding: '10px 14px' }}>Guest &amp; Reference</th>
+                    <th style={{ padding: '10px 14px' }}>Room &amp; Units</th>
+                    <th style={{ padding: '10px 14px' }}>Stay Schedule</th>
+                    <th style={{ padding: '10px 14px' }}>Key Allocation</th>
+                    <th style={{ padding: '10px 14px' }}>Folio Balance</th>
+                    <th style={{ padding: '10px 14px', textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {frontDeskBookings.map((booking, idx) => {
+                    const bKey = booking.id || booking.reference;
+                    const effStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
+                    const isCancelled = effStatus === 'cancelled' || effStatus === 'declined';
+                    const isCancellationRequested =
+                      !isCancelled && (
+                        effStatus === 'cancellation_requested' ||
+                        (booking as any).cancellation_requested ||
+                        (booking as any).cancelled_by === 'tourist_requested' ||
+                        (booking.rawBooking &&
+                          ((booking.rawBooking as any).cancellation_requested ||
+                            booking.rawBooking.cancelled_by === 'tourist_requested' ||
+                            booking.rawBooking.status === 'cancellation_requested'))
+                      );
+                    const isPendingOrRequested = (effStatus === 'requested' || effStatus === 'pending') && !isCancellationRequested && !isCancelled;
+                    const stayState = isCancelled ? 'checked_out' : getBookingStayState(booking);
+                    const rawAmt = Number(booking.rawAmount) || 24000;
+                    const isFullPaid = (booking as any).payment_status === 'full_paid' || (booking as any).payment_status === 'paid' || effStatus === 'completed';
+                    const depositAmt = (booking as any).deposit_amount || (isFullPaid ? rawAmt : Math.round(rawAmt * 0.25));
+                    const isBalanceCollected = collectedBalanceMap[bKey];
+                    const balanceDue = isCancelled || isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {isCancelled ? (
-                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                            <span>Cancelled • Released</span>
-                          </div>
-                        ) : assignedRooms.length > 0 ? (
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0A4D68' }}>
-                              {assignedRoomsLabel}
+                    const storedAssignment = (() => {
+                      try {
+                        const m = JSON.parse(localStorage.getItem('swat_booking_room_assignments') || '{}');
+                        return m[booking.id] || m[booking.reference] || m[bKey];
+                      } catch {
+                        return null;
+                      }
+                    })();
+
+                    const assignedRooms = physicalRooms.filter(
+                      (r) =>
+                        r.current_booking_id === booking.id ||
+                        r.current_booking_id === booking.reference ||
+                        r.id === (booking as any).assigned_room_id ||
+                        r.room_number === (booking as any).assigned_room_number ||
+                        (storedAssignment && (
+                          r.id === storedAssignment.roomId ||
+                          r.room_number === storedAssignment.roomNumber ||
+                          (storedAssignment.roomIds && storedAssignment.roomIds.includes(r.id)) ||
+                          (storedAssignment.roomNumbers && storedAssignment.roomNumbers.includes(r.room_number))
+                        )) ||
+                        r.last_booking_id === booking.id ||
+                        r.last_booking_id === booking.reference
+                    );
+
+                    const assignedRoomsLabel = assignedRooms.length > 0
+                      ? (assignedRooms.length === 1 ? `Room ${assignedRooms[0].room_number}` : `Rooms ${assignedRooms.map((r) => r.room_number).join(', ')}`)
+                      : (storedAssignment?.roomNumber ? (String(storedAssignment.roomNumber).startsWith('Room') ? storedAssignment.roomNumber : `Rooms ${storedAssignment.roomNumber}`) : null);
+
+                    const roomDetails = getBookingRoomDetails(booking);
+                    const isSelected = activeBooking && (activeBooking.reference === booking.reference || activeBooking.id === booking.id);
+
+                    return (
+                      <tr
+                        key={bKey}
+                        data-testid={`grid-row-${booking.reference}`}
+                        onClick={() => {
+                          setSelectedBookingRef(booking.reference || booking.id);
+                          setIsDetailsModalOpen(true);
+                        }}
+                        style={{
+                          background: isSelected ? '#EFF6FF' : idx % 2 === 0 ? '#FFFFFF' : '#FAFAFA',
+                          borderBottom: '1px solid #E2E8F0',
+                          borderLeft: isSelected ? '4px solid #2563EB' : '4px solid transparent',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                          {isCancelled ? (
+                            <span style={{ background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '2px 8px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 800 }}>
+                              Cancelled
                             </span>
-                            <span style={{ fontSize: '10px', color: '#475569', fontWeight: 500 }}>
-                              ({assignedRooms[0]?.category_name})
+                          ) : isCancellationRequested ? (
+                            <span style={{ background: '#FEE2E2', color: '#991B1B', border: '1px solid #FCA5A5', padding: '2px 8px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 800 }}>
+                              ⚠️ Cancel Req
                             </span>
-                            <span
+                          ) : isPendingOrRequested ? (
+                            <span style={{ background: '#FFE7BD', color: '#7A4A00', border: '1px solid #FCD34D', padding: '2px 8px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 800 }}>
+                              📬 New Request
+                            </span>
+                          ) : stayState === 'checked_in' ? (
+                            <span style={{ background: '#D1FAE5', color: '#065F46', border: '1px solid #A7F3D0', padding: '2px 8px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 800 }}>
+                              🛏️ In-House
+                            </span>
+                          ) : stayState === 'checked_out' ? (
+                            <span style={{ background: '#F1F5F9', color: '#475569', border: '1px solid #CBD5E1', padding: '2px 8px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 700 }}>
+                              ✓ Settled &amp; Out
+                            </span>
+                          ) : effStatus === 'accepted' && balanceDue > 0 ? (
+                            <span style={{ background: '#D3E6F7', color: '#0C447C', border: '1px solid #BFDBFE', padding: '2px 8px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 700 }}>
+                              Awaiting Payment
+                            </span>
+                          ) : (
+                            <span style={{ background: '#E0F2FE', color: '#0369A1', border: '1px solid #BAE6FD', padding: '2px 8px', borderRadius: '999px', fontSize: '10.5px', fontWeight: 700 }}>
+                              Check-In Ready
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div
                               style={{
-                                fontSize: '9px',
-                                fontWeight: 700,
-                                background: '#E0F2FE',
-                                color: '#0369A1',
-                                padding: '1px 4px',
-                                borderRadius: '3px',
+                                width: '26px',
+                                height: '26px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #174C72 0%, #2563EB 100%)',
+                                color: '#FFFFFF',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 800,
+                                fontSize: '10.5px',
+                                flexShrink: 0,
                               }}
                             >
-                              {assignedRooms.length} of {roomDetails.roomsCount} alloc
-                            </span>
-                          </div>
-                        ) : (
-                          <div style={{ fontSize: '10.5px', color: '#D97706', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                            <span>⚠️ Key not assigned</span>
-                            <span style={{ color: '#CBD5E1' }}>•</span>
-                            <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>
-                              Requested: <strong style={{ color: '#1E40AF' }}>{roomDetails.roomType}</strong> ({roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'})
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Panel 2: Stay Folio & Balance Ledger */}
-                    <div
-                      style={{
-                        background: '#FFFDF7',
-                        border: '1px solid #FDE68A',
-                        borderRadius: '6px',
-                        padding: '4px 8px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '3px',
-                      }}
-                    >
-                      <div style={{ fontSize: '9.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#92400E', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        <DollarSign size={10} color="#D97706" />
-                        <span>Folio Ledger</span>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
-                        <div>
-                          <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Total</span>
-                          <strong style={{ fontSize: '12px', color: '#0F172A', fontWeight: 800 }}>PKR {rawAmt.toLocaleString()}</strong>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Deposit Paid:</span>
-                          <strong style={{ fontSize: '12px', color: '#059669', fontWeight: 800 }}>
-                            PKR {depositAmt.toLocaleString()}
-                          </strong>
-                          <span style={{ fontSize: '8.5px', color: '#047857', display: 'block' }}>
-                            ({isDeposit ? 'Deposit' : '100% Paid'})
-                          </span>
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Balance Due:</span>
-                          <strong style={{ fontSize: '12px', color: isCancelled ? '#64748B' : balanceDue > 0 ? '#B45309' : '#059669', fontWeight: 800 }}>
-                            {isCancelled ? 'PKR 0 (Cancelled)' : balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()}` : '✓ Fully Settled'}
-                          </strong>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Reception Consolidated Actions Toolbar */}
-                  <div
-                    style={{
-                      borderTop: '1px solid #F1F5F9',
-                      paddingTop: '6px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      flexWrap: 'wrap',
-                      gap: '4px',
-                    }}
-                  >
-                    {isCancelled ? (
-                      <div
-                        data-testid={`toolbar-cancelled-${booking.reference}`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          fontSize: '11px',
-                          color: '#64748B',
-                          fontWeight: 700,
-                          padding: '1px 0',
-                        }}
-                      >
-                        <XCircle size={13} color="#94A3B8" />
-                        <span>Reservation cancelled/withdrawn by traveler. Room capacity released — desk check-in closed.</span>
-                      </div>
-                    ) : (
-                      <>
-                        {/* Primary Operations (Check in / Check out / Accept / Decline / Accept Cancellation) */}
-                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {isCancellationRequested && (
-                        <button
-                          type="button"
-                          data-testid={`btn-accept-cancellation-bottom-${booking.reference}`}
-                          onClick={() => handleLocalAcceptCancellation(booking)}
-                          style={{
-                            background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: '5px',
-                            padding: '4px 8px',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            boxShadow: '0 1px 4px rgba(220, 38, 38, 0.2)',
-                          }}
-                        >
-                          <CheckCircle size={12} />
-                          <span>Accept Cancellation</span>
-                        </button>
-                      )}
-
-                      {isPendingOrRequested && (
-                        <>
-                          <button
-                            type="button"
-                            data-testid={`btn-accept-${booking.reference}`}
-                            onClick={() => handleLocalAccept(booking)}
-                            style={{
-                              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: '5px',
-                              padding: '4px 10px',
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              boxShadow: '0 1px 3px rgba(16, 185, 129, 0.2)',
-                              transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                            }}
-                          >
-                            <CheckCircle size={12} />
-                            <span>Accept &amp; Assign Room</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            data-testid={`btn-decline-${booking.reference}`}
-                            onClick={() => handleLocalDecline(booking)}
-                            style={{
-                              padding: '4px 8px',
-                              borderRadius: '5px',
-                              backgroundColor: '#FEF2F2',
-                              color: '#991B1B',
-                              border: '1px solid #FECACA',
-                              fontWeight: 700,
-                              fontSize: '11px',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              transition: 'background 0.15s ease',
-                            }}
-                          >
-                            <XCircle size={12} />
-                            <span>Decline</span>
-                          </button>
-                        </>
-                      )}
-
-                      {!isPendingOrRequested && effStatus === 'accepted' && balanceDue > 0 && stayState !== 'checked_in' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#0C447C', fontWeight: 600, padding: '3px 6px', background: '#EFF6FF', borderRadius: '5px', border: '1px solid #BFDBFE' }}>
-                          <Clock size={11} />
-                          <span>Awaiting payment</span>
-                        </div>
-                      )}
-
-                      {!isPendingOrRequested && stayState === 'reserved' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleCheckInGuest(booking)}
-                            data-testid={`btn-fd-checkin-${booking.reference}`}
-                            style={{
-                              background: 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: '5px',
-                              padding: '4px 10px',
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              boxShadow: '0 1px 3px rgba(8, 131, 149, 0.2)',
-                            }}
-                          >
-                            <CheckCircle size={12} />
-                            <span>Check In Guest</span>
-                          </button>
-                          <button
-                            type="button"
-                            data-testid="btn-checkin-guest"
-                            onClick={() => handleCheckInGuest(booking)}
-                            style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
-                            aria-hidden="true"
-                            tabIndex={-1}
-                          >
-                            Check In Guest
-                          </button>
-                        </>
-                      )}
-
-                      {!isPendingOrRequested && (stayState === 'checked_in' || (assignedRoom && stayState !== 'checked_out')) && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleCheckOutGuest(booking)}
-                            data-testid={`btn-fd-checkout-${booking.reference}`}
-                            style={{
-                              background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: '5px',
-                              padding: '4px 10px',
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              boxShadow: '0 1px 3px rgba(185, 28, 28, 0.2)',
-                            }}
-                          >
-                            <Building2 size={12} />
-                            <span>Check Out &amp; Settle</span>
-                          </button>
-                          <button
-                            type="button"
-                            data-testid="btn-checkout-guest"
-                            onClick={() => handleCheckOutGuest(booking)}
-                            style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0,0,0,0)' }}
-                            aria-hidden="true"
-                            tabIndex={-1}
-                          >
-                            Check Out &amp; Settle
-                          </button>
-                        </>
-                      )}
-
-                      {!isPendingOrRequested && stayState === 'checked_out' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
-                          {(!assignedRoom || assignedRoom.status === 'cleaning') ? (
-                            <>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#D97706', fontWeight: 700 }}>
-                                <Clock size={11} color="#D97706" />
-                                <span>Stay Completed • Room Moved to Cleaning (Ready for Clean)</span>
+                              {((booking.tourist || 'G').split(' ').map((n: string) => n[0]).slice(0, 2).join('') || 'G').toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '12.5px' }}>
+                                Guest: {booking.tourist || 'Guest'}
                               </div>
-                              <button
-                                type="button"
-                                data-testid={`btn-mark-cleaned-${booking.reference}`}
-                                onClick={() => handleMarkCleanedRoom(assignedRoom?.id || 'serena-hotel-swat-102', assignedRoom?.room_number || '102')}
-                                style={{
-                                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                                  color: '#FFFFFF',
-                                  border: 'none',
-                                  borderRadius: '5px',
-                                  padding: '4px 8px',
-                                  fontSize: '10.5px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  boxShadow: '0 1px 3px rgba(5, 150, 105, 0.15)',
-                                }}
-                              >
-                                <Sparkles size={11} />
-                                <span>Mark Room {assignedRoom?.room_number || '102'} Cleaned &amp; Ready</span>
-                              </button>
-                            </>
-                          ) : (
-                            <div
+                              <div style={{ fontSize: '10px', color: '#088395', fontWeight: 700, marginTop: '1px' }}>
+                                REF: {booking.reference}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ fontWeight: 700, color: '#1E40AF', fontSize: '12px' }}>
+                            {roomDetails.roomType}
+                          </div>
+                          <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '1px' }}>
+                            {roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'} • {roomDetails.travellers} Guests
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontWeight: 600, color: '#1E293B', fontSize: '11.5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Calendar size={11} color="#64748B" />
+                            <span>{booking.dates}</span>
+                          </div>
+                          <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '1px' }}>
+                            🌙 {roomDetails.nights} {roomDetails.nights === 1 ? 'night' : 'nights'}
+                          </div>
+                        </td>
+
+                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                          {isCancelled ? (
+                            <span style={{ fontSize: '11px', color: '#94A3B8' }}>Released</span>
+                          ) : assignedRooms.length > 0 ? (
+                            <span
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: '4px',
-                                fontSize: '11px',
-                                color: '#047857',
-                                fontWeight: 700,
-                                background: '#ECFDF5',
-                                border: '1px solid #A7F3D0',
-                                padding: '3px 6px',
-                                borderRadius: '5px',
+                                fontWeight: 800,
+                                fontSize: '11.5px',
+                                color: '#0A4D68',
+                                background: '#E0F2FE',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
                               }}
                             >
-                              <CheckCircle size={11} color="#059669" />
-                              <span>✓ Stay Completed • Room {assignedRoom.room_number} Cleaned &amp; Ready for Next Guest</span>
-                            </div>
+                              <Key size={11} color="#088395" />
+                              <span>{assignedRoomsLabel}</span>
+                            </span>
+                          ) : (
+                            <span style={{ color: '#D97706', fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              <Clock size={11} color="#D97706" />
+                              <span>Key not assigned</span>
+                            </span>
                           )}
-                        </div>
-                      )}
-                    </div>
+                        </td>
 
-                    {/* Secondary & Financial Utilities (Collect Balance, Key Pass, Receipt) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                      {balanceDue > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => handleCollectBalance(booking)}
-                          data-testid={`btn-collect-balance-${booking.reference}`}
-                          style={{
-                            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: '5px',
-                            padding: '4px 8px',
-                            fontSize: '10.5px',
-                            fontWeight: 800,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            boxShadow: '0 1px 3px rgba(217, 119, 6, 0.15)',
-                          }}
-                        >
-                          <CreditCard size={11} />
-                          <span>Collect Balance (Rs. {balanceDue.toLocaleString()})</span>
-                        </button>
-                      ) : (
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            color: '#059669',
-                            background: '#ECFDF5',
-                            border: '1px solid #A7F3D0',
-                            padding: '3px 6px',
-                            borderRadius: '5px',
-                            fontSize: '10.5px',
-                            fontWeight: 800,
-                          }}
-                        >
-                          <CheckCircle size={11} />
-                          <span>Zero Balance • Folio Settle Complete</span>
-                        </span>
-                      )}
+                        <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '12px' }}>
+                            PKR {rawAmt.toLocaleString()}
+                          </div>
+                          <div style={{ marginTop: '2px' }}>
+                            {isCancelled ? (
+                              <span style={{ fontSize: '10px', color: '#94A3B8' }}>Rs 0 (Cancelled)</span>
+                            ) : balanceDue > 0 ? (
+                              <span style={{ fontSize: '10px', fontWeight: 800, color: '#B45309', background: '#FEF3C7', padding: '1px 5px', borderRadius: '3px' }}>
+                                Rs {balanceDue.toLocaleString()} Due
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '10px', fontWeight: 800, color: '#059669', background: '#ECFDF5', padding: '1px 5px', borderRadius: '3px' }}>
+                                ✓ Settled
+                              </span>
+                            )}
+                          </div>
+                        </td>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setReceiptModal({
-                            isOpen: true,
-                            booking,
-                            receiptType: 'arrival_pass',
-                          })
-                        }
-                        data-testid={`btn-fd-pass-${booking.reference}`}
-                        style={{
-                          background: '#FFFFFF',
-                          border: '1px solid #CBD5E1',
-                          color: '#0A4D68',
-                          borderRadius: '5px',
-                          padding: '4px 8px',
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                        }}
-                      >
-                        <QrCode size={11} color="#088395" />
-                        <span>Arrival Key Pass</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setReceiptModal({
-                            isOpen: true,
-                            booking,
-                            receiptType: 'checkout_receipt',
-                          })
-                        }
-                        data-testid={`btn-fd-receipt-${booking.reference}`}
-                        style={{
-                          background: '#0F172A',
-                          border: 'none',
-                          color: '#FFFFFF',
-                          borderRadius: '5px',
-                          padding: '4px 8px',
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '3px',
-                          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.15)',
-                        }}
-                      >
-                        <FileText size={11} color="#38BDF8" />
-                        <span>Tax Invoice &amp; Receipt</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+                        <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <button
+                            type="button"
+                            title="Details"
+                            data-testid={`btn-inspect-row-${booking.reference}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBookingRef(booking.reference || booking.id);
+                              setIsDetailsModalOpen(true);
+                            }}
+                            style={{
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              background: isSelected && isDetailsModalOpen ? '#088395' : '#F1F5F9',
+                              color: isSelected && isDetailsModalOpen ? '#FFFFFF' : '#0A4D68',
+                              border: isSelected && isDetailsModalOpen ? '1px solid #088395' : '1px solid #CBD5E1',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              boxShadow: isSelected && isDetailsModalOpen ? '0 1px 3px rgba(8, 131, 149, 0.25)' : 'none',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <FileText size={11} color={isSelected && isDetailsModalOpen ? '#FFFFFF' : '#088395'} />
+                            <span>Details</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-              );
-            })}
+
+            {/* Reservation Details Popup Modal with Full Decent Card Dossier */}
+            {activeBooking && (
+              <div
+                data-testid="details-popup-modal"
+                role="dialog"
+                aria-modal="true"
+                style={{
+                  position: 'fixed',
+                  inset: 0,
+                  backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                  backdropFilter: 'blur(4px)',
+                  display: isDetailsModalOpen ? 'flex' : 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 9999,
+                  padding: '16px',
+                }}
+                onClick={() => setIsDetailsModalOpen(false)}
+              >
+                <div
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: '16px',
+                    maxWidth: '860px',
+                    width: '100%',
+                    maxHeight: '92vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.35), 0 0 0 1px rgba(15, 23, 42, 0.08)',
+                    overflow: 'hidden',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal Header */}
+                  <div
+                    style={{
+                      padding: '14px 20px',
+                      borderBottom: '1px solid #E2E8F0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 100%)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <FileText size={16} />
+                      </div>
+                      <div>
+                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
+                          Reservation Details
+                        </h4>
+                        <div style={{ fontSize: '11px', color: '#64748B', marginTop: '1px' }}>
+                          Guest: <strong style={{ color: '#0A4D68' }}>Traveler {activeBooking.tourist || 'Guest'}</strong> • REF: <span style={{ fontWeight: 700, color: '#088395' }}>#{activeBooking.reference}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button
+                        type="button"
+                        data-testid="btn-close-details-modal"
+                        onClick={() => setIsDetailsModalOpen(false)}
+                        style={{
+                          background: '#F1F5F9',
+                          border: '1px solid #CBD5E1',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          color: '#475569',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <X size={14} />
+                        <span>Close</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Modal Scrollable Body */}
+                  <div style={{ padding: '20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {renderBookingCard(activeBooking, true)}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -2752,6 +3222,12 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
           onAssigned={() => {
             const updated = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
             setPhysicalRooms(updated);
+            setLocalHotelBookings(loadHotelLocalBookings(effectiveListingId, safeBusinessName));
+          }}
+          onAssignedRooms={() => {
+            const updated = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
+            setPhysicalRooms(updated);
+            setLocalHotelBookings(loadHotelLocalBookings(effectiveListingId, safeBusinessName));
           }}
         />
       )}

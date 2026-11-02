@@ -101,3 +101,5 @@ backend/uploads/
 # Temporary Office Lock Files
 ~$*.docx
 ~$*.xlsx
+~*.tmp
+*.tmp

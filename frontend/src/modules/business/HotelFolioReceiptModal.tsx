@@ -63,7 +63,7 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 2200,
+        zIndex: 12000,
         padding: '16px',
       }}
       data-testid="hotel-folio-receipt-modal"

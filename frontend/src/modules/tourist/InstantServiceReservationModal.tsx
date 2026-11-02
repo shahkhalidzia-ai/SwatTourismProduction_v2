@@ -98,10 +98,11 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
 
   if (!listing) return null;
 
+  const tc = listing.type_code as string;
   const isTransport =
-    listing.type_code === 'transport' ||
-    listing.type_code === 'vehicle' ||
-    listing.type_code === 'car' ||
+    tc === 'transport' ||
+    tc === 'vehicle' ||
+    tc === 'car' ||
     /passo|rent|car|4x4|jeep|prado|hiace|coaster|van|vehicle|driver|transport|toyota|suzuki|honda|sedan/i.test(listing.title || '') ||
     /passo|rent|car|4x4|jeep|prado|hiace|coaster|van|vehicle|driver|transport|toyota|suzuki|honda|sedan/i.test(selectedPriceItem?.name || '');
   const isGuide = listing.type_code === 'guide';

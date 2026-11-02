@@ -208,3 +208,45 @@ class InvoiceResponse(BaseModel):
     tax_label: str
     grand_total: float
     qr_verification_code: str
+
+
+class UnifiedCheckoutRequest(BaseModel):
+    payment_mode: str = Field(
+        ...,
+        description="'FULL_ONLINE' (100% full online), 'DEPOSIT_20' (20% advance guarantee), or 'PAY_AT_HOTEL' (pay on arrival)"
+    )
+    gateway_provider: str = Field(
+        "EASYPAISA",
+        description="'EASYPAISA', 'JAZZCASH', 'CARD', or 'HOTEL_COUNTER'"
+    )
+    mobile_number: Optional[str] = Field(None, description="Mobile wallet number e.g. 03451234567")
+    email: Optional[str] = Field(None, description="Tourist notification email")
+    cnic_last_6: Optional[str] = Field(None, description="CNIC digits for JazzCash validation")
+    notes: Optional[str] = Field(None, description="Special guarantee instructions")
+
+
+class UnifiedCheckoutResponse(BaseModel):
+    success: bool
+    booking_id: uuid.UUID
+    booking_reference: str
+    payment_mode: str
+    payment_status: str
+    status: str
+    total_amount: float
+    deposit_amount: Optional[float] = None
+    paid_amount: float
+    remaining_balance: float
+    transaction_id: Optional[str] = None
+    voucher_url: str
+    message: str
+    notification_dispatched: bool = True
+
+
+class IPNCallbackResponse(BaseModel):
+    status: str
+    order_id: str
+    booking_status: str
+    payment_status: str
+    notification_dispatched: bool
+    message: str
+

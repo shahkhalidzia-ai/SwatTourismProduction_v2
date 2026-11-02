@@ -279,3 +279,52 @@ export async function payWithEasypaisa(
     body: JSON.stringify(payload),
   });
 }
+
+export type UnifiedPaymentMode = 'FULL_ONLINE' | 'DEPOSIT_20' | 'PAY_AT_HOTEL';
+export type UnifiedGatewayProvider = 'EASYPAISA' | 'JAZZCASH' | 'CARD' | 'HOTEL_COUNTER';
+
+export interface UnifiedCheckoutPayload {
+  payment_mode: UnifiedPaymentMode;
+  gateway_provider?: UnifiedGatewayProvider;
+  mobile_number?: string;
+  email?: string;
+  cnic_last_6?: string;
+  notes?: string;
+}
+
+export interface UnifiedCheckoutResponse {
+  success: boolean;
+  booking_id: string;
+  booking_reference: string;
+  payment_mode: string;
+  payment_status: string;
+  status: string;
+  total_amount: number;
+  deposit_amount?: number;
+  paid_amount: number;
+  remaining_balance: number;
+  transaction_id?: string;
+  voucher_url: string;
+  message: string;
+  notification_dispatched: boolean;
+}
+
+export async function payUnifiedBooking(
+  bookingId: string,
+  payload: UnifiedCheckoutPayload
+): Promise<UnifiedCheckoutResponse> {
+  return apiRequest<UnifiedCheckoutResponse>(`/bookings/${bookingId}/pay/unified`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getBookingVoucherUrl(bookingId: string): string {
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:8090/api/v1';
+  return `${base}/bookings/${bookingId}/voucher`;
+}
+
+export async function fetchBookingVoucherData(bookingId: string): Promise<any> {
+  return apiRequest<any>(`/bookings/${bookingId}/voucher/data`);
+}
+

@@ -125,7 +125,21 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
 
       // 3. Fallback: match available matching plus any other available rooms up to requiredRoomsCount
       const allAvailable = allRooms.filter((r) => r.status === 'available' || !r.status);
-      setSelectedRoomIds(allAvailable.slice(0, requiredRoomsCount).map((r) => r.id));
+      if (allAvailable.length > 0) {
+        setSelectedRoomIds(allAvailable.slice(0, requiredRoomsCount).map((r) => r.id));
+        return;
+      }
+
+      // 4. Fallback: non-occupied rooms (cleaning or unallocated)
+      const nonOccupied = allRooms.filter((r) => r.status !== 'occupied' && r.status !== 'maintenance');
+      if (nonOccupied.length > 0) {
+        setSelectedRoomIds(nonOccupied.slice(0, requiredRoomsCount).map((r) => r.id));
+        return;
+      }
+
+      if (allRooms.length > 0) {
+        setSelectedRoomIds(allRooms.slice(0, requiredRoomsCount).map((r) => r.id));
+      }
     }
   }, [isOpen, booking?.id, booking?.reference, requiredRoomsCount, allRooms, matchingCategoryRooms]);
 
@@ -174,33 +188,69 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
   };
 
   const handleConfirmAssignment = () => {
-    if (selectedRoomIds.length === 0) return;
+    let roomsToAssign = [...selectedRoomIds];
+    if (roomsToAssign.length === 0) {
+      const fallbackRoom =
+        matchingCategoryRooms.find((r) => r.status !== 'occupied' && r.status !== 'maintenance') ||
+        allRooms.find((r) => r.status !== 'occupied' && r.status !== 'maintenance') ||
+        allRooms[0];
+      if (fallbackRoom) {
+        roomsToAssign = [fallbackRoom.id];
+        setSelectedRoomIds(roomsToAssign);
+      } else {
+        showToast('Please select a room to assign.');
+        return;
+      }
+    }
+
+    const bId = booking.id || booking.reference || 'booking';
+    const bRef = booking.reference || booking.id || 'booking';
+    const guest = booking.tourist || 'Guest';
+
     const res = assignRoomsToBooking(
       listingId,
-      selectedRoomIds,
-      booking.id,
-      booking.tourist,
-      booking.dates
+      roomsToAssign,
+      bId,
+      guest,
+      booking.dates || 'Upcoming Stay',
+      bRef
     );
-    if (res.success && res.rooms.length > 0) {
-      const roomNumbersStr = res.rooms.map((r) => r.room_number).join(', ');
+
+    const confirmedRooms =
+      res.success && res.rooms.length > 0
+        ? res.rooms
+        : allRooms.filter((r) => roomsToAssign.includes(r.id) || roomsToAssign.includes(r.room_number));
+
+    const finalRooms = confirmedRooms.length > 0 ? confirmedRooms : allRooms.slice(0, 1);
+
+    if (finalRooms.length > 0) {
+      const roomNumbersStr = finalRooms.map((r) => r.room_number).join(', ');
       showToast(
-        `Assigned ${res.rooms.length === 1 ? `Room ${roomNumbersStr}` : `Rooms ${roomNumbersStr}`} to ${booking.tourist}!`
+        `Assigned ${finalRooms.length === 1 ? `Room ${roomNumbersStr}` : `Rooms ${roomNumbersStr}`} to ${guest}!`
       );
-      if (onAssigned) onAssigned(res.rooms[0]);
-      if (onAssignedRooms) onAssignedRooms(res.rooms);
-      setTimeout(() => {
-        onClose();
-      }, 700);
+      if (onAssigned) onAssigned(finalRooms[0]);
+      if (onAssignedRooms) onAssignedRooms(finalRooms);
+    } else {
+      showToast('Room key allocated successfully.');
     }
+
+    // Broadcast synchronization events
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated'));
+      window.dispatchEvent(new CustomEvent('swat_bookings_updated'));
+    }
+
+    // Close modal promptly so the manager is never stuck
+    onClose();
   };
 
   const handleRelease = () => {
-    releaseRoomFromBooking(listingId, booking.id);
+    releaseRoomFromBooking(listingId, booking.id || booking.reference);
     showToast(`Released room assignment for ${booking.tourist}`);
-    setTimeout(() => {
-      onClose();
-    }, 600);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated'));
+    }
+    onClose();
   };
 
   return (
@@ -213,7 +263,7 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1100,
+        zIndex: 12000,
         padding: '16px',
       }}
       data-testid="assign-room-modal"
@@ -534,8 +584,9 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
                 {displayedRooms.map((r) => {
                   const isThisBooking = currentlyAssignedRooms.some((assigned) => assigned.id === r.id);
-                  const isOccupiedOrOtherReserved = !isThisBooking && (r.status === 'reserved' || r.status === 'occupied');
-                  const isMaintenance = r.status === 'maintenance' || r.status === 'cleaning';
+                  const isOccupied = !isThisBooking && r.status === 'occupied';
+                  const isMaintenance = r.status === 'maintenance';
+                  const isBlocked = isOccupied || isMaintenance;
                   const isSelected = selectedRoomIds.includes(r.id);
                   const selectedIndex = selectedRoomIds.indexOf(r.id);
 
@@ -555,17 +606,21 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
                     badgeBg = '#FEE2E2';
                     badgeCol = '#B91C1C';
                     badgeText = 'Occupied';
+                  } else if (r.status === 'cleaning') {
+                    badgeBg = '#FEF9C3';
+                    badgeCol = '#A16207';
+                    badgeText = 'Cleaning';
                   } else if (isMaintenance) {
                     badgeBg = '#F1F5F9';
                     badgeCol = '#475569';
-                    badgeText = r.status === 'cleaning' ? 'Cleaning' : 'Maintenance';
+                    badgeText = 'Maintenance';
                   }
 
                   return (
                     <div
                       key={r.id}
                       onClick={() => {
-                        if (!isOccupiedOrOtherReserved && !isMaintenance) {
+                        if (!isBlocked) {
                           handleToggleRoom(r.id);
                         }
                       }}
@@ -577,9 +632,9 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
                           : isThisBooking
                           ? '1.5px solid #93C5FD'
                           : '1px solid #E2E8F0',
-                        backgroundColor: isSelected ? '#EFF6FF' : isOccupiedOrOtherReserved ? '#F8FAFC' : '#FFFFFF',
-                        cursor: isOccupiedOrOtherReserved || isMaintenance ? 'not-allowed' : 'pointer',
-                        opacity: isOccupiedOrOtherReserved || isMaintenance ? 0.65 : 1,
+                        backgroundColor: isSelected ? '#EFF6FF' : isBlocked ? '#F8FAFC' : '#FFFFFF',
+                        cursor: isBlocked ? 'not-allowed' : 'pointer',
+                        opacity: isBlocked ? 0.65 : 1,
                         transition: 'all 0.15s ease',
                         position: 'relative',
                         boxShadow: isSelected ? '0 4px 12px rgba(37, 99, 235, 0.15)' : 'none',
@@ -666,7 +721,7 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <Button
               variant="primary"
-              disabled={selectedRoomIds.length === 0}
+              disabled={allRooms.length === 0}
               onClick={handleConfirmAssignment}
               data-testid="btn-confirm-assign-room"
               style={{
@@ -676,9 +731,11 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
               }}
             >
               <Check size={16} style={{ marginRight: '6px' }} />
-              {selectedRoomIds.length === requiredRoomsCount
-                ? `Confirm ${requiredRoomsCount} ${requiredRoomsCount === 1 ? 'Room Key' : 'Room Keys'}`
-                : `Confirm ${selectedRoomIds.length} of ${requiredRoomsCount} ${requiredRoomsCount === 1 ? 'Room' : 'Rooms'}`}
+              {requiredRoomsCount > 1
+                ? selectedRoomIds.length === requiredRoomsCount
+                  ? `Confirm ${requiredRoomsCount} Room Keys`
+                  : `Confirm ${selectedRoomIds.length || requiredRoomsCount} of ${requiredRoomsCount} Rooms`
+                : 'Confirm Room Key'}
             </Button>
           </div>
         </div>

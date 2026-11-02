@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { Listing, Destination, PriceItem } from '../../types';
+import type { ListingItem as Listing, PriceItem } from '../../api/listings';
+import type { Destination } from '../../api/trips';
 import {
   Calendar,
   User,
@@ -17,12 +18,7 @@ import {
   CloudRain,
   ShieldCheck,
   HeartPulse,
-  Clock,
   ArrowRight,
-  SlidersHorizontal,
-  Wifi,
-  Flame,
-  Sparkles,
 } from 'lucide-react';
 
 export interface TouristHomeModernProps {
@@ -134,7 +130,7 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
     }
     // Category match
     if (activeCategoryFilter === 'stays') {
-      return l.type_code === 'hotel' || l.type_code === 'guesthouse';
+      return l.type_code === 'hotel' || (l.type_code as string) === 'guesthouse';
     }
     if (activeCategoryFilter === 'transport') {
       return l.type_code === 'transport';
@@ -1313,7 +1309,7 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                           {/* Feature Tags */}
                           {item.tags && item.tags.length > 0 && (
                             <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                              {item.tags.slice(0, 3).map((tag) => (
+                              {item.tags.slice(0, 3).map((tag: any) => (
                                 <span
                                   key={tag.id}
                                   style={{
@@ -1344,7 +1340,7 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              if (item.type_code === 'hotel' || item.type_code === 'guesthouse') {
+                              if (item.type_code === 'hotel' || (item.type_code as string) === 'guesthouse') {
                                 if (onOpenAvailModal && item.price_items) {
                                   onOpenAvailModal(item.id, item.title, item.price_items);
                                 } else {

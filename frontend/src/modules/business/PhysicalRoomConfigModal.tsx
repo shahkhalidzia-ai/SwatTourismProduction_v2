@@ -165,7 +165,7 @@ export const PhysicalRoomConfigModal: React.FC<PhysicalRoomConfigModalProps> = (
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1100,
+        zIndex: 12000,
         padding: '1rem',
       }}
       onClick={(e) => {

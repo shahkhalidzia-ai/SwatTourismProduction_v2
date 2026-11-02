@@ -3,7 +3,6 @@ import {
   Compass,
   ShieldAlert,
   CalendarDays,
-  CalendarCheck,
   Store,
   Star,
   User,

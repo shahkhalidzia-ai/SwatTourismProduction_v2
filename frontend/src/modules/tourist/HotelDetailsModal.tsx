@@ -33,8 +33,10 @@ import { Tag } from '../../design/Tag';
 import { Button } from '../../design/Button';
 import type { ListingItem, PriceItem, AvailabilityRecord } from '../../api/listings';
 import { fetchAvailability } from '../../api/listings';
-import { createBookingRequest, type Booking } from '../../api/bookings';
+import { createBookingRequest, getBookingVoucherUrl, type Booking } from '../../api/bookings';
 import { useAuth } from '../../context/AuthContext';
+import { BookingVoucherModal } from '../../components/BookingVoucherModal';
+import { UnifiedCheckoutModal } from '../../components/UnifiedCheckoutModal';
 
 interface HotelDetailsModalProps {
   hotel: ListingItem | null;
@@ -114,6 +116,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
   const [isBooking, setIsBooking] = useState<boolean>(false);
   const [bookingSuccess, setBookingSuccess] = useState<Booking | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [showUnifiedCheckout, setShowUnifiedCheckout] = useState<boolean>(false);
+  const [showVoucherModal, setShowVoucherModal] = useState<boolean>(false);
 
   if (!hotel) return null;
 
@@ -186,6 +190,41 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
       return 1;
     }
   }, [checkInDate, checkOutDate]);
+
+  // Date manipulation helpers for flexible range & nights selection
+  const addDaysToDate = (dateStr: string, days: number): string => {
+    try {
+      const parts = dateStr.split('-');
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      d.setDate(d.getDate() + days);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const handleSetNights = (nights: number) => {
+    const validNights = Math.max(1, nights);
+    setCheckOutDate(addDaysToDate(checkInDate, validNights));
+  };
+
+  const handleCheckInChange = (newIn: string) => {
+    if (!newIn) return;
+    setCheckInDate(newIn);
+    setCheckOutDate(addDaysToDate(newIn, Math.max(1, nightsCount)));
+  };
+
+  const handleCheckOutChange = (newOut: string) => {
+    if (!newOut) return;
+    if (newOut > checkInDate) {
+      setCheckOutDate(newOut);
+    } else {
+      setCheckOutDate(addDaysToDate(checkInDate, 1));
+    }
+  };
 
   // Fetch live availability whenever dates or hotel ID changes
   useEffect(() => {
@@ -948,6 +987,8 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                   <p style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', margin: 0 }}>
                     Check-in: <strong>{checkInDate}</strong> • Check-out: <strong>{checkOutDate}</strong> ({nightsCount} night{nightsCount > 1 ? 's' : ''})
                     <br />
+                    Capacity: <strong>{roomsCount} {roomsCount > 1 ? 'Rooms' : 'Room'}</strong> • <strong>{travellers} {travellers > 1 ? 'Guests' : 'Guest'}</strong>
+                    <br />
                     Total Estimated Amount: <strong>PKR {totalAmount.toLocaleString()}</strong>
                   </p>
                   <p style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', margin: 0 }}>
@@ -959,6 +1000,34 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     )}
                   </p>
                   <div style={{ marginTop: '8px', display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setShowVoucherModal(true)}
+                      data-testid="btn-view-official-voucher"
+                      style={{
+                        background: 'linear-gradient(135deg, #0f4c81 0%, #092c4c 100%)',
+                        color: '#ffffff',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Official Voucher &amp; PDF
+                    </Button>
+                    {bookingSuccess.payment_status === 'unpaid' && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setShowUnifiedCheckout(true)}
+                        data-testid="btn-pay-guarantee-online"
+                        style={{
+                          borderColor: '#16a34a',
+                          color: '#16a34a',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Pay / Guarantee Online (20% Deposit)
+                      </Button>
+                    )}
                     <Button
                       variant="primary"
                       size="sm"
@@ -1016,10 +1085,14 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     >
                       <ArrowLeft size={14} /> Back to Room Options
                     </button>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--mute)' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', color: 'var(--mute)', flexWrap: 'wrap' }}>
                       <Tag variant="accent">{currentSelectedRoom.name}</Tag>
                       <span>•</span>
                       <strong>{nightsCount} Night{nightsCount > 1 ? 's' : ''}</strong>
+                      <span>•</span>
+                      <span>{roomsCount} Room{roomsCount > 1 ? 's' : ''}</span>
+                      <span>•</span>
+                      <span>{travellers} Guest{travellers > 1 ? 's' : ''}</span>
                       <span>•</span>
                       <strong style={{ color: 'var(--pri)' }}>PKR {totalAmount.toLocaleString()}</strong>
                     </div>
@@ -1303,17 +1376,53 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     data-testid="stay-controls-bar"
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <span>📅</span> Stay Dates &amp; Capacity
-                        {isLoadingAvail && (
-                          <span style={{ fontSize: '10.5px', color: 'var(--mute)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 400 }}>
-                            • <Loader2 size={11} className="animate-spin" /> Live checking...
-                          </span>
-                        )}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ink)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                          <span>📅</span> Stay Dates, Duration &amp; Capacity
+                          {isLoadingAvail && (
+                            <span style={{ fontSize: '10.5px', color: 'var(--mute)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 400 }}>
+                              • <Loader2 size={11} className="animate-spin" /> Live checking...
+                            </span>
+                          )}
+                        </span>
+
+                        {/* Quick Duration Presets */}
+                        <div style={{ display: 'inline-flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {[
+                            { label: '1 Night', nights: 1 },
+                            { label: '2 Nights (Weekend)', nights: 2 },
+                            { label: '3 Nights', nights: 3 },
+                            { label: '5 Nights', nights: 5 },
+                            { label: '7 Nights', nights: 7 },
+                          ].map((p) => {
+                            const isCur = nightsCount === p.nights;
+                            return (
+                              <button
+                                key={p.label}
+                                type="button"
+                                data-testid={`preset-nights-${p.nights}`}
+                                onClick={() => handleSetNights(p.nights)}
+                                style={{
+                                  padding: '2px 8px',
+                                  borderRadius: '6px',
+                                  fontSize: '10.5px',
+                                  fontWeight: isCur ? 700 : 500,
+                                  backgroundColor: isCur ? 'var(--pri)' : 'var(--card)',
+                                  color: isCur ? '#FFFFFF' : 'var(--mute)',
+                                  border: isCur ? '1px solid var(--pri)' : '1px solid var(--line)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                }}
+                              >
+                                {p.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
 
                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--mute)' }}>
-                        <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(23, 76, 114, 0.08)', color: 'var(--pri)', fontWeight: 600 }}>
+                        <span style={{ padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(23, 76, 114, 0.08)', color: 'var(--pri)', fontWeight: 700 }}>
                           {nightsCount} Night{nightsCount > 1 ? 's' : ''} Stay
                         </span>
                         <span>({checkInDate} to {checkOutDate})</span>
@@ -1330,15 +1439,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                           type="date"
                           min={todayStr}
                           value={checkInDate}
-                          onChange={(e) => {
-                            const newIn = e.target.value;
-                            setCheckInDate(newIn);
-                            if (newIn >= checkOutDate) {
-                              const nextDay = new Date(newIn);
-                              nextDay.setDate(nextDay.getDate() + 1);
-                              setCheckOutDate(nextDay.toISOString().split('T')[0]);
-                            }
-                          }}
+                          onChange={(e) => handleCheckInChange(e.target.value)}
                           style={{
                             width: '100%',
                             padding: '6px 10px',
@@ -1362,9 +1463,9 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                         </label>
                         <input
                           type="date"
-                          min={checkInDate}
+                          min={addDaysToDate(checkInDate, 1)}
                           value={checkOutDate}
-                          onChange={(e) => setCheckOutDate(e.target.value)}
+                          onChange={(e) => handleCheckOutChange(e.target.value)}
                           style={{
                             width: '100%',
                             padding: '6px 10px',
@@ -1381,10 +1482,81 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                         />
                       </div>
 
+                      {/* No. of Nights */}
+                      <div>
+                        <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: 'var(--mute)', marginBottom: '3px' }}>
+                          No. of Nights
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <button
+                            type="button"
+                            disabled={nightsCount <= 1}
+                            onClick={() => handleSetNights(nightsCount - 1)}
+                            data-testid="btn-nights-decrease"
+                            style={{
+                              width: '24px',
+                              height: '28px',
+                              borderRadius: '4px',
+                              border: '1px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              cursor: nightsCount <= 1 ? 'not-allowed' : 'pointer',
+                              fontWeight: 700,
+                              fontSize: '12px',
+                            }}
+                          >
+                            -
+                          </button>
+                          <select
+                            value={nightsCount}
+                            onChange={(e) => handleSetNights(Number(e.target.value))}
+                            data-testid="select-nights-count"
+                            style={{
+                              flex: 1,
+                              padding: '5px 4px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              fontSize: 'var(--font-xs)',
+                              fontWeight: 600,
+                              boxSizing: 'border-box',
+                              outline: 'none',
+                              textAlign: 'center',
+                            }}
+                          >
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 14, 21, 30].map((n) => (
+                              <option key={n} value={n}>
+                                {n} {n === 1 ? 'Night' : 'Nights'}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            disabled={nightsCount >= 30}
+                            onClick={() => handleSetNights(nightsCount + 1)}
+                            data-testid="btn-nights-increase"
+                            style={{
+                              width: '24px',
+                              height: '28px',
+                              borderRadius: '4px',
+                              border: '1px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              cursor: nightsCount >= 30 ? 'not-allowed' : 'pointer',
+                              fontWeight: 700,
+                              fontSize: '12px',
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
                       {/* Guests */}
                       <div>
                         <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: 'var(--mute)', marginBottom: '3px' }}>
-                          Guests / Travellers
+                          No. of Guests
                         </label>
                         <select
                           value={travellers}
@@ -1414,7 +1586,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                       {/* Rooms Count */}
                       <div>
                         <label style={{ display: 'block', fontSize: '10.5px', fontWeight: 600, color: 'var(--mute)', marginBottom: '3px' }}>
-                          Number of Rooms
+                          No. of Rooms Required
                         </label>
                         <select
                           value={roomsCount}
@@ -1889,10 +2061,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                         type="button"
                         onClick={() => {
                           setCheckInDate(d.dateStr);
-                          // Auto set checkout to next day
-                          const nextD = new Date(d.dateStr);
-                          nextD.setDate(nextD.getDate() + 1);
-                          setCheckOutDate(nextD.toISOString().split('T')[0]);
+                          setCheckOutDate(addDaysToDate(d.dateStr, Math.max(1, nightsCount)));
                         }}
                         style={{
                           display: 'flex',
@@ -1951,7 +2120,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     Selected Stay Schedule:
                   </div>
                   <div style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--ink)', marginTop: '2px' }}>
-                    {checkInDate} ➔ {checkOutDate} ({nightsCount} {nightsCount === 1 ? 'night' : 'nights'})
+                    {checkInDate} ➔ {checkOutDate} ({nightsCount} {nightsCount === 1 ? 'night' : 'nights'}) • {roomsCount} {roomsCount === 1 ? 'Room' : 'Rooms'} • {travellers} {travellers === 1 ? 'Guest' : 'Guests'}
                   </div>
                   <div style={{ fontSize: 'var(--font-xs)', color: 'var(--pri)', fontWeight: 600, marginTop: '2px' }}>
                     {currentSelectedRoom?.name} • PKR {totalAmount.toLocaleString()} total
@@ -2210,6 +2379,96 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
           </div>
         )}
       </div>
+
+      {/* Unified Payment & Guarantee Modal */}
+      {showUnifiedCheckout && bookingSuccess && (
+        <UnifiedCheckoutModal
+          isOpen={showUnifiedCheckout}
+          onClose={() => setShowUnifiedCheckout(false)}
+          booking={{
+            id: bookingSuccess.id,
+            reference_number: bookingSuccess.reference,
+            total_amount: totalAmount,
+            property_name: hotel.title,
+            check_in: checkInDate,
+            check_out: checkOutDate,
+            nights: nightsCount,
+            guest_name: user?.full_name || guestName,
+            guest_phone: user?.phone || guestPhone,
+            guest_email: user?.email || guestEmail,
+          }}
+          onSuccess={(res) => {
+            setShowUnifiedCheckout(false);
+            setBookingSuccess((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    status: 'confirmed',
+                    payment_status: res.payment_status as any,
+                    deposit_amount: res.deposit_amount,
+                  }
+                : null
+            );
+            setShowVoucherModal(true);
+          }}
+        />
+      )}
+
+      {/* Official Booking Voucher Modal */}
+      {showVoucherModal && bookingSuccess && (
+        <BookingVoucherModal
+          isOpen={showVoucherModal}
+          onClose={() => setShowVoucherModal(false)}
+          voucherData={{
+            voucher_number: `VCH-${bookingSuccess.reference}`,
+            booking_reference: bookingSuccess.reference,
+            booking_id: bookingSuccess.id,
+            status: bookingSuccess.status === 'confirmed' ? 'CONFIRMED' : 'REQUESTED',
+            issued_date: new Date().toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' }),
+            property: {
+              name: hotel.title,
+              location: hotel.address_text || `${hotel.area_name || 'Swat'}, Pakistan`,
+              check_in_time: details.check_in_time || '14:00',
+              check_out_time: details.check_out_time || '12:00',
+              reception_phone: hotel.phone || '0946-9240400',
+            },
+            stay: {
+              check_in: checkInDate,
+              check_out: checkOutDate,
+              nights: nightsCount,
+              travellers: travellers,
+              rooms_count: roomsCount,
+              room_type: currentSelectedRoom?.name,
+              assigned_room: 'Assigned on Arrival',
+            },
+            guest: {
+              name: user?.full_name || guestName || 'Swat Visitor',
+              phone: user?.phone || guestPhone || '0300-1234567',
+              email: user?.email || guestEmail || 'tourist@swattourism.pk',
+            },
+            financials: {
+              total_amount: totalAmount,
+              kpk_levy: Math.round(totalAmount * 0.05),
+              payment_mode:
+                bookingSuccess.payment_status === 'paid'
+                  ? '100% Full Online'
+                  : bookingSuccess.payment_status === 'deposit_paid'
+                  ? '20% Advance Guarantee'
+                  : 'Pay at Hotel on Arrival',
+              payment_status: bookingSuccess.payment_status || 'unpaid',
+              paid_amount:
+                bookingSuccess.payment_status === 'paid'
+                  ? totalAmount
+                  : bookingSuccess.deposit_amount || 0,
+              balance_due:
+                bookingSuccess.payment_status === 'paid'
+                  ? 0
+                  : totalAmount - (bookingSuccess.deposit_amount || 0),
+            },
+            qr_verification_url: getBookingVoucherUrl(bookingSuccess.id),
+          }}
+        />
+      )}
     </div>
   );
 };

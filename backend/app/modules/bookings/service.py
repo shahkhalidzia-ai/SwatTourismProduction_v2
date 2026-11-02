@@ -407,6 +407,50 @@ class BookingService:
         return b
 
     @staticmethod
+    async def get_booking_by_reference(
+        db: AsyncSession,
+        reference: str,
+    ) -> Optional[Booking]:
+        """Fetch booking by unique reference string (e.g. SWT-BK-XXXX)."""
+        query = (
+            select(Booking)
+            .where(Booking.reference == reference.strip())
+            .options(
+                selectinload(Booking.items).selectinload(BookingItem.price_item),
+                selectinload(Booking.history),
+                selectinload(Booking.tourist),
+                selectinload(Booking.business),
+                selectinload(Booking.listing),
+            )
+        )
+        res = await db.execute(query)
+        b = res.scalar_one_or_none()
+        if not b:
+            # Fallback check for case-insensitive or partial match
+            ref_clean = reference.strip()
+            query2 = (
+                select(Booking)
+                .where(Booking.reference.ilike(f"%{ref_clean}%"))
+                .options(
+                    selectinload(Booking.items).selectinload(BookingItem.price_item),
+                    selectinload(Booking.history),
+                    selectinload(Booking.tourist),
+                    selectinload(Booking.business),
+                    selectinload(Booking.listing),
+                )
+            )
+            res2 = await db.execute(query2)
+            b = res2.scalar_one_or_none()
+        if not b:
+            return None
+
+        for it in b.items:
+            if it.price_item:
+                it.price_item_name = it.price_item.name
+                it.price_item_unit = it.price_item.unit
+        return b
+
+    @staticmethod
     async def get_tourist_bookings(
         db: AsyncSession,
         tourist_id: uuid.UUID,

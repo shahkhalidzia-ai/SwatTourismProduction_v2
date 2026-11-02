@@ -20,6 +20,7 @@ import {
   Compass,
   AlertTriangle,
   Printer,
+  Download,
   Copy,
   Star,
   Info,
@@ -1679,10 +1680,24 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
                 variant="secondary"
                 size="md"
                 onClick={() => window.print()}
+                data-testid="btn-print-voucher"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
                 <Printer size={14} />
                 <span>Print Voucher</span>
+              </Button>
+              <Button
+                variant="secondary"
+                size="md"
+                data-testid="btn-download-pdf-voucher"
+                onClick={() => {
+                  const url = bookingsApi.getBookingVoucherUrl(voucherBooking.id);
+                  window.open(url, '_blank');
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Download size={14} />
+                <span>Download PDF</span>
               </Button>
               <Button variant="primary" size="md" onClick={() => setVoucherBooking(null)}>
                 Done
