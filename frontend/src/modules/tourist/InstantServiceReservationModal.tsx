@@ -98,7 +98,12 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
 
   if (!listing) return null;
 
-  const isTransport = listing.type_code === 'transport';
+  const isTransport =
+    listing.type_code === 'transport' ||
+    listing.type_code === 'vehicle' ||
+    listing.type_code === 'car' ||
+    /passo|rent|car|4x4|jeep|prado|hiace|coaster|van|vehicle|driver|transport|toyota|suzuki|honda|sedan/i.test(listing.title || '') ||
+    /passo|rent|car|4x4|jeep|prado|hiace|coaster|van|vehicle|driver|transport|toyota|suzuki|honda|sedan/i.test(selectedPriceItem?.name || '');
   const isGuide = listing.type_code === 'guide';
   const isCommunity = Boolean(listing.details?.is_community_service);
 
@@ -206,9 +211,9 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
           const rideOrder = {
             id: newBooking.id || `ride-${Date.now()}`,
             reference: newBooking.reference || (newBooking as any).booking_reference || `SWT-TR-${Math.floor(100000 + Math.random() * 900000)}`,
-            tourist: user?.full_name || (user as any)?.name || 'Guest Traveler',
-            touristEmail: user?.email || 'guest@swat.pk',
-            item: `${listing.title} (${listing.details?.vehicle_model || selectedPriceItem?.name || '4x4 Vehicle'})`,
+            tourist: user?.full_name || (user as any)?.name || 'Sara Ahmad',
+            touristEmail: user?.email || 'sara@swat.pk',
+            item: `${listing.title} (${listing.details?.vehicle_model || selectedPriceItem?.name || 'Passo 2023'})`,
             dates: datesFormatted,
             amount: `Rs ${Number(totalAmount).toLocaleString()}`,
             rawAmount: totalAmount,
@@ -221,6 +226,7 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
             business_name: listing.business_name,
             regNumber: regRef,
             listing_id: listing.id,
+            created_at: new Date().toISOString(),
           };
 
           const filteredOrders = storedOrders.filter((o: any) => o.reference !== rideOrder.reference && o.id !== rideOrder.id);

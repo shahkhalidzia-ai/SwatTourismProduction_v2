@@ -121,6 +121,24 @@ describe('Transport Portal Enhancements: Tab Removal, Order Confirmation & Fleet
       // Toast feedback should confirm the ride order
       expect(screen.getByText(/Ride order confirmed/i)).toBeDefined();
     });
+
+    it('clears all ride orders when clicking Clear All Orders button', async () => {
+      render(<BusinessShell activeTab="today" onTabChange={vi.fn()} />);
+
+      const clearBtn = screen.getByTestId('btn-clear-ride-orders');
+      expect(clearBtn).toBeDefined();
+
+      await act(async () => {
+        fireEvent.click(clearBtn);
+      });
+
+      // All 4 orders should be cleared
+      expect(screen.queryByText('Sara Ahmed')).toBeNull();
+      expect(screen.queryByText('Ahmed Wali')).toBeNull();
+      expect(screen.queryByText('Kamran Ali')).toBeNull();
+      expect(screen.queryByText('Zainab Bibi')).toBeNull();
+      expect(screen.getByText(/All ride orders cleared successfully/i)).toBeDefined();
+    });
   });
 
   describe('3. Transport Fleet & Vehicle Management (Add, Fare, Publish Availability, Remove)', () => {
@@ -604,8 +622,89 @@ describe('Transport Portal Enhancements: Tab Removal, Order Confirmation & Fleet
       expect(mingoraOrders.some((o) => o.reference === 'MNG-9090')).toBe(true);
 
       // Must NOT see Noman Tariq (belongs to Kalam 4x4 Union)
+      expect(kalamOrders.some((o) => o.tourist === 'Noman Tariq')).toBe(true);
       expect(mingoraOrders.some((o) => o.tourist === 'Noman Tariq')).toBe(false);
       expect(mingoraOrders.some((o) => o.reference === 'KLM-4040')).toBe(false);
+    });
+
+    it('loads transport booking request made by Sara Ahmad for vehicle Passo 2023 from swat_local_bookings', () => {
+      const passoBooking = {
+        id: 'book-passo-123',
+        booking_reference: 'SWAT-TR-998877',
+        reference: 'SWAT-TR-998877',
+        listing_id: 'listing-passo-2023',
+        tourist_id: 'user-sara',
+        status: 'requested',
+        total_price: 15000,
+        start_date: '2026-10-30',
+        end_date: '2026-10-31',
+        travellers: 3,
+        special_requests: 'Vehicle Passo 2023 required for Mingora to Kalam trip',
+        tourist: {
+          full_name: 'Sara Ahmad',
+          email: 'sara@swat.pk',
+        },
+        listing: {
+          title: 'Toyota Passo 2023',
+          type_code: 'transport',
+          area_name: 'Mingora City',
+        },
+        items: [
+          {
+            price_item_name: 'Passo 2023 (Self-Drive / Chauffeur)',
+            quantity: 1,
+            unit_price: 15000,
+          },
+        ],
+      };
+
+      localStorage.setItem('swat_local_bookings', JSON.stringify([passoBooking]));
+
+      const orders = loadTransportRideOrders([], {
+        businessName: 'Swat 4x4 Mountain Rides',
+        businessId: 'biz-transport-1',
+      });
+
+      const passoOrder = orders.find((o) => o.reference === 'SWAT-TR-998877');
+      expect(passoOrder).toBeDefined();
+      expect(passoOrder?.tourist).toBe('Sara Ahmad');
+      expect(passoOrder?.item).toContain('Passo 2023');
+      expect(passoOrder?.status).toBe('requested');
+    });
+
+    it('loads transport booking request made by Sara Ahmad for vehicle Passo 2023 even if demo orders were cleared', () => {
+      // Simulate clear orders was clicked earlier
+      localStorage.setItem('swat_transport_orders_cleared', 'true');
+
+      const passoOrderStored = {
+        id: 'ride-passo-456',
+        reference: 'SWT-TR-554433',
+        tourist: 'Sara Ahmad',
+        touristEmail: 'sara@swat.pk',
+        item: 'Passo 2023 (Daily Rental)',
+        dates: '2026-10-30 • 09:00 AM',
+        amount: 'Rs 14,000',
+        rawAmount: 14000,
+        status: 'requested',
+        notes: 'Booking for vehicle Passo 2023',
+      };
+
+      localStorage.setItem('swat_ride_orders', JSON.stringify([passoOrderStored]));
+
+      const orders = loadTransportRideOrders([], {
+        businessName: 'Swat 4x4 Mountain Rides',
+        businessId: 'biz-transport-1',
+      });
+
+      // Demo bookings must be suppressed
+      expect(orders.some((o) => o.reference === 'SWT-8080')).toBe(false);
+      expect(orders.some((o) => o.reference === 'SWT-884A')).toBe(false);
+
+      // But Passo 2023 for Sara Ahmad MUST be loaded!
+      const found = orders.find((o) => o.reference === 'SWT-TR-554433');
+      expect(found).toBeDefined();
+      expect(found?.tourist).toBe('Sara Ahmad');
+      expect(found?.item).toContain('Passo 2023');
     });
   });
 });

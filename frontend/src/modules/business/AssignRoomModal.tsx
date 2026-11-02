@@ -8,6 +8,7 @@ import {
   assignRoomsToBooking,
   releaseRoomFromBooking,
   getBookingRoomDetails,
+  syncPhysicalRoomsFromDb,
 } from './physicalRooms';
 
 interface AssignRoomModalProps {
@@ -56,6 +57,13 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
   };
 
   const [categoryFilter, setCategoryFilter] = useState<string>('recommended');
+
+  // Synchronize live rooms from database upon modal open
+  useEffect(() => {
+    if (isOpen && listingId) {
+      syncPhysicalRoomsFromDb(listingId).catch(() => {});
+    }
+  }, [isOpen, listingId]);
 
   // Fetch rooms for this hotel
   const allRooms = useMemo(() => {
@@ -253,9 +261,27 @@ export const AssignRoomModal: React.FC<AssignRoomModalProps> = ({
               <Bed size={22} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>
-                Assign Physical Room &amp; Key
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A' }}>
+                  Assign Physical Room &amp; Key
+                </h3>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#028AC8',
+                    backgroundColor: 'rgba(2, 138, 200, 0.1)',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(2, 138, 200, 0.25)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  ⚡ Database Persistent
+                </span>
+              </div>
               <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B' }}>
                 Reserve a specific physical room for <strong>{booking.tourist}</strong> ({booking.reference})
               </p>

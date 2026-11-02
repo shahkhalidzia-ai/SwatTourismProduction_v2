@@ -1,3 +1,10 @@
+import {
+  fetchHotelRooms,
+  assignRoomsToBookingApi,
+  updateHotelRoomStatus as updateHotelRoomStatusApi,
+  releaseHotelRoomApi,
+} from '../../api/rooms';
+
 export interface PhysicalRoom {
   id: string;
   listing_id: string;
@@ -17,6 +24,42 @@ export interface PhysicalRoom {
 }
 
 const STORAGE_KEY = 'swat_hotel_physical_rooms';
+
+/**
+ * Asynchronously synchronizes physical rooms from PostgreSQL / SQLite database
+ */
+export async function syncPhysicalRoomsFromDb(listingId: string): Promise<PhysicalRoom[]> {
+  if (!listingId) return [];
+  try {
+    const dbRooms = await fetchHotelRooms(listingId);
+    if (dbRooms && dbRooms.length > 0) {
+      const all = getAllPhysicalRooms();
+      const mapped: PhysicalRoom[] = dbRooms.map((r) => ({
+        id: r.id,
+        listing_id: r.listing_id,
+        price_item_id: r.price_item_id || '',
+        category_name: r.category_name,
+        room_number: r.room_number,
+        floor: r.floor,
+        wing: r.wing || undefined,
+        bed_setup: r.bed_setup || undefined,
+        status: r.status,
+        current_booking_id: r.current_booking_id || undefined,
+        current_guest_name: r.current_guest_name || undefined,
+        stay_dates: r.stay_dates || undefined,
+        notes: r.notes || undefined,
+        last_booking_id: r.last_booking_id || undefined,
+        updated_at: r.updated_at,
+      }));
+      all[listingId] = mapped;
+      saveAllPhysicalRooms(all, true);
+      return mapped;
+    }
+  } catch (err) {
+    console.warn('[physicalRooms] Could not sync rooms from database:', err);
+  }
+  return getPhysicalRoomsForHotel(listingId);
+}
 
 /**
  * Loads all physical rooms stored across hotels
@@ -265,6 +308,17 @@ export function assignRoomsToBooking(
       storedMap[bookingId] = assignmentRecord;
       localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
     } catch {}
+
+    // Persist room assignment to backend database API
+    assignRoomsToBookingApi(listingId, {
+      room_ids: roomIds,
+      booking_id: bookingId,
+      guest_name: guestName,
+      stay_dates: stayDates,
+    }).catch((err) => {
+      console.warn('[physicalRooms] Background sync to assign-rooms API:', err);
+    });
+
     return { success: true, rooms: assignedRooms };
   }
   return { success: false, rooms: [] };
@@ -385,6 +439,10 @@ export function checkInBooking(listingId: string, bookingId: string): { success:
         localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
       }
     } catch {}
+
+    // Persist status change to backend database API
+    updateHotelRoomStatusApi(assignedRoom.id, 'occupied', assignedRoom.notes).catch(() => {});
+
     return { success: true, room: assignedRoom };
   }
   return { success: false };
@@ -455,6 +513,10 @@ export function checkOutBooking(
       }
       localStorage.setItem('swat_booking_room_assignments', JSON.stringify(storedMap));
     } catch {}
+
+    // Persist release & turnover status to backend database API
+    releaseHotelRoomApi(vacatedRoom.id, 'cleaning').catch(() => {});
+
     return { success: true, room: vacatedRoom };
   }
   return { success: false };
@@ -533,6 +595,7 @@ export function updatePhysicalRoomStatus(
 
   if (found) {
     saveAllPhysicalRooms(all);
+    updateHotelRoomStatusApi(roomId, newStatus, notes).catch(() => {});
   }
   return found;
 }

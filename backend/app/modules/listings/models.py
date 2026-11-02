@@ -157,3 +157,30 @@ class Media(Base, UUIDPrimaryKeyMixin):
         CheckConstraint("owner_type IN ('listing', 'destination', 'post', 'report', 'price_item')", name="check_media_owner_type"),
         CheckConstraint("media_type IN ('image', 'video')", name="check_media_type"),
     )
+
+
+class HotelRoom(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    __tablename__ = "hotel_rooms"
+
+    listing_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("listings.id", ondelete="CASCADE"), nullable=False, index=True)
+    price_item_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("price_items.id", ondelete="SET NULL"), nullable=True, index=True)
+    room_number: Mapped[str] = mapped_column(String(30), nullable=False)
+    floor: Mapped[str] = mapped_column(String(20), default="1", nullable=False)
+    wing: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    category_name: Mapped[str] = mapped_column(String(100), default="Standard Room", nullable=False)
+    bed_setup: Mapped[Optional[str]] = mapped_column(String(60), default="1 King Bed", nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="available", nullable=False)
+    current_booking_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("bookings.id", ondelete="SET NULL"), nullable=True, index=True)
+    current_guest_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    stay_dates: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    last_booking_id: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('available', 'reserved', 'occupied', 'cleaning', 'maintenance')", name="check_hotel_room_status"),
+        UniqueConstraint("listing_id", "room_number", name="uq_listing_room_number"),
+    )
+
+    listing: Mapped["Listing"] = relationship("Listing", backref="rooms")
+    price_item: Mapped[Optional["PriceItem"]] = relationship("PriceItem")
+

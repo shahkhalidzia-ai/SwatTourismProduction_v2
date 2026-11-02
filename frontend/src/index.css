@@ -16,6 +16,30 @@ html, body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Modern Portal V2 Full-Width Hero Banner */
+.tourist-home-modern {
+  width: 100%;
+}
+
+.modern-hero-banner {
+  width: 100vw !important;
+  position: relative !important;
+  left: 50% !important;
+  right: 50% !important;
+  margin-left: -50vw !important;
+  margin-right: -50vw !important;
+  box-sizing: border-box !important;
+}
+
+#mobile-phone-frame .modern-hero-banner {
+  width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 #root {

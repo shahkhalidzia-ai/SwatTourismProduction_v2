@@ -299,6 +299,13 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
     ? currentSelectedRoom.price * nightsCount * roomsCount
     : 0;
 
+  // When user successfully signs in, return from guest checkout to room view with active authenticated session
+  useEffect(() => {
+    if (user && showGuestCheckout) {
+      setShowGuestCheckout(false);
+    }
+  }, [user, showGuestCheckout]);
+
   // Direct Booking Action
   const handleInstantBook = async () => {
     if (!currentSelectedRoom) return;

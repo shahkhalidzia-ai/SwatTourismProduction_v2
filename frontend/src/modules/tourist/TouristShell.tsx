@@ -26,6 +26,8 @@ import {
   CheckCircle2,
   Compass as CompassIcon,
   CloudSun,
+  Sun,
+  CloudRain,
   Bus,
   Car,
   ShieldCheck,
@@ -46,6 +48,7 @@ import { HotelDetailsModal } from './HotelDetailsModal';
 import { InstantServiceReservationModal } from './InstantServiceReservationModal';
 import { RestaurantDetailsModal } from './RestaurantDetailsModal';
 import { IntercityTransportExplorer } from './IntercityTransportExplorer';
+import { TouristHomeModern } from './TouristHomeModern';
 import { ThemeAppearanceSection } from '../../components/ThemeAppearanceSection';
 import type { TransportSchedule } from '../../api/intercityTransport';
 import {
@@ -1784,6 +1787,45 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
     booking?: Booking | null;
   }>({ isOpen: false });
 
+  // Toggle between classic untouched landing page and modern proof-of-concept landing page
+  const [landingVersion, setLandingVersion] = useState<'classic' | 'modern'>(() => {
+    try {
+      const urlParam = new URLSearchParams(window.location.search).get('landing');
+      if (urlParam === 'modern' || urlParam === 'v2') return 'modern';
+      return (localStorage.getItem('swat_landing_version') as any) || 'classic';
+    } catch {
+      return 'classic';
+    }
+  });
+
+  // Ensure the page background is pure white (#FFFFFF) for the classical original landing page
+  useEffect(() => {
+    if (activeTab === 'home' && landingVersion === 'classic') {
+      const prevBg = document.documentElement.style.getPropertyValue('--bg');
+      const prevPageBg = document.documentElement.style.getPropertyValue('--page-bg');
+      const prevPageBgGradient = document.documentElement.style.getPropertyValue('--page-bg-gradient');
+      const prevBodyBg = document.body.style.backgroundColor;
+
+      document.documentElement.style.setProperty('--bg', '#FFFFFF');
+      document.documentElement.style.setProperty('--page-bg', '#FFFFFF');
+      document.documentElement.style.setProperty('--page-bg-gradient', '#FFFFFF');
+      document.body.style.backgroundColor = '#FFFFFF';
+
+      return () => {
+        if (prevBg) document.documentElement.style.setProperty('--bg', prevBg);
+        else document.documentElement.style.removeProperty('--bg');
+
+        if (prevPageBg) document.documentElement.style.setProperty('--page-bg', prevPageBg);
+        else document.documentElement.style.removeProperty('--page-bg');
+
+        if (prevPageBgGradient) document.documentElement.style.setProperty('--page-bg-gradient', prevPageBgGradient);
+        else document.documentElement.style.removeProperty('--page-bg-gradient');
+
+        document.body.style.backgroundColor = prevBodyBg;
+      };
+    }
+  }, [activeTab, landingVersion]);
+
   // Safety state
   const [advisories, setAdvisories] = useState<Advisory[]>([]);
   const [roadStatuses, setRoadStatuses] = useState<RoadStatus[]>([]);
@@ -3385,6 +3427,219 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
     );
   };
 
+  const renderModernTravelIntelligence = () => (
+    <div
+      className="modern-travel-intelligence-column"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        minWidth: 0,
+        width: '100%',
+      }}
+    >
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          fontWeight: 800,
+          color: 'var(--ink)',
+          margin: '0 0 2px 0',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Live Travel Intelligence
+      </h2>
+
+      {/* CARD 1: Real-time Road Conditions */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          border: '1px solid #E2E8F0',
+          padding: '14px 16px',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              backgroundColor: '#F1F5F9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#475569',
+              flexShrink: 0,
+            }}
+          >
+            <CompassIcon size={20} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+              Real-time Road Conditions
+            </h3>
+            <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
+              Real-time road conditions for commutation corridors.
+            </p>
+          </div>
+        </div>
+
+        {/* Artery Status Indicators from Proof of Concept */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+            <span style={{ color: '#475569', fontWeight: 600 }}>M-16 Swat Expressway:</span>
+            <span style={{ color: '#007A55', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '4px' }}>
+              Clear &amp; Open
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+            <span style={{ color: '#475569', fontWeight: 600 }}>N-95 Mingora ↔ Bahrain:</span>
+            <span style={{ color: '#007A55', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '4px' }}>
+              All Clear
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+            <span style={{ color: '#475569', fontWeight: 600 }}>Bahrain ↔ Kalam Pass:</span>
+            <span style={{ color: '#D97706', fontWeight: 800, backgroundColor: '#FEF3C7', padding: '2px 8px', borderRadius: '4px' }}>
+              4x4 Chains Advised
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
+            <span style={{ color: '#475569', fontWeight: 600 }}>Kalam ↔ Mahodand Pass:</span>
+            <span style={{ color: '#028AC8', fontWeight: 800, backgroundColor: '#EFF6FF', padding: '2px 8px', borderRadius: '4px' }}>
+              High-Clearance 4x4
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* CARD 2: Official Weather Advisory Alerts */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          border: '1px solid #E2E8F0',
+          padding: '14px 16px',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              backgroundColor: '#FEF3C7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#D97706',
+              flexShrink: 0,
+            }}
+          >
+            <AlertTriangle size={20} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+              Official Weather Advisory Alerts
+            </h3>
+            <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
+              Official weather advisory and alerts.
+            </p>
+          </div>
+        </div>
+
+        {/* Official Advisory Detail from Proof of Concept */}
+        <div style={{ paddingTop: '6px', borderTop: '1px solid #F1F5F9', fontSize: '11px', color: '#475569', lineHeight: 1.45 }}>
+          <span style={{ fontWeight: 800, color: '#D97706' }}>District Notice #24: </span>
+          Clear conditions across Mingora. Fresh snowfall at Malam Jabba peak (2,800m). SCOM 4G active in Kalam valley.
+        </div>
+        <div style={{ fontSize: '10px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <PhoneCall size={10} color="#059669" />
+          <span>Swat Emergency Control: <strong>0946-9240400</strong></span>
+        </div>
+      </div>
+
+      {/* CARD 3: Upcoming Weekend Forecasts */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          border: '1px solid #E2E8F0',
+          padding: '14px 16px',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+            Upcoming Weekend Forecasts
+          </h3>
+          <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#007A55', backgroundColor: '#ECFDF5', padding: '2px 7px', borderRadius: '4px' }}>
+            Live Feeds
+          </span>
+        </div>
+
+        {/* 5-Day Strip (Mon, Tue, Wed, Sat, Sun matching concept) with temperatures */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: '6px',
+            textAlign: 'center',
+            paddingTop: '4px',
+          }}
+        >
+          {[
+            { day: 'Mon', temp: '18°C', icon: <Sun size={17} color="#F59E0B" /> },
+            { day: 'Tue', temp: '15°C', icon: <CloudSun size={17} color="#028AC8" /> },
+            { day: 'Wed', temp: '14°C', icon: <CloudSun size={17} color="#028AC8" /> },
+            { day: 'Sat', temp: '7°C', icon: <CloudRain size={17} color="#64748B" /> },
+            { day: 'Sun', temp: '3°C', icon: <CloudRain size={17} color="#64748B" /> },
+          ].map((w, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '5px 2px',
+                borderRadius: '6px',
+                backgroundColor: '#F8FAFD',
+              }}
+            >
+              <span style={{ fontSize: '11px', fontWeight: 650, color: '#64748B' }}>
+                {w.day}
+              </span>
+              <div>{w.icon}</div>
+              <span style={{ fontSize: '11px', fontWeight: 750, color: '#0F172A' }}>
+                {w.temp}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick valley highlights */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748B', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
+          <span>Kalam: <strong>12°C</strong></span>
+          <span>Malam Jabba: <strong>7°C</strong></span>
+          <span>Bahrain: <strong>16°C</strong></span>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {/* Toast Feedback */}
@@ -3420,8 +3675,122 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
       {/* ========================================================================= */}
       {activeTab === 'home' && (
         <>
-          {/* Top Blue Banner on Tourist Home Screen with 3 Functional Buttons */}
-          <TourismAnimatedBanner
+          {/* Interactive Landing Page View Switcher: Classic View vs Modern Portal V2 */}
+          <div
+            className="landing-version-switcher-bar"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              padding: '6px 14px',
+              marginBottom: '10px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              flexWrap: 'wrap',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 750, color: '#0F172A', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <Sparkles size={13} color="#028AC8" />
+                <span>Landing Page Experience:</span>
+              </span>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  backgroundColor: '#F1F5F9',
+                  borderRadius: '8px',
+                  padding: '3px',
+                  gap: '4px',
+                }}
+              >
+                <button
+                  type="button"
+                  data-testid="btn-landing-classic"
+                  onClick={() => {
+                    setLandingVersion('classic');
+                    try { localStorage.setItem('swat_landing_version', 'classic'); } catch {}
+                  }}
+                  style={{
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: landingVersion === 'classic' ? 800 : 600,
+                    backgroundColor: landingVersion === 'classic' ? '#FFFFFF' : 'transparent',
+                    color: landingVersion === 'classic' ? '#028AC8' : '#64748B',
+                    boxShadow: landingVersion === 'classic' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Classic View (Original)
+                </button>
+                <button
+                  type="button"
+                  data-testid="btn-landing-modern"
+                  onClick={() => {
+                    setLandingVersion('modern');
+                    try { localStorage.setItem('swat_landing_version', 'modern'); } catch {}
+                  }}
+                  style={{
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: landingVersion === 'modern' ? 800 : 600,
+                    backgroundColor: landingVersion === 'modern' ? '#028AC8' : 'transparent',
+                    color: landingVersion === 'modern' ? '#FFFFFF' : '#64748B',
+                    boxShadow: landingVersion === 'modern' ? '0 1px 3px rgba(2, 138, 200, 0.3)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  ✨ Modern Portal V2
+                </button>
+              </div>
+            </div>
+
+            <span style={{ fontSize: '11px', color: '#64748B' }}>
+              {landingVersion === 'classic'
+                ? 'Original intact classic landing page'
+                : 'New proof-of-concept modern portal layout'}
+            </span>
+          </div>
+
+          {landingVersion === 'modern' ? (
+            <TouristHomeModern
+              listings={listings}
+              destinations={effectiveDestinations}
+              onOpenHotelDetails={(hotel) => setHotelModalListing(hotel)}
+              onOpenRestaurantModal={(restaurant) => setRestaurantModalListing(restaurant)}
+              onOpenServiceModal={(srv) => setServiceModalListing(srv)}
+              onOpenMapModal={(item) => setMapModal({ open: true, ...item })}
+              onOpenWeatherModal={(dest) => setWeatherModal({ isOpen: true, destination: dest })}
+              onOpenAvailModal={(lid, title, items) => setAvailModal({ open: true, listingId: lid, listingTitle: title, priceItems: items })}
+              onOpenAuth={onOpenAuth}
+              onNavigateTab={onTabChange}
+              user={user}
+              renderRoadStatusFrame={renderRoadStatusFrame}
+              renderAdvisoryFrame={renderAdvisoryFrame}
+              renderWeekendWeatherCard={renderWeekendWeatherCard}
+            />
+          ) : (
+            <div
+              className="classic-landing-page-root"
+              style={{
+                backgroundColor: '#FFFFFF',
+                width: '100%',
+                minHeight: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+              }}
+            >
+              {/* Top Blue Banner on Tourist Home Screen with 3 Functional Buttons */}
+              <TourismAnimatedBanner
             title="Swat Tourism Platform"
             subtitle="Discover valleys, book stays, and explore safely"
             headerAction={headerAction}
@@ -3545,6 +3914,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       onClick={() => setShowAITripModal(true)}
                       data-testid="btn-home-ai-trip"
                       style={{
+                        display: 'none',
                         borderRadius: '8px',
                         padding: '5px 10px',
                         fontSize: '11.5px',
@@ -3553,7 +3923,6 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         color: '#065F46',
                         border: '1.5px solid #86EFAC',
                         flexShrink: 0,
-                        display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
                         height: '30px',
@@ -3857,6 +4226,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                       variant="secondary"
                       onClick={() => setShowAITripModal(true)}
                       style={{
+                        display: 'none',
                         borderRadius: '8px',
                         padding: '5px 10px',
                         fontSize: '11.5px',
@@ -3865,7 +4235,6 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                         color: '#065F46',
                         border: '1.5px solid #86EFAC',
                         flexShrink: 0,
-                        display: 'inline-flex',
                         alignItems: 'center',
                         gap: '4px',
                         height: '30px',
@@ -5478,11 +5847,11 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 top: '16px',
               }}
             >
-              {renderRoadStatusFrame()}
-              {renderAdvisoryFrame(true)}
-              {renderWeekendWeatherCard()}
+              {renderModernTravelIntelligence()}
             </div>
           </div>
+            </div>
+          )}
         </>
       )}
 
@@ -6295,9 +6664,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                 top: '16px',
               }}
             >
-              {renderRoadStatusFrame()}
-              {renderAdvisoryFrame(true)}
-              {renderWeekendWeatherCard()}
+              {renderModernTravelIntelligence()}
             </div>
           </div>
         </>

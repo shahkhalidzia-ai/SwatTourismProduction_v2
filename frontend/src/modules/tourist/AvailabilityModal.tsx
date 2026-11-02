@@ -149,14 +149,20 @@ export const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
         });
       } catch {
         // Fallback robust local booking record for offline or demo flows
-        const refCode = `SWAT-HTL-${Math.floor(100000 + Math.random() * 900000)}`;
+        const isTransportService =
+          listing?.type_code === 'transport' ||
+          listing?.type_code === 'vehicle' ||
+          /passo|rent|car|4x4|jeep|prado|hiace|coaster|van|vehicle|driver|transport|toyota|suzuki|honda|sedan/i.test(listing?.title || listingTitle || '') ||
+          /passo|rent|car|4x4|jeep|prado|hiace|coaster|van|vehicle|driver|transport|toyota|suzuki|honda|sedan/i.test(currentPriceItem.name || '');
+
+        const refCode = `SWAT-${isTransportService ? 'TR' : 'HTL'}-${Math.floor(100000 + Math.random() * 900000)}`;
         newBooking = {
           id: `book-${Date.now()}`,
           booking_reference: refCode,
           reference: refCode,
           listing_id: listingId,
           tourist_id: user?.id || 'guest-tourist',
-          status: 'confirmed',
+          status: 'requested',
           total_price: effectivePrice,
           total_amount: effectivePrice,
           start_date: selectedDate,
@@ -167,12 +173,12 @@ export const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
           updated_at: new Date().toISOString(),
           tourist: {
             id: user?.id || 'guest-tourist',
-            full_name: user?.full_name || 'Guest Tourist',
-            email: user?.email || 'guest@swat.tourism',
+            full_name: user?.full_name || 'Sara Ahmad',
+            email: user?.email || 'sara@swat.pk',
           },
           listing: {
             title: listing?.title || listingTitle,
-            type_code: listing?.type_code || 'hotel',
+            type_code: isTransportService ? 'transport' : (listing?.type_code || 'hotel'),
             area_name: listing?.area_name,
           },
           items: [
@@ -199,6 +205,43 @@ export const AvailabilityModal: React.FC<AvailabilityModalProps> = ({
         localStorage.setItem('swat_local_bookings', JSON.stringify(updated));
         window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updated }));
       } catch {}
+
+      // If this is transport/vehicle hiring, sync to swat_ride_orders
+      const isTransport =
+        newBooking.listing?.type_code === 'transport' ||
+        (newBooking as any).type_code === 'transport' ||
+        /passo|rent|car|4x4|jeep|prado|hiace|coaster|van|vehicle|driver|transport|toyota|suzuki|honda|sedan/i.test(newBooking.listing?.title || listingTitle || '') ||
+        /passo|rent|car|4x4|jeep|prado|hiace|coaster|van|vehicle|driver|transport|toyota|suzuki|honda|sedan/i.test(currentPriceItem.name || '');
+
+      if (isTransport) {
+        try {
+          const storedOrders = JSON.parse(localStorage.getItem('swat_ride_orders') || '[]');
+          const rideOrder = {
+            id: newBooking.id || `ride-${Date.now()}`,
+            reference: newBooking.reference || (newBooking as any).booking_reference || `SWT-TR-${Math.floor(100000 + Math.random() * 900000)}`,
+            tourist: user?.full_name || (user as any)?.name || 'Sara Ahmad',
+            touristEmail: user?.email || 'sara@swat.pk',
+            item: `${listing?.title || listingTitle || 'Passo 2023'} (${currentPriceItem.name || 'Vehicle Hire'})`,
+            dates: selectedDate ? `${selectedDate}` : 'Upcoming Service',
+            amount: `Rs ${Number(effectivePrice).toLocaleString()}`,
+            rawAmount: effectivePrice,
+            status: 'requested',
+            notes: noteText || 'Transport booking request',
+            specialRequests: noteText || 'Transport booking request',
+            providerId: listing?.business_id,
+            providerName: listing?.business_name,
+            business_id: listing?.business_id,
+            business_name: listing?.business_name,
+            listing_id: listingId,
+            created_at: new Date().toISOString(),
+          };
+
+          const filteredOrders = storedOrders.filter((o: any) => o.reference !== rideOrder.reference && o.id !== rideOrder.id);
+          const updatedOrders = [rideOrder, ...filteredOrders];
+          localStorage.setItem('swat_ride_orders', JSON.stringify(updatedOrders));
+          window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: updatedOrders }));
+        } catch {}
+      }
 
       setBookingSuccess(newBooking);
       if (onBookingSuccess) onBookingSuccess(newBooking);

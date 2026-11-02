@@ -358,11 +358,14 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                 <button
                   type="button"
                   className="btn-smart-hotel-details"
+                  aria-label="View Rooms, Facilities & Activities"
+                  title="View Rooms, Facilities & Activities"
                   onClick={(e) => {
                     e.stopPropagation();
                     onViewHotelDetails();
                   }}
                   id={`btn-view-hotel-details-${id || 'hotel'}`}
+                  data-testid={`btn-view-hotel-details-${id || 'hotel'}`}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -392,6 +395,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({
                 <button
                   type="button"
                   className="btn-smart-dining-menu"
+                  aria-label="View Menu & Contact"
+                  title="View Menu & Contact"
                   onClick={(e) => {
                     e.stopPropagation();
                     onViewMenu();

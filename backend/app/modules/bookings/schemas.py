@@ -120,6 +120,8 @@ class BookingOut(BaseModel):
     driver_vehicle: Optional[str] = None
     pickup_point: Optional[str] = None
     pickup_time: Optional[str] = None
+    assigned_room_number: Optional[str] = None
+    assigned_room_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

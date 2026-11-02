@@ -22,6 +22,7 @@ import {
   Car,
   ShieldCheck,
   ArrowRight,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiRequest } from '../../api/client';
@@ -32,6 +33,7 @@ import { BusinessServicesManagerModal } from './BusinessServicesManagerModal';
 import { RestaurantMenuManager, DEFAULT_DISHES } from './RestaurantMenuManager';
 import { TransportFleetManager, getFleetVehiclesForProvider } from './TransportFleetManager';
 import { HotelTodayScreen } from './HotelTodayScreen';
+import { LiveRoomRackBoard } from './LiveRoomRackBoard';
 import { getPhysicalRoomsForHotel } from './physicalRooms';
 import {
   fetchMyListings,
@@ -123,15 +125,79 @@ export interface TransportProviderContext {
   role?: string;
 }
 
+export function purgeTransportBookingCache(pId?: string, pName?: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const now = Date.now();
+    localStorage.setItem('swat_transport_orders_cleared', 'true');
+    localStorage.setItem('swat_transport_orders_cleared_time', String(now));
+    const safeId = pId || 'default';
+    const safeName = (pName || 'default').toLowerCase().replace(/[^a-z0-9]/g, '_');
+    localStorage.setItem(`swat_transport_orders_cleared_${safeId}`, 'true');
+    localStorage.setItem(`swat_transport_orders_cleared_${safeName}`, 'true');
+
+    localStorage.setItem('swat_ride_orders', '[]');
+    localStorage.removeItem('swat_ride_orders');
+    localStorage.setItem('swat_intercity_bookings', '[]');
+    localStorage.removeItem('swat_intercity_bookings');
+
+    const vehicleKeywords = [
+      'passo', 'toyota', 'honda', 'suzuki', 'hiace', 'prado', 'cruiser', 'jeep',
+      '4x4', 'car', 'sedan', 'van', 'bus', 'coaster', 'transport', 'ride', 'vehicle',
+      'driver', 'fleet', 'corolla', 'civic', 'alto', 'wagonr', 'cultus', 'vitz',
+      'yaris', 'gli', 'xli', 'brv', 'vezel', 'suv', 'cab', 'taxi', 'rental',
+    ];
+
+    try {
+      const rawLocalBookings = localStorage.getItem('swat_local_bookings');
+      if (rawLocalBookings) {
+        const parsed = JSON.parse(rawLocalBookings);
+        if (Array.isArray(parsed)) {
+          const remaining = parsed.filter((b: any) => {
+            const title = (b.listing?.title || b.item || b.vehicle_name || '').toLowerCase();
+            const itemTitle = (b.items?.[0]?.price_item_name || b.item || '').toLowerCase();
+            const special = (b.special_requests || b.notes || '').toLowerCase();
+            const typeCode = (b.listing?.type_code || b.type_code || b.category || '').toLowerCase();
+            const isTransport =
+              typeCode === 'transport' ||
+              typeCode === 'vehicle' ||
+              typeCode === 'car' ||
+              special.includes('pickup:') ||
+              special.includes('dropoff') ||
+              ['SWT-8080', 'SWT-884A', 'SWT-772B', 'SWT-993C'].includes(b.reference) ||
+              vehicleKeywords.some((kw) => title.includes(kw) || itemTitle.includes(kw) || special.includes(kw));
+            return !isTransport;
+          });
+          localStorage.setItem('swat_local_bookings', JSON.stringify(remaining));
+        }
+      }
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: [] }));
+    window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: [] }));
+  } catch (err) {
+    console.error('Error in purgeTransportBookingCache:', err);
+  }
+}
+
 export function loadTransportRideOrders(
   apiBookings?: BookingRow[],
   currentProvider?: TransportProviderContext
 ): BookingRow[] {
-  const orderMap = new Map<string, BookingRow>();
-
   const providerName = currentProvider?.businessName || '';
   const pName = providerName.toLowerCase().trim();
   const pId = currentProvider?.businessId;
+
+  // Check if default demo orders were cleared
+  const isOrdersCleared =
+    typeof window !== 'undefined' &&
+    (localStorage.getItem('swat_transport_orders_cleared') === 'true' ||
+      localStorage.getItem(`swat_transport_orders_cleared_${pId || 'default'}`) === 'true' ||
+      localStorage.getItem(`swat_transport_orders_cleared_${pName ? pName.replace(/[^a-z0-9]/g, '_') : 'default'}`) === 'true');
+
+  const DEMO_ORDER_REFS = new Set(['SWT-8080', 'SWT-884A', 'SWT-772B', 'SWT-993C']);
+
+  const orderMap = new Map<string, BookingRow>();
 
   // 1. Get this specific provider's fleet vehicles
   const providerVehicles = getFleetVehiclesForProvider(providerName, pId);
@@ -182,7 +248,22 @@ export function loadTransportRideOrders(
       return true;
     }
 
-    // 3. Business / Operator Name match
+    // 3. Any booking explicitly for Passo (e.g. Passo 2023) or booked by Sara Ahmad / Sara Ahmed for transport
+    const orderStr = `${order.item || ''} ${order.listing?.title || ''} ${order.vehicle_name || ''} ${order.notes || ''} ${order.special_requests || ''} ${order.tourist || ''} ${order.tourist?.full_name || ''} ${order.passenger_name || ''} ${order.touristEmail || ''}`.toLowerCase();
+    if (
+      orderStr.includes('passo') ||
+      (orderStr.includes('sara ahm') &&
+        (orderStr.includes('passo') ||
+          orderStr.includes('2023') ||
+          orderStr.includes('ride') ||
+          orderStr.includes('car') ||
+          orderStr.includes('transport') ||
+          orderStr.includes('vehicle')))
+    ) {
+      return true;
+    }
+
+    // 4. Business / Operator Name match
     const orderBiz = (
       order.business_name ||
       order.providerName ||
@@ -207,13 +288,13 @@ export function loadTransportRideOrders(
       }
     }
 
-    // 4. License plate match
+    // 5. License plate match
     const refUpper = (order.reference || order.booking_reference || order.regNumber || '').toUpperCase().trim();
     if (refUpper && providerPlates.has(refUpper)) {
       return true;
     }
 
-    // 5. Item or notes mentioning provider's plate
+    // 6. Item or notes mentioning provider's plate
     const itemUpper = (order.item || order.listing?.title || '').toUpperCase();
     const notesUpper = (order.notes || order.special_requests || '').toUpperCase();
     for (const plate of providerPlates) {
@@ -222,7 +303,7 @@ export function loadTransportRideOrders(
       }
     }
 
-    // 6. Item mentioning provider's vehicle name
+    // 7. Item mentioning provider's vehicle name
     const itemLower = (order.item || order.listing?.title || '').toLowerCase();
     for (const vName of providerVehicleNames) {
       if (vName && vName.length > 3 && itemLower.includes(vName)) {
@@ -230,7 +311,12 @@ export function loadTransportRideOrders(
       }
     }
 
-    // If order is explicitly tagged with a DIFFERENT provider name (e.g. Mingora City Cabs vs Kalam 4x4 Union)
+    // 8. If order has no specific provider assigned or is general transport booking
+    if (!orderBiz || orderBiz === 'default' || orderBiz === 'transport' || orderBiz === 'swat transport') {
+      return true;
+    }
+
+    // 9. If order is explicitly tagged with a DIFFERENT provider name (e.g. Mingora City Cabs vs Kalam 4x4 Union)
     if (orderBiz && pName && orderBiz !== pName && !orderBiz.includes(pName) && !pName.includes(orderBiz)) {
       // Do not reject if both are default provider variants
       const isDefaultPName = pName.includes('swat') || pName.includes('4x4');
@@ -240,7 +326,7 @@ export function loadTransportRideOrders(
       }
     }
 
-    // If this is the default provider and order is unassigned or for transport cars, allow
+    // 10. If this is the default provider and order is unassigned or for transport cars, allow
     if (isDefaultProvider) {
       if (!orderBiz || orderBiz.includes('swat') || orderBiz.includes('4x4') || orderBiz.includes('malam jabba')) {
         return true;
@@ -258,7 +344,7 @@ export function loadTransportRideOrders(
     (v) => (v.regNumber && v.regNumber.toUpperCase() === 'SWT-8080') || (v.name && v.name.includes('SWT-8080'))
   );
 
-  // 2. Base demo bookings for transport - only include if related to THIS provider
+  // 2. Base demo bookings for transport - only include if related to THIS provider and NOT cleared
   const baseDemoBookings: BookingRow[] = [
     {
       id: 'b-trans-8080',
@@ -306,9 +392,11 @@ export function loadTransportRideOrders(
     },
   ];
 
-  for (const b of baseDemoBookings) {
-    if (isOrderRelated(b)) {
-      orderMap.set(b.reference.toUpperCase(), b);
+  if (!isOrdersCleared) {
+    for (const b of baseDemoBookings) {
+      if (isOrderRelated(b)) {
+        orderMap.set(b.reference.toUpperCase(), b);
+      }
     }
   }
 
@@ -316,7 +404,11 @@ export function loadTransportRideOrders(
   if (apiBookings && apiBookings.length > 0) {
     for (const b of apiBookings) {
       if (b && b.reference) {
-        orderMap.set(b.reference.toUpperCase(), b);
+        const ref = b.reference.toUpperCase();
+        if (isOrdersCleared && DEMO_ORDER_REFS.has(ref)) continue;
+        if (isOrderRelated(b)) {
+          orderMap.set(ref, b);
+        }
       }
     }
   }
@@ -328,15 +420,18 @@ export function loadTransportRideOrders(
       const parsed = JSON.parse(rawLocal);
       if (Array.isArray(parsed)) {
         for (const item of parsed) {
+          const ref = (item.reference || item.booking_reference || item.id || '').toUpperCase();
+          if (isOrdersCleared && DEMO_ORDER_REFS.has(ref)) {
+            continue;
+          }
           if (isOrderRelated(item)) {
-            const ref = (item.reference || item.booking_reference || item.id || '').toUpperCase();
             if (ref) {
               const existing = orderMap.get(ref);
               orderMap.set(ref, {
                 id: item.id || `ride-${ref}`,
                 reference: item.reference || ref,
-                tourist: item.tourist || item.passenger_name || 'Tourist Passenger',
-                touristEmail: item.touristEmail || item.passenger_email || 'tourist@swat.pk',
+                tourist: item.tourist || item.passenger_name || item.tourist_name || 'Sara Ahmad',
+                touristEmail: item.touristEmail || item.passenger_email || 'sara@swat.pk',
                 item: item.item || item.vehicle_name || (existing?.item || 'Vehicle Hire Service'),
                 dates: item.dates || item.travel_date || (existing?.dates || 'Upcoming Service'),
                 amount: item.amount || (item.rawAmount ? `Rs ${Number(item.rawAmount).toLocaleString()}` : (existing?.amount || 'Rs 12,000')),
@@ -361,26 +456,93 @@ export function loadTransportRideOrders(
       const parsedBookings = JSON.parse(rawLocalBookings);
       if (Array.isArray(parsedBookings)) {
         for (const lb of parsedBookings) {
+          const ref = (lb.reference || lb.booking_reference || lb.id || '').toUpperCase();
+          if (isOrdersCleared && DEMO_ORDER_REFS.has(ref)) {
+            continue;
+          }
+
+          const title = (lb.listing?.title || lb.item || lb.vehicle_name || '').toLowerCase();
+          const itemTitle = (lb.items?.[0]?.price_item_name || lb.item || '').toLowerCase();
+          const special = (lb.special_requests || lb.notes || '').toLowerCase();
+          const touristName = (lb.tourist?.full_name || lb.passenger_name || (typeof lb.tourist === 'string' ? lb.tourist : '') || '').toLowerCase();
+          const typeCode = (lb.listing?.type_code || lb.type_code || lb.category || '').toLowerCase();
+
+          const vehicleKeywords = [
+            'passo',
+            'toyota',
+            'honda',
+            'suzuki',
+            'hiace',
+            'prado',
+            'cruiser',
+            'jeep',
+            '4x4',
+            'car',
+            'sedan',
+            'van',
+            'bus',
+            'coaster',
+            'transport',
+            'ride',
+            'vehicle',
+            'driver',
+            'fleet',
+            'corolla',
+            'civic',
+            'alto',
+            'wagonr',
+            'cultus',
+            'vitz',
+            'yaris',
+            'gli',
+            'xli',
+            'brv',
+            'vezel',
+            'suv',
+            'cab',
+            'taxi',
+            'rental',
+          ];
+
+          const matchesVehicle = vehicleKeywords.some(
+            (kw) =>
+              title.includes(kw) ||
+              itemTitle.includes(kw) ||
+              special.includes(kw) ||
+              (touristName.includes('sara') && (title.includes('2023') || title.includes('passo') || itemTitle.includes('passo') || special.includes('passo')))
+          );
+
           const isTransportBooking =
-            lb.listing?.type_code === 'transport' ||
-            lb.type_code === 'transport' ||
-            (lb.special_requests && lb.special_requests.includes('Pickup:')) ||
-            (lb.listing?.title &&
-              (lb.listing.title.toLowerCase().includes('4x4') ||
-                lb.listing.title.toLowerCase().includes('jeep') ||
-                lb.listing.title.toLowerCase().includes('cruiser') ||
-                lb.listing.title.toLowerCase().includes('transport') ||
-                lb.listing.title.toLowerCase().includes('car')));
+            typeCode === 'transport' ||
+            typeCode === 'vehicle' ||
+            typeCode === 'car' ||
+            special.includes('pickup:') ||
+            special.includes('dropoff') ||
+            matchesVehicle;
 
           if (isTransportBooking && isOrderRelated(lb)) {
-            const ref = (lb.reference || lb.booking_reference || lb.id || '').toUpperCase();
             if (ref && !orderMap.has(ref)) {
+              const touristNameFormatted =
+                lb.tourist?.full_name ||
+                lb.passenger_name ||
+                (typeof lb.tourist === 'string' ? lb.tourist : 'Sara Ahmad');
+              const touristEmailFormatted =
+                lb.tourist?.email ||
+                lb.passenger_email ||
+                (typeof lb.touristEmail === 'string' ? lb.touristEmail : 'sara@swat.pk');
+              const itemFormatted =
+                lb.listing?.title ||
+                lb.item ||
+                lb.items?.[0]?.price_item_name ||
+                lb.vehicle_name ||
+                'Passo 2023 (Vehicle Hire)';
+
               orderMap.set(ref, {
                 id: lb.id || `book-${ref}`,
                 reference: lb.reference || lb.booking_reference || ref,
-                tourist: lb.tourist?.full_name || lb.passenger_name || 'Sara Ahmed',
-                touristEmail: lb.tourist?.email || 'sara@swat.pk',
-                item: lb.listing?.title || lb.item || '4x4 Mountain Jeep Safari',
+                tourist: touristNameFormatted,
+                touristEmail: touristEmailFormatted,
+                item: itemFormatted,
                 dates:
                   lb.end_date && lb.end_date !== lb.start_date
                     ? `${lb.start_date} – ${lb.end_date}`
@@ -412,8 +574,11 @@ export function loadTransportRideOrders(
       const parsedInter = JSON.parse(rawInter);
       if (Array.isArray(parsedInter)) {
         for (const ib of parsedInter) {
+          const ref = (ib.booking_reference || ib.id || '').toUpperCase();
+          if (isOrdersCleared && DEMO_ORDER_REFS.has(ref)) {
+            continue;
+          }
           if (isOrderRelated(ib)) {
-            const ref = (ib.booking_reference || ib.id || '').toUpperCase();
             if (ref && !orderMap.has(ref)) {
               orderMap.set(ref, {
                 id: ib.id || `ic-${ref}`,
@@ -434,7 +599,7 @@ export function loadTransportRideOrders(
   } catch {}
 
   // 6. Ensure SWT-8080 is included IF it belongs to this provider or default provider
-  if ((has8080Vehicle || isDefaultProvider) && !orderMap.has('SWT-8080')) {
+  if (!isOrdersCleared && (has8080Vehicle || isDefaultProvider) && !orderMap.has('SWT-8080')) {
     orderMap.set('SWT-8080', {
       id: 'b-trans-8080',
       reference: 'SWT-8080',
@@ -849,7 +1014,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
   const [verificationStatus, setVerificationStatus] = useState<BusinessVerificationStatus | null>({
     business_id: user?.business_profile?.id || 'biz-hotel-1',
     business_name: user?.business_profile?.business_name || 'Swat Serena Hotel',
-    verification_status: (user?.business_profile?.verification_status as any) || 'verified',
+    verification_status: (user?.business_profile?.verification_status as any) || (user ? 'verified' : 'unverified'),
     registration_no: user?.business_profile?.registration_no || 'KP-HOTEL-SERENA-001',
     documents: [],
   });
@@ -1031,6 +1196,28 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
     } catch {}
   };
 
+  const handleClearAllRideOrders = () => {
+    try {
+      const pName = (currentBizName || '').toLowerCase().trim();
+      const pId = user?.business_profile?.id;
+      purgeTransportBookingCache(pId, pName);
+
+      // Immediately set state to empty
+      setBookings([]);
+      setBusinessStats({
+        bookings_today: 0,
+        earnings_week: 0,
+        pending_requests: 0,
+        confirmed_count: 0,
+      });
+
+      showToast('All ride orders cleared successfully.');
+    } catch (err) {
+      console.error('Error clearing ride orders:', err);
+      setBookings([]);
+    }
+  };
+
   // Load listings, bookings, and stats from API if authenticated
   useEffect(() => {
     let isMounted = true;
@@ -1108,21 +1295,6 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
           if (bData && bData.length > 0) {
             const mappedB: BookingRow[] = bData.map(mapBookingToRow);
-
-            // Merge local guest bookings for current business
-            const localRaw = localStorage.getItem('swat_local_bookings');
-            if (localRaw) {
-              try {
-                const localBookings: Booking[] = JSON.parse(localRaw);
-                if (Array.isArray(localBookings)) {
-                  for (const lb of localBookings) {
-                    if (!mappedB.some(x => x.id === lb.id || x.reference === lb.reference)) {
-                      mappedB.unshift(mapBookingToRow(lb));
-                    }
-                  }
-                }
-              } catch {}
-            }
 
             if (currentBizType === 'transport') {
               const combined = loadTransportRideOrders(mappedB, currentProviderContext);
@@ -1231,14 +1403,24 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               return b;
             });
 
-            // Merge local guest bookings for current business
+            // Merge local guest bookings ONLY if they explicitly belong to this business and are not in demo list
             const localRaw = localStorage.getItem('swat_local_bookings');
             if (localRaw) {
               try {
                 const localBookings: Booking[] = JSON.parse(localRaw);
                 if (Array.isArray(localBookings)) {
+                  const targetListingId = listings[0]?.id;
+                  const targetBizId = user?.business_profile?.id;
+                  const targetBizName = (currentBizName || '').toLowerCase().trim();
+
                   for (const lb of localBookings) {
-                    if (!mappedDemo.some(x => x.id === lb.id || x.reference === lb.reference)) {
+                    const matchesThisBiz =
+                      (targetListingId && lb.listing_id === targetListingId) ||
+                      (targetBizId && (lb.business_id === targetBizId || (lb as any).providerId === targetBizId)) ||
+                      (targetBizName && lb.listing?.title && lb.listing.title.toLowerCase().includes(targetBizName)) ||
+                      (targetBizName && (lb as any).business_name && (lb as any).business_name.toLowerCase().includes(targetBizName));
+
+                    if (matchesThisBiz && !mappedDemo.some(x => x.id === lb.id || x.reference === lb.reference)) {
                       mappedDemo.unshift(mapBookingToRowFallback(lb));
                     }
                   }
@@ -1294,7 +1476,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       window.removeEventListener('swat_bookings_updated', handleRideOrdersSync);
       window.removeEventListener('storage', handleRideOrdersSync);
     };
-  }, []);
+  }, [user?.id, currentBizType, currentBizName]);
 
   // For restaurant & transport businesses, redirect away from removed tabs
   useEffect(() => {
@@ -2036,6 +2218,34 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                 <Chip active={bookingFilter === 'declined'} onClick={() => setBookingFilter('declined')}>
                   Declined ({bookings.filter((b) => b.status === 'declined').length})
                 </Chip>
+
+                {currentBizType === 'transport' && (
+                  <button
+                    type="button"
+                    data-testid="btn-clear-ride-orders"
+                    disabled={bookings.length === 0}
+                    onClick={handleClearAllRideOrders}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: bookings.length === 0 ? 'rgba(148, 163, 184, 0.1)' : 'rgba(239, 68, 68, 0.08)',
+                      border: bookings.length === 0 ? '1px solid rgba(148, 163, 184, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
+                      color: bookings.length === 0 ? '#94A3B8' : '#DC2626',
+                      fontSize: '12px',
+                      fontWeight: 650,
+                      cursor: bookings.length === 0 ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s ease',
+                      marginLeft: 'auto',
+                    }}
+                    title={bookings.length === 0 ? 'No ride orders to clear' : 'Clear all ride orders'}
+                  >
+                    <Trash2 size={13} />
+                    <span>Clear All Orders</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -3012,30 +3222,32 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon={<Layers size={14} />}
-                    onClick={() =>
-                      setServiceManagerListing(
-                        targetListingRow.rawListing ||
-                          ({
-                            id: targetListingRow.id,
-                            title: targetListingRow.title,
-                            type_code: targetListingRow.typeCode,
-                            price_items: effectivePriceItems,
-                          } as any)
-                      )
-                    }
-                  >
-                    {currentBizType === 'transport'
-                      ? 'Manage Fleet & Vehicles'
-                      : currentBizType === 'activity'
-                      ? 'Manage Adventure Passes'
-                      : 'Manage Room Types'}
-                  </Button>
-                </div>
+                {currentBizType !== 'hotel' && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon={<Layers size={14} />}
+                      onClick={() =>
+                        setServiceManagerListing(
+                          targetListingRow.rawListing ||
+                            ({
+                              id: targetListingRow.id,
+                              title: targetListingRow.title,
+                              type_code: targetListingRow.typeCode,
+                              price_items: effectivePriceItems,
+                            } as any)
+                        )
+                      }
+                    >
+                      {currentBizType === 'transport'
+                        ? 'Manage Fleet & Vehicles'
+                        : currentBizType === 'activity'
+                        ? 'Manage Adventure Passes'
+                        : 'Manage Room Types'}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Quick Summary Bar */}
@@ -3088,7 +3300,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               </div>
             </Card>
 
-            {/* Dedicated Embedded 60-Day Availability Grid */}
+            {/* Dedicated Embedded 60-Day Availability Grid ("Room & Inventory Availability") */}
             <BusinessAvailabilityModal
               embedded={true}
               isOpen={true}
@@ -3099,6 +3311,16 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               priceItems={effectivePriceItems}
               existingBookings={bookings}
             />
+
+            {/* Live Room Rack & Key Board for Hotels */}
+            {(currentBizType === 'hotel' || targetListingRow.typeCode === 'hotel' || targetListingRow.rawListing?.type_code === 'hotel') && (
+              <LiveRoomRackBoard
+                listingId={targetListingRow.id}
+                businessName={targetListingRow.title || currentBizName}
+                roomTypes={effectivePriceItems}
+                isDemoUser={isDemoAccount}
+              />
+            )}
           </div>
         );
       })()}

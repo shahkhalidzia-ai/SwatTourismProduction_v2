@@ -70,14 +70,13 @@ export const getBusinessNavItems = (primaryType?: string): NavItemConfig[] => {
 
 export const ROLE_NAV_ITEMS: Record<UserRole, NavItemConfig[]> = {
   tourist: [
-    { id: 'home', label: 'Explore Swat', icon: React.createElement(Compass, { size: 20 }) },
-    { id: 'bookings', label: 'My Bookings', icon: React.createElement(CalendarCheck, { size: 20 }) },
+    { id: 'home', label: 'Home', icon: React.createElement(Compass, { size: 20 }) },
+    { id: 'explore', label: 'Explore', icon: React.createElement(Compass, { size: 20 }) },
     { id: 'trips', label: 'Trips', icon: React.createElement(CalendarDays, { size: 20 }) },
     { id: 'safety', label: 'Safety', icon: React.createElement(ShieldAlert, { size: 20 }) },
     { id: 'profile', label: 'Profile', icon: React.createElement(User, { size: 20 }) },
   ],
   business: [
-    { id: 'home', label: 'Explore Swat', icon: React.createElement(Compass, { size: 20 }) },
     { id: 'today', label: 'Today', icon: React.createElement(CalendarDays, { size: 20 }) },
     { id: 'listings', label: 'Listings', icon: React.createElement(Store, { size: 20 }) },
     { id: 'availability', label: 'Availability', icon: React.createElement(Calendar, { size: 20 }) },
@@ -85,14 +84,12 @@ export const ROLE_NAV_ITEMS: Record<UserRole, NavItemConfig[]> = {
     { id: 'profile', label: 'Profile', icon: React.createElement(User, { size: 20 }) },
   ],
   community: [
-    { id: 'home', label: 'Explore Swat', icon: React.createElement(Compass, { size: 20 }) },
     { id: 'stories', label: 'Stories', icon: React.createElement(BookOpen, { size: 20 }) },
     { id: 'report', label: 'Report', icon: React.createElement(FileWarning, { size: 20 }) },
     { id: 'hosts', label: 'Services', icon: React.createElement(Briefcase, { size: 20 }) },
     { id: 'profile', label: 'Profile', icon: React.createElement(User, { size: 20 }) },
   ],
   authority: [
-    { id: 'home', label: 'Explore Swat', icon: React.createElement(Compass, { size: 20 }) },
     { id: 'overview', label: 'Overview', icon: React.createElement(LayoutDashboard, { size: 20 }) },
     { id: 'users', label: 'User Management', icon: React.createElement(Users, { size: 20 }) },
     { id: 'directory', label: 'Directory', icon: React.createElement(Store, { size: 20 }) },
@@ -101,7 +98,6 @@ export const ROLE_NAV_ITEMS: Record<UserRole, NavItemConfig[]> = {
     { id: 'cases', label: 'Cases', icon: React.createElement(Briefcase, { size: 20 }) },
   ],
   admin: [
-    { id: 'home', label: 'Explore Swat', icon: React.createElement(Compass, { size: 20 }) },
     { id: 'overview', label: 'Overview', icon: React.createElement(LayoutDashboard, { size: 20 }) },
     { id: 'users', label: 'User Management', icon: React.createElement(Users, { size: 20 }) },
     { id: 'directory', label: 'Directory', icon: React.createElement(Store, { size: 20 }) },

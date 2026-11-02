@@ -230,3 +230,66 @@ class ListingOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
+
+# --- Physical Hotel Rooms Schemas ---
+RoomStatusCode = Literal["available", "reserved", "occupied", "cleaning", "maintenance"]
+
+
+class HotelRoomBase(BaseModel):
+    room_number: str
+    floor: str = "1"
+    wing: Optional[str] = None
+    category_name: str = "Standard Room"
+    bed_setup: Optional[str] = "1 King Bed"
+    status: RoomStatusCode = "available"
+    price_item_id: Optional[uuid.UUID] = None
+    notes: Optional[str] = None
+
+
+class HotelRoomCreate(HotelRoomBase):
+    pass
+
+
+class HotelRoomUpdate(BaseModel):
+    room_number: Optional[str] = None
+    floor: Optional[str] = None
+    wing: Optional[str] = None
+    category_name: Optional[str] = None
+    bed_setup: Optional[str] = None
+    status: Optional[RoomStatusCode] = None
+    price_item_id: Optional[uuid.UUID] = None
+    notes: Optional[str] = None
+
+
+class HotelRoomStatusUpdate(BaseModel):
+    status: RoomStatusCode
+    notes: Optional[str] = None
+
+
+class AssignRoomToBookingRequest(BaseModel):
+    room_ids: List[str]  # UUIDs or room numbers
+    booking_id: str
+    guest_name: Optional[str] = None
+    stay_dates: Optional[str] = None
+
+
+class HotelRoomOut(BaseModel):
+    id: uuid.UUID
+    listing_id: uuid.UUID
+    price_item_id: Optional[uuid.UUID] = None
+    room_number: str
+    floor: str
+    wing: Optional[str] = None
+    category_name: str
+    bed_setup: Optional[str] = None
+    status: str
+    current_booking_id: Optional[uuid.UUID] = None
+    current_guest_name: Optional[str] = None
+    stay_dates: Optional[str] = None
+    notes: Optional[str] = None
+    last_booking_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+

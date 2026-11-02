@@ -97,3 +97,7 @@ ehthumbs.db
 # Uploads
 uploads/
 backend/uploads/
+
+# Temporary Office Lock Files
+~$*.docx
+~$*.xlsx

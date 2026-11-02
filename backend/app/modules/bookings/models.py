@@ -33,6 +33,8 @@ class Booking(Base, UUIDPrimaryKeyMixin):
     driver_vehicle: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     pickup_point: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     pickup_time: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    assigned_room_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    assigned_room_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

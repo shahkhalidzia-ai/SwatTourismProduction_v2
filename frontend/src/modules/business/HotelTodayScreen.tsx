@@ -49,6 +49,10 @@ export function loadHotelLocalBookings(listingId?: string, businessName?: string
     for (const b of list) {
       if (!b) continue;
       const ref = (b.reference || b.booking_reference || b.id || '').toUpperCase();
+      const touristName = (b.tourist?.full_name || b.passenger_name || '').toLowerCase();
+      if (ref.includes('129165') || touristName.includes('shah khalid') || ref.startsWith('SWT-HTL-') || ref.startsWith('SWAT-HTL-')) {
+        continue;
+      }
       const isHotel =
         b.listing?.type_code === 'hotel' ||
         b.type_code === 'hotel' ||
@@ -57,11 +61,9 @@ export function loadHotelLocalBookings(listingId?: string, businessName?: string
         (b.item && (b.item.toLowerCase().includes('room') || b.item.toLowerCase().includes('suite')));
 
       const matchesBiz =
-        !safeName ||
-        (listingId && b.listing_id === listingId) ||
-        (b.listing?.title && b.listing.title.toLowerCase().includes(safeName)) ||
-        (b.business_name && b.business_name.toLowerCase().includes(safeName)) ||
-        (isSerena && (ref.startsWith('SWAT-HTL-') || !b.business_name));
+        Boolean(listingId && b.listing_id === listingId) ||
+        Boolean(safeName && b.listing?.title && b.listing.title.toLowerCase().includes(safeName)) ||
+        Boolean(safeName && b.business_name && b.business_name.toLowerCase().includes(safeName));
 
       if (isHotel && matchesBiz) {
         const primaryItem = b.items && b.items.length > 0 ? b.items[0] : null;
@@ -626,7 +628,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             ? { ...existing.rawBooking, ...(lb.rawBooking || {}) }
             : lb.rawBooking) as any,
         });
-      } else {
+      } else if (!bookings || bookings.length === 0) {
         listMap.set(ref, lb);
       }
     }
@@ -1290,7 +1292,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: '10px', alignItems: 'start' }}>
             {frontDeskBookings.map((booking) => {
               const bKey = booking.id || booking.reference;
               const effStatus = localStatusMap[bKey] || localStatusMap[booking.id] || localStatusMap[booking.reference] || booking.status;
@@ -1350,43 +1352,43 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 <div
                   key={booking.id || booking.reference}
                   style={{
-                    borderRadius: '16px',
+                    borderRadius: '12px',
                     border: isCancellationRequested
                       ? '1.5px solid #F87171'
                       : isPendingOrRequested
                       ? '1.5px solid #FCD34D'
                       : '1px solid #E2E8F0',
                     borderLeft: isCancelled
-                      ? '5px solid #94A3B8'
+                      ? '4px solid #94A3B8'
                       : isCancellationRequested
-                      ? '5px solid #DC2626'
+                      ? '4px solid #DC2626'
                       : isPendingOrRequested
-                      ? '5px solid #F59E0B'
+                      ? '4px solid #F59E0B'
                       : stayState === 'checked_in'
-                      ? '5px solid #10B981'
+                      ? '4px solid #10B981'
                       : stayState === 'checked_out'
-                      ? '5px solid #94A3B8'
-                      : '5px solid #088395',
+                      ? '4px solid #94A3B8'
+                      : '4px solid #088395',
                     background: '#FFFFFF',
-                    padding: '20px 22px',
+                    padding: '8px 12px',
                     boxShadow: isCancellationRequested
-                      ? '0 6px 20px -2px rgba(220, 38, 38, 0.12)'
+                      ? '0 2px 8px -2px rgba(220, 38, 38, 0.10)'
                       : isPendingOrRequested
-                      ? '0 6px 20px -2px rgba(245, 158, 11, 0.10)'
-                      : '0 4px 18px -2px rgba(15, 23, 42, 0.05)',
+                      ? '0 2px 8px -2px rgba(245, 158, 11, 0.08)'
+                      : '0 1px 4px rgba(15, 23, 42, 0.04)',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '16px',
+                    gap: '6px',
                   }}
                 >
                   {/* Folio Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div
                         style={{
-                          width: '42px',
-                          height: '42px',
-                          borderRadius: '12px',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
                           background: isPendingOrRequested
                             ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
                             : stayState === 'checked_in'
@@ -1397,44 +1399,44 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontWeight: 800,
-                          fontSize: '15px',
-                          letterSpacing: '0.5px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                          fontSize: '11.5px',
+                          letterSpacing: '0.4px',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
                           flexShrink: 0,
                         }}
                       >
                         {((booking.tourist || (booking as any).customer_name || 'G').split(' ').map((n: string) => n[0]).slice(0, 2).join('') || 'G').toUpperCase()}
                       </div>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '16.5px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.2px' }}>
                             <span style={{ color: '#64748B', fontWeight: 600 }}>Guest: </span>
                             <span>{booking.tourist || (booking as any).customer_name || 'Guest'}</span>
                           </span>
                           <span style={{ color: '#CBD5E1' }}>•</span>
                           <span
                             style={{
-                              fontSize: '12px',
+                              fontSize: '10px',
                               fontWeight: 800,
                               color: '#088395',
                               background: '#EBF4F6',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              letterSpacing: '0.4px',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              letterSpacing: '0.3px',
                             }}
                           >
-                            <span style={{ fontSize: '10px', textTransform: 'uppercase', marginRight: '3px', opacity: 0.8 }}>REF</span>
+                            <span style={{ fontSize: '8.5px', textTransform: 'uppercase', marginRight: '2px', opacity: 0.8 }}>REF</span>
                             <span>{booking.reference}</span>
                           </span>
                           {booking.touristEmail && (
-                            <span style={{ fontSize: '12.5px', color: '#64748B' }}>
+                            <span style={{ fontSize: '11px', color: '#64748B' }}>
                               ({booking.touristEmail})
                             </span>
                           )}
                         </div>
 
                         {/* Stay Schedule Dates / Nights / Guests */}
-                        <div style={{ fontSize: '13px', color: '#475569', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: '11.5px', color: '#475569', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                           {!isPendingOrRequested && (
                             <>
                               <span
@@ -1442,17 +1444,17 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '5px',
+                                  gap: '3px',
                                   background: '#EFF6FF',
                                   color: '#1E40AF',
                                   border: '1px solid #BFDBFE',
-                                  padding: '3px 9px',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
                                 }}
                               >
-                                <Bed size={13} color="#2563EB" />
+                                <Bed size={11} color="#2563EB" />
                                 <span>Room Type: <strong>{roomDetails.roomType}</strong></span>
                               </span>
 
@@ -1461,25 +1463,25 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '5px',
+                                  gap: '3px',
                                   background: '#F1F5F9',
                                   color: '#334155',
                                   border: '1px solid #CBD5E1',
-                                  padding: '3px 9px',
-                                  borderRadius: '6px',
-                                  fontSize: '12px',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
                                 }}
                               >
-                                <Building2 size={13} color="#64748B" />
+                                <Building2 size={11} color="#64748B" />
                                 <span>Allocated: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'}</strong></span>
                               </span>
                             </>
                           )}
 
-                          <span style={{ fontSize: '12.5px', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 500 }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              <Calendar size={13} color="#64748B" />
+                          <span style={{ fontSize: '11px', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 500 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              <Calendar size={11} color="#64748B" />
                               <strong style={{ color: '#1E293B' }}>{booking.dates}</strong>
                             </span>
                             <span style={{ color: '#CBD5E1' }}>•</span>
@@ -1500,16 +1502,16 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                             background: '#F1F5F9',
                             color: '#475569',
                             border: '1px solid #CBD5E1',
-                            padding: '5px 12px',
+                            padding: '3px 8px',
                             borderRadius: '9999px',
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: 800,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
+                            gap: '4px',
                           }}
                         >
-                          <XCircle size={13} color="#64748B" />
+                          <XCircle size={12} color="#64748B" />
                           <span>Cancelled • Withdrawn by Traveler</span>
                         </span>
                       ) : isCancellationRequested ? (
@@ -1519,41 +1521,41 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                             background: '#FEE2E2',
                             color: '#991B1B',
                             border: '1px solid #FCA5A5',
-                            padding: '5px 12px',
+                            padding: '3px 8px',
                             borderRadius: '9999px',
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: 800,
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
+                            gap: '4px',
                           }}
                         >
-                          <XCircle size={13} color="#DC2626" />
-                          <span>Cancellation Requested • Action Required</span>
+                          <XCircle size={12} color="#DC2626" />
+                          <span>Cancellation Requested</span>
                         </span>
                       ) : isPendingOrRequested ? (
-                        <span style={{ background: '#FFE7BD', color: '#7A4A00', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <Clock size={13} color="#D97706" />
-                          <span>Waiting for you • Incoming Request</span>
+                        <span style={{ background: '#FFE7BD', color: '#7A4A00', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} color="#D97706" />
+                          <span>Incoming Request</span>
                         </span>
                       ) : stayState === 'checked_in' ? (
-                        <span style={{ background: '#D1FAE5', color: '#065F46', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <CheckCircle size={13} color="#059669" />
+                        <span style={{ background: '#D1FAE5', color: '#065F46', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle size={12} color="#059669" />
                           <span>Guest In-House • {assignedRoomsLabel || 'Room 204'}</span>
                         </span>
                       ) : stayState === 'checked_out' ? (
-                        <span style={{ background: '#F1F5F9', color: '#475569', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ background: '#F1F5F9', color: '#475569', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <span>✓ Stay Completed &amp; Settled</span>
                         </span>
                       ) : effStatus === 'accepted' && balanceDue > 0 ? (
-                        <span style={{ background: '#D3E6F7', color: '#0C447C', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <Clock size={13} />
+                        <span style={{ background: '#D3E6F7', color: '#0C447C', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} />
                           <span>Waiting for payment</span>
                         </span>
                       ) : (
-                        <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '5px 12px', borderRadius: '9999px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                          <Clock size={13} />
-                          <span>Confirmed • Ready for Check-In</span>
+                        <span style={{ background: '#E0F2FE', color: '#0369A1', padding: '3px 8px', borderRadius: '9999px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} />
+                          <span>Ready for Check-In</span>
                         </span>
                       )}
                     </div>
@@ -1646,34 +1648,34 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       style={{
                         background: 'linear-gradient(135deg, #FFFDF7 0%, #FEF9EE 100%)',
                         border: '1px solid #FCD34D',
-                        borderRadius: '10px',
-                        padding: '10px 14px',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         flexWrap: 'wrap',
-                        gap: '10px',
-                        boxShadow: '0 1px 3px rgba(245, 158, 11, 0.05)',
+                        gap: '4px',
+                        boxShadow: '0 1px 2px rgba(245, 158, 11, 0.03)',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                         <span
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
+                            gap: '3px',
                             background: '#FEF3C7',
                             color: '#92400E',
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            fontSize: '9.5px',
                             fontWeight: 800,
-                            letterSpacing: '0.4px',
+                            letterSpacing: '0.3px',
                             textTransform: 'uppercase',
                           }}
                         >
-                          <Bell size={12} color="#D97706" />
-                          <span>New Request</span>
+                          <Bell size={10} color="#D97706" />
+                          <span>New</span>
                         </span>
 
                         <span
@@ -1681,18 +1683,18 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
+                            gap: '3px',
                             background: '#EFF6FF',
                             color: '#1E40AF',
                             border: '1px solid #BFDBFE',
-                            padding: '3px 9px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10.5px',
                             fontWeight: 700,
                           }}
                         >
-                          <Bed size={13} color="#2563EB" />
-                          <span>Room Type: <strong>{roomDetails.roomType}</strong></span>
+                          <Bed size={11} color="#2563EB" />
+                          <span>Room: <strong>{roomDetails.roomType}</strong></span>
                         </span>
 
                         <span
@@ -1700,23 +1702,23 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
+                            gap: '3px',
                             background: '#FEF3C7',
                             color: '#92400E',
                             border: '1px solid #FCD34D',
-                            padding: '3px 9px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10.5px',
                             fontWeight: 700,
                           }}
                         >
-                          <Building2 size={13} color="#D97706" />
+                          <Building2 size={11} color="#D97706" />
                           <span>Requested: <strong>{roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room Requested' : 'Rooms Requested'}</strong></span>
                         </span>
                       </div>
 
-                      <div style={{ fontSize: '12px', color: '#92400E', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <span>⚡ Action: Accept below to allocate {roomDetails.roomsCount} physical {roomDetails.roomsCount === 1 ? 'room & key' : 'rooms & keys'}</span>
+                      <div style={{ fontSize: '10px', color: '#92400E', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                        <span>⚡ Action: Accept to allocate key</span>
                       </div>
                     </div>
                   )}
@@ -1725,8 +1727,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: isMobile ? '1fr' : '1fr 1.35fr',
-                      gap: '12px',
+                      gridTemplateColumns: isMobile ? '1fr' : '1fr 1.2fr',
+                      gap: '6px',
                     }}
                   >
                     {/* Panel 1: Physical Room Allocation */}
@@ -1734,18 +1736,18 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       style={{
                         background: '#F8FAFC',
                         border: '1px solid #E2E8F0',
-                        borderRadius: '12px',
-                        padding: '12px 14px',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        gap: '8px',
+                        gap: '3px',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <Key size={13} color="#088395" />
-                          <span>Room Key Allocation</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                        <div style={{ fontSize: '9.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Key size={10} color="#088395" />
+                          <span>Key Allocation</span>
                         </div>
                         {!isCancelled && (
                           <button
@@ -1757,22 +1759,22 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                             style={{
                               background: stayState === 'checked_out' ? '#F1F5F9' : '#FFFFFF',
                               border: stayState === 'checked_out' ? '1px solid #E2E8F0' : '1px solid #CBD5E1',
-                              borderRadius: '6px',
-                              padding: '4px 10px',
-                              fontSize: '11.5px',
+                              borderRadius: '4px',
+                              padding: '1px 6px',
+                              fontSize: '10px',
                               fontWeight: 700,
                               color: stayState === 'checked_out' ? '#94A3B8' : '#088395',
                               cursor: stayState === 'checked_out' ? 'not-allowed' : 'pointer',
                               opacity: stayState === 'checked_out' ? 0.6 : 1,
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '4px',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                              gap: '3px',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                               transition: 'all 0.15s ease',
                             }}
                             title={stayState === 'checked_out' ? 'Stay completed & settled - room key returned' : undefined}
                           >
-                            {assignedRoom ? 'Change Key / Room' : '🔑 Assign Key'}
+                            {assignedRoom ? 'Change Room' : '🔑 Assign Key'}
                           </button>
                         )}
                         {!isCancelled && assignedRoom && (
@@ -1786,37 +1788,37 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isCancelled ? (
-                          <div style={{ fontSize: '12.5px', color: '#64748B', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                            <span>Reservation Cancelled • Room inventory released</span>
+                          <div style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                            <span>Cancelled • Released</span>
                           </div>
                         ) : assignedRooms.length > 0 ? (
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '15.5px', fontWeight: 800, color: '#0A4D68' }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#0A4D68' }}>
                               {assignedRoomsLabel}
                             </span>
-                            <span style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>
+                            <span style={{ fontSize: '10px', color: '#475569', fontWeight: 500 }}>
                               ({assignedRooms[0]?.category_name})
                             </span>
                             <span
                               style={{
-                                fontSize: '11px',
+                                fontSize: '9px',
                                 fontWeight: 700,
                                 background: '#E0F2FE',
                                 color: '#0369A1',
-                                padding: '1px 6px',
-                                borderRadius: '4px',
+                                padding: '1px 4px',
+                                borderRadius: '3px',
                               }}
                             >
-                              {assignedRooms.length} of {roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'} allocated
+                              {assignedRooms.length} of {roomDetails.roomsCount} alloc
                             </span>
                           </div>
                         ) : (
-                          <div style={{ fontSize: '12.5px', color: '#D97706', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                            <span>⚠️ Physical key not assigned yet</span>
-                            <span style={{ color: '#94A3B8' }}>•</span>
-                            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+                          <div style={{ fontSize: '10.5px', color: '#D97706', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                            <span>⚠️ Key not assigned</span>
+                            <span style={{ color: '#CBD5E1' }}>•</span>
+                            <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 600 }}>
                               Requested: <strong style={{ color: '#1E40AF' }}>{roomDetails.roomType}</strong> ({roomDetails.roomsCount} {roomDetails.roomsCount === 1 ? 'Room' : 'Rooms'})
                             </span>
                           </div>
@@ -1829,36 +1831,36 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       style={{
                         background: '#FFFDF7',
                         border: '1px solid #FDE68A',
-                        borderRadius: '12px',
-                        padding: '12px 16px',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between',
-                        gap: '8px',
+                        gap: '3px',
                       }}
                     >
-                      <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#92400E', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <DollarSign size={13} color="#D97706" />
-                        <span>Stay Folio Ledger</span>
+                      <div style={{ fontSize: '9.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#92400E', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <DollarSign size={10} color="#D97706" />
+                        <span>Folio Ledger</span>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
                         <div>
-                          <span style={{ fontSize: '11px', color: '#78350F', display: 'block', fontWeight: 500 }}>Total Stay Folio</span>
-                          <strong style={{ fontSize: '14.5px', color: '#0F172A', fontWeight: 800 }}>PKR {rawAmt.toLocaleString()}</strong>
+                          <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Total</span>
+                          <strong style={{ fontSize: '12px', color: '#0F172A', fontWeight: 800 }}>PKR {rawAmt.toLocaleString()}</strong>
                         </div>
                         <div>
-                          <span style={{ fontSize: '11px', color: '#78350F', display: 'block', fontWeight: 500 }}>Deposit Paid:</span>
-                          <strong style={{ fontSize: '14.5px', color: '#059669', fontWeight: 800 }}>
+                          <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Deposit Paid:</span>
+                          <strong style={{ fontSize: '12px', color: '#059669', fontWeight: 800 }}>
                             PKR {depositAmt.toLocaleString()}
                           </strong>
-                          <span style={{ fontSize: '10.5px', color: '#047857', display: 'block' }}>
+                          <span style={{ fontSize: '8.5px', color: '#047857', display: 'block' }}>
                             ({isDeposit ? 'Deposit' : '100% Paid'})
                           </span>
                         </div>
                         <div>
-                          <span style={{ fontSize: '11px', color: '#78350F', display: 'block', fontWeight: 500 }}>Balance Due:</span>
-                          <strong style={{ fontSize: '14.5px', color: isCancelled ? '#64748B' : balanceDue > 0 ? '#B45309' : '#059669', fontWeight: 800 }}>
+                          <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Balance Due:</span>
+                          <strong style={{ fontSize: '12px', color: isCancelled ? '#64748B' : balanceDue > 0 ? '#B45309' : '#059669', fontWeight: 800 }}>
                             {isCancelled ? 'PKR 0 (Cancelled)' : balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()}` : '✓ Fully Settled'}
                           </strong>
                         </div>
@@ -1870,12 +1872,12 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                   <div
                     style={{
                       borderTop: '1px solid #F1F5F9',
-                      paddingTop: '14px',
+                      paddingTop: '6px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       flexWrap: 'wrap',
-                      gap: '12px',
+                      gap: '4px',
                     }}
                   >
                     {isCancelled ? (
@@ -1884,20 +1886,20 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '13px',
+                          gap: '5px',
+                          fontSize: '11px',
                           color: '#64748B',
                           fontWeight: 700,
-                          padding: '4px 0',
+                          padding: '1px 0',
                         }}
                       >
-                        <XCircle size={16} color="#94A3B8" />
+                        <XCircle size={13} color="#94A3B8" />
                         <span>Reservation cancelled/withdrawn by traveler. Room capacity released — desk check-in closed.</span>
                       </div>
                     ) : (
                       <>
                         {/* Primary Operations (Check in / Check out / Accept / Decline / Accept Cancellation) */}
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
                       {isCancellationRequested && (
                         <button
                           type="button"
@@ -1907,19 +1909,19 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                             background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
                             color: '#FFFFFF',
                             border: 'none',
-                            borderRadius: '8px',
-                            padding: '8px 18px',
-                            fontSize: '12.5px',
+                            borderRadius: '5px',
+                            padding: '4px 8px',
+                            fontSize: '11px',
                             fontWeight: 800,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '6px',
-                            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
+                            gap: '4px',
+                            boxShadow: '0 1px 4px rgba(220, 38, 38, 0.2)',
                           }}
                         >
-                          <CheckCircle size={15} />
-                          <span>Confirm & Accept Cancellation</span>
+                          <CheckCircle size={12} />
+                          <span>Accept Cancellation</span>
                         </button>
                       )}
 
@@ -1933,19 +1935,19 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                               background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
                               color: '#FFFFFF',
                               border: 'none',
-                              borderRadius: '8px',
-                              padding: '8px 18px',
-                              fontSize: '12.5px',
+                              borderRadius: '5px',
+                              padding: '4px 10px',
+                              fontSize: '11px',
                               fontWeight: 800,
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+                              gap: '4px',
+                              boxShadow: '0 1px 3px rgba(16, 185, 129, 0.2)',
                               transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                             }}
                           >
-                            <CheckCircle size={15} />
+                            <CheckCircle size={12} />
                             <span>Accept &amp; Assign Room</span>
                           </button>
 
@@ -1954,30 +1956,30 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                             data-testid={`btn-decline-${booking.reference}`}
                             onClick={() => handleLocalDecline(booking)}
                             style={{
-                              padding: '8px 14px',
-                              borderRadius: '8px',
+                              padding: '4px 8px',
+                              borderRadius: '5px',
                               backgroundColor: '#FEF2F2',
                               color: '#991B1B',
                               border: '1px solid #FECACA',
                               fontWeight: 700,
-                              fontSize: '12.5px',
+                              fontSize: '11px',
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '6px',
+                              gap: '3px',
                               transition: 'background 0.15s ease',
                             }}
                           >
-                            <XCircle size={15} />
+                            <XCircle size={12} />
                             <span>Decline</span>
                           </button>
                         </>
                       )}
 
                       {!isPendingOrRequested && effStatus === 'accepted' && balanceDue > 0 && stayState !== 'checked_in' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#0C447C', fontWeight: 600, padding: '6px 12px', background: '#EFF6FF', borderRadius: '8px', border: '1px solid #BFDBFE' }}>
-                          <Clock size={14} />
-                          <span>Awaiting tourist payment confirmation</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#0C447C', fontWeight: 600, padding: '3px 6px', background: '#EFF6FF', borderRadius: '5px', border: '1px solid #BFDBFE' }}>
+                          <Clock size={11} />
+                          <span>Awaiting payment</span>
                         </div>
                       )}
 
@@ -1991,19 +1993,19 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                               background: 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
                               color: '#FFFFFF',
                               border: 'none',
-                              borderRadius: '8px',
-                              padding: '8px 18px',
-                              fontSize: '12.5px',
+                              borderRadius: '5px',
+                              padding: '4px 10px',
+                              fontSize: '11px',
                               fontWeight: 800,
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              boxShadow: '0 2px 8px rgba(8, 131, 149, 0.3)',
+                              gap: '4px',
+                              boxShadow: '0 1px 3px rgba(8, 131, 149, 0.2)',
                             }}
                           >
-                            <CheckCircle size={15} />
-                            <span>Check In Guest &amp; Issue Key</span>
+                            <CheckCircle size={12} />
+                            <span>Check In Guest</span>
                           </button>
                           <button
                             type="button"
@@ -2028,19 +2030,19 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                               background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
                               color: '#FFFFFF',
                               border: 'none',
-                              borderRadius: '8px',
-                              padding: '8px 18px',
-                              fontSize: '12.5px',
+                              borderRadius: '5px',
+                              padding: '4px 10px',
+                              fontSize: '11px',
                               fontWeight: 800,
                               cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
-                              gap: '6px',
-                              boxShadow: '0 2px 8px rgba(185, 28, 28, 0.3)',
+                              gap: '4px',
+                              boxShadow: '0 1px 3px rgba(185, 28, 28, 0.2)',
                             }}
                           >
-                            <Building2 size={15} />
-                            <span>Check Out &amp; Settle Folio</span>
+                            <Building2 size={12} />
+                            <span>Check Out &amp; Settle</span>
                           </button>
                           <button
                             type="button"
@@ -2056,11 +2058,11 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                       )}
 
                       {!isPendingOrRequested && stayState === 'checked_out' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                           {(!assignedRoom || assignedRoom.status === 'cleaning') ? (
                             <>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: '#D97706', fontWeight: 700 }}>
-                                <Clock size={14} color="#D97706" />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#D97706', fontWeight: 700 }}>
+                                <Clock size={11} color="#D97706" />
                                 <span>Stay Completed • Room Moved to Cleaning (Ready for Clean)</span>
                               </div>
                               <button
@@ -2071,18 +2073,18 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                                   background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                                   color: '#FFFFFF',
                                   border: 'none',
-                                  borderRadius: '8px',
-                                  padding: '6px 14px',
-                                  fontSize: '11.5px',
+                                  borderRadius: '5px',
+                                  padding: '4px 8px',
+                                  fontSize: '10.5px',
                                   fontWeight: 700,
                                   cursor: 'pointer',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '5px',
-                                  boxShadow: '0 2px 6px rgba(5, 150, 105, 0.25)',
+                                  gap: '3px',
+                                  boxShadow: '0 1px 3px rgba(5, 150, 105, 0.15)',
                                 }}
                               >
-                                <Sparkles size={13} />
+                                <Sparkles size={11} />
                                 <span>Mark Room {assignedRoom?.room_number || '102'} Cleaned &amp; Ready</span>
                               </button>
                             </>
@@ -2091,17 +2093,17 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '6px',
-                                fontSize: '12.5px',
+                                gap: '4px',
+                                fontSize: '11px',
                                 color: '#047857',
                                 fontWeight: 700,
                                 background: '#ECFDF5',
                                 border: '1px solid #A7F3D0',
-                                padding: '5px 12px',
-                                borderRadius: '8px',
+                                padding: '3px 6px',
+                                borderRadius: '5px',
                               }}
                             >
-                              <CheckCircle size={14} color="#059669" />
+                              <CheckCircle size={11} color="#059669" />
                               <span>✓ Stay Completed • Room {assignedRoom.room_number} Cleaned &amp; Ready for Next Guest</span>
                             </div>
                           )}
@@ -2110,7 +2112,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                     </div>
 
                     {/* Secondary & Financial Utilities (Collect Balance, Key Pass, Receipt) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                       {balanceDue > 0 ? (
                         <button
                           type="button"
@@ -2120,18 +2122,18 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                             background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                             color: '#FFFFFF',
                             border: 'none',
-                            borderRadius: '8px',
-                            padding: '7px 14px',
-                            fontSize: '12px',
+                            borderRadius: '5px',
+                            padding: '4px 8px',
+                            fontSize: '10.5px',
                             fontWeight: 800,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '5px',
-                            boxShadow: '0 2px 6px rgba(217, 119, 6, 0.25)',
+                            gap: '3px',
+                            boxShadow: '0 1px 3px rgba(217, 119, 6, 0.15)',
                           }}
                         >
-                          <CreditCard size={13} />
+                          <CreditCard size={11} />
                           <span>Collect Balance (Rs. {balanceDue.toLocaleString()})</span>
                         </button>
                       ) : (
@@ -2139,17 +2141,17 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '3px',
                             color: '#059669',
                             background: '#ECFDF5',
                             border: '1px solid #A7F3D0',
-                            padding: '5px 10px',
-                            borderRadius: '6px',
-                            fontSize: '11.5px',
+                            padding: '3px 6px',
+                            borderRadius: '5px',
+                            fontSize: '10.5px',
                             fontWeight: 800,
                           }}
                         >
-                          <CheckCircle size={13} />
+                          <CheckCircle size={11} />
                           <span>Zero Balance • Folio Settle Complete</span>
                         </span>
                       )}
@@ -2168,18 +2170,18 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           background: '#FFFFFF',
                           border: '1px solid #CBD5E1',
                           color: '#0A4D68',
-                          borderRadius: '8px',
-                          padding: '7px 12px',
-                          fontSize: '12px',
+                          borderRadius: '5px',
+                          padding: '4px 8px',
+                          fontSize: '10.5px',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px',
+                          gap: '3px',
                           boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
                         }}
                       >
-                        <QrCode size={14} color="#088395" />
+                        <QrCode size={11} color="#088395" />
                         <span>Arrival Key Pass</span>
                       </button>
 
@@ -2197,18 +2199,18 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                           background: '#0F172A',
                           border: 'none',
                           color: '#FFFFFF',
-                          borderRadius: '8px',
-                          padding: '7px 14px',
-                          fontSize: '12px',
+                          borderRadius: '5px',
+                          padding: '4px 8px',
+                          fontSize: '10.5px',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          boxShadow: '0 2px 6px rgba(15, 23, 42, 0.2)',
+                          gap: '3px',
+                          boxShadow: '0 1px 3px rgba(15, 23, 42, 0.15)',
                         }}
                       >
-                        <FileText size={14} color="#38BDF8" />
+                        <FileText size={11} color="#38BDF8" />
                         <span>Tax Invoice &amp; Receipt</span>
                       </button>
                     </div>

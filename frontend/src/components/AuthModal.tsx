@@ -140,7 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 200,
+        zIndex: 99999,
         padding: '16px',
         backdropFilter: 'blur(3px)',
       }}

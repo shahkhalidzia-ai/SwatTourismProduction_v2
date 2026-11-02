@@ -20,6 +20,9 @@ from app.modules.listings.schemas import (
     AvailabilityOut,
     SetAvailabilityRequest,
     MediaOut,
+    HotelRoomOut,
+    HotelRoomStatusUpdate,
+    AssignRoomToBookingRequest,
 )
 from app.modules.listings.service import ListingsService
 
@@ -255,3 +258,67 @@ async def set_availability(
 ):
     """Set or update daily units availability for price items."""
     return await ListingsService.set_availability(db, listing_id, profile.id, req.items)
+
+
+# =========================================================================
+# PHYSICAL HOTEL ROOMS REST ENDPOINTS (Component 6)
+# =========================================================================
+
+@router.get("/{listing_id}/rooms", response_model=List[HotelRoomOut])
+async def get_hotel_rooms(
+    listing_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve all physical rooms with live occupancy status for a hotel listing."""
+    return await ListingsService.get_rooms_for_listing(db, listing_id, auto_seed=True)
+
+
+@router.post("/{listing_id}/rooms/seed", response_model=List[HotelRoomOut])
+async def seed_hotel_rooms(
+    listing_id: uuid.UUID,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Force re-seed or initialize default physical rooms for a hotel."""
+    return await ListingsService.seed_default_rooms(db, listing_id)
+
+
+@router.patch("/rooms/{room_id}/status", response_model=HotelRoomOut)
+async def update_hotel_room_status(
+    room_id: uuid.UUID,
+    data: HotelRoomStatusUpdate,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update physical room status (available, reserved, occupied, cleaning, maintenance)."""
+    return await ListingsService.update_room_status(db, room_id, data.status, data.notes)
+
+
+@router.post("/{listing_id}/assign-rooms", response_model=List[HotelRoomOut])
+async def assign_rooms_to_booking_endpoint(
+    listing_id: uuid.UUID,
+    data: AssignRoomToBookingRequest,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Assign physical room(s) to a booking, setting status to 'reserved' and updating booking record."""
+    return await ListingsService.assign_rooms_to_booking(
+        db,
+        listing_id,
+        data.room_ids,
+        data.booking_id,
+        data.guest_name,
+        data.stay_dates,
+    )
+
+
+@router.post("/rooms/{room_id}/release", response_model=HotelRoomOut)
+async def release_hotel_room_endpoint(
+    room_id: uuid.UUID,
+    to_status: str = Query("cleaning", pattern="^(available|cleaning|maintenance)$"),
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Release a physical room from its active booking back to cleaning or available."""
+    return await ListingsService.release_room_from_booking(db, room_id, to_status)
+

@@ -9,12 +9,12 @@ import { TranslationProvider } from './context/TranslationContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ViewSwitch, type ViewMode } from './design/ViewSwitch';
 import { TouristShell } from './modules/tourist/TouristShell';
-import { BusinessShell } from './modules/business/BusinessShell';
+import { BusinessShell, purgeTransportBookingCache } from './modules/business/BusinessShell';
 import { CommunityShell } from './modules/community/CommunityShell';
 import { AuthorityShell } from './modules/authority/AuthorityShell';
 import { DemoTourGuide } from './components/DemoTourGuide';
 
-import { ShieldAlert, LogOut, User as UserIcon, Building2, LogIn, CalendarCheck } from 'lucide-react';
+import { ShieldAlert, LogOut, User as UserIcon, Building2, LogIn, CalendarCheck, Compass, CalendarDays } from 'lucide-react';
 import { Button } from './design/Button';
 
 const isTestEnv =
@@ -72,6 +72,52 @@ const MainAppContent: React.FC = () => {
 
   // Effective demo mode: true if user logged in as universal demo, or in test runner without explicit non-demo
   const isDemoActive = isDemoUser || (isTestEnv && localStorage.getItem('swat_demo_user') !== 'false');
+
+  // Purge transport and stale mock booking orders from cache and localStorage once on startup
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !localStorage.getItem('swat_bookings_purged_oct29_v5')) {
+      purgeTransportBookingCache();
+      try {
+        const rawLocal = localStorage.getItem('swat_local_bookings');
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter((b: any) => {
+              const ref = (b.reference || b.booking_reference || b.id || '').toUpperCase();
+              const touristName = (b.tourist?.full_name || b.passenger_name || '').toLowerCase();
+              const touristEmail = (b.tourist?.email || '').toLowerCase();
+              const isMockRef =
+                ref.includes('HTL-') ||
+                ref.includes('TR-') ||
+                ref.includes('129165') ||
+                touristName.includes('shah khalid') ||
+                touristEmail.includes('shahkhalidzia') ||
+                ref.startsWith('SWT-HTL-') ||
+                ref.startsWith('SWAT-HTL-');
+              return !isMockRef;
+            });
+            localStorage.setItem('swat_local_bookings', JSON.stringify(filtered));
+          }
+        }
+      } catch {}
+
+      try {
+        const rawAssignments = localStorage.getItem('swat_booking_room_assignments');
+        if (rawAssignments) {
+          const parsedAss = JSON.parse(rawAssignments);
+          for (const k of Object.keys(parsedAss)) {
+            if (k.includes('129165') || k.includes('HTL-') || k.includes('SWT-HTL')) {
+              delete parsedAss[k];
+            }
+          }
+          localStorage.setItem('swat_booking_room_assignments', JSON.stringify(parsedAss));
+        }
+      } catch {}
+
+      localStorage.setItem('swat_bookings_purged_oct29_v5', 'true');
+      window.dispatchEvent(new CustomEvent('swat_bookings_updated'));
+    }
+  }, []);
 
   // Deep-linking support (?role=...&tab=...)
   useEffect(() => {
@@ -596,8 +642,17 @@ const MainAppContent: React.FC = () => {
           role === 'business'
             ? getBusinessNavItems(user?.business_profile?.primary_type)
             : role === 'tourist'
-            ? ROLE_NAV_ITEMS.tourist.filter((item) => item.id !== 'explore')
-            : ROLE_NAV_ITEMS[role]
+            ? [
+                { id: 'home', label: 'Explore Swat', icon: <Compass size={20} /> },
+                { id: 'bookings', label: 'My Bookings', icon: <CalendarCheck size={20} /> },
+                { id: 'trips', label: 'Trips', icon: <CalendarDays size={20} /> },
+                { id: 'safety', label: 'Safety', icon: <ShieldAlert size={20} /> },
+                { id: 'profile', label: 'Profile', icon: <UserIcon size={20} /> },
+              ]
+            : [
+                ...(user ? [{ id: 'home', label: 'Explore Swat', icon: <Compass size={20} /> }] : []),
+                ...ROLE_NAV_ITEMS[role],
+              ]
         }
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -608,8 +663,8 @@ const MainAppContent: React.FC = () => {
       >
         {renderActiveShell()}
 
-        {/* Interactive 15-step Demo Tour Guide hidden as requested */}
-        {false && isDemoActive && (
+        {/* Interactive 15-step Demo Tour Guide (enabled in test environment or demo mode) */}
+        {(isTestEnv && isDemoActive) && (
           <DemoTourGuide
             currentRole={role}
             currentTab={activeTab}

@@ -18,8 +18,10 @@ from app.modules.listings.models import (
     PriceItem,
     Availability,
     Media,
+    HotelRoom,
 )
 from app.modules.places.models import Area
+from app.modules.bookings.models import Booking
 from app.modules.listings.schemas import (
     ListingCreate,
     ListingUpdate,
@@ -814,3 +816,242 @@ class ListingsService:
 
         await db.commit()
         return await cls.get_availability(db, listing.id)
+
+    # =========================================================================
+    # PHYSICAL HOTEL ROOM INVENTORY & STATUS MANAGEMENT (Component 6)
+    # =========================================================================
+
+    @classmethod
+    async def get_rooms_for_listing(
+        cls,
+        db: AsyncSession,
+        listing_id: uuid.UUID,
+        auto_seed: bool = True,
+    ) -> List[HotelRoom]:
+        """Fetch all physical rooms for a hotel listing from the database."""
+        stmt = (
+            select(HotelRoom)
+            .where(HotelRoom.listing_id == listing_id)
+            .order_by(HotelRoom.floor.asc(), HotelRoom.room_number.asc())
+        )
+        res = await db.execute(stmt)
+        rooms = list(res.scalars().all())
+
+        if not rooms and auto_seed:
+            rooms = await cls.seed_default_rooms(db, listing_id)
+
+        return rooms
+
+    @classmethod
+    async def seed_default_rooms(
+        cls,
+        db: AsyncSession,
+        listing_id: uuid.UUID,
+    ) -> List[HotelRoom]:
+        """Seed initial physical rooms for a hotel listing based on price categories or defaults."""
+        listing = await cls.get_listing_by_id(db, listing_id)
+        if not listing:
+            return []
+
+        title_lower = (listing.title or "").lower()
+        is_serena = "serena" in title_lower
+
+        stmt_pi = select(PriceItem).where(PriceItem.listing_id == listing_id).order_by(PriceItem.sort_order.asc())
+        res_pi = await db.execute(stmt_pi)
+        price_items = list(res_pi.scalars().all())
+        room_categories = [p for p in price_items if not p.category or p.category in ("room", "hotel_room")]
+
+        created_rooms: List[HotelRoom] = []
+
+        if is_serena:
+            # Verified standard room seed for Swat Serena Hotel
+            deluxe_pid = next((p.id for p in price_items if "deluxe" in p.name.lower()), None)
+            heritage_pid = next((p.id for p in price_items if "heritage" in p.name.lower()), None)
+            suite_pid = next((p.id for p in price_items if "suite" in p.name.lower()), None)
+            twin_pid = next((p.id for p in price_items if "twin" in p.name.lower() or "standard" in p.name.lower()), None)
+
+            serena_specs = [
+                ("101", "1", "Garden Wing", "Executive Deluxe Room", "1 King Bed", "available", deluxe_pid),
+                ("102", "1", "Garden Wing", "Executive Deluxe Room", "1 King Bed", "available", deluxe_pid),
+                ("103", "1", "Garden Wing", "Executive Deluxe Room", "1 King Bed", "available", deluxe_pid),
+                ("104", "1", "Garden Wing", "Executive Deluxe Room", "2 Twin Beds", "cleaning", deluxe_pid),
+                ("105", "1", "River Wing", "Executive Deluxe Room", "1 King Bed", "available", deluxe_pid),
+                ("106", "1", "Heritage Wing", "Deluxe Heritage Room", "1 Queen Bed", "available", heritage_pid),
+                ("107", "1", "Heritage Wing", "Deluxe Heritage Room", "1 Queen Bed", "available", heritage_pid),
+                ("108", "1", "Heritage Wing", "Deluxe Heritage Room", "1 Queen Bed", "available", heritage_pid),
+                ("Suite 201", "2", "Royal Wing", "Heritage Presidential Suite", "King Master + Lounge", "available", suite_pid),
+                ("Suite 202", "2", "Royal Wing", "Heritage Presidential Suite", "King Master + Lounge", "available", suite_pid),
+                ("110", "1", "East Wing", "Standard Twin Room", "2 Twin Beds", "available", twin_pid),
+                ("111", "1", "East Wing", "Standard Twin Room", "2 Twin Beds", "available", twin_pid),
+            ]
+
+            for r_num, floor, wing, cat_name, bed, status_val, pid in serena_specs:
+                room = HotelRoom(
+                    id=uuid.uuid4(),
+                    listing_id=listing_id,
+                    price_item_id=pid,
+                    room_number=r_num,
+                    floor=floor,
+                    wing=wing,
+                    category_name=cat_name,
+                    bed_setup=bed,
+                    status=status_val,
+                )
+                db.add(room)
+                created_rooms.append(room)
+
+        elif room_categories:
+            floor_idx = 1
+            for cat in room_categories:
+                units = min(cat.default_units or cat.capacity or 4, 8)
+                is_suite = "suite" in cat.name.lower()
+                for i in range(units):
+                    raw_num = f"{floor_idx * 100 + 1 + i}"
+                    room_num = f"Suite {raw_num}" if is_suite else raw_num
+                    room = HotelRoom(
+                        id=uuid.uuid4(),
+                        listing_id=listing_id,
+                        price_item_id=cat.id,
+                        room_number=room_num,
+                        floor=str(floor_idx),
+                        wing="Main Wing" if floor_idx == 1 else "Mountain View Wing",
+                        category_name=cat.name,
+                        bed_setup="King Master + Lounge" if is_suite else "1 King Bed",
+                        status="available",
+                    )
+                    db.add(room)
+                    created_rooms.append(room)
+                floor_idx += 1
+        else:
+            # Fallback 5 default rooms
+            for i in range(1, 6):
+                room = HotelRoom(
+                    id=uuid.uuid4(),
+                    listing_id=listing_id,
+                    room_number=f"10{i}",
+                    floor="1",
+                    wing="Main Wing",
+                    category_name="Standard Deluxe Room",
+                    bed_setup="1 Queen Bed",
+                    status="available",
+                )
+                db.add(room)
+                created_rooms.append(room)
+
+        await db.commit()
+        return await cls.get_rooms_for_listing(db, listing_id, auto_seed=False)
+
+    @classmethod
+    async def update_room_status(
+        cls,
+        db: AsyncSession,
+        room_id: uuid.UUID,
+        status: str,
+        notes: Optional[str] = None,
+    ) -> HotelRoom:
+        """Update live status of a physical room (available, reserved, occupied, cleaning, maintenance)."""
+        stmt = select(HotelRoom).where(HotelRoom.id == room_id)
+        res = await db.execute(stmt)
+        room = res.scalar_one_or_none()
+        if not room:
+            raise HTTPException(status_code=404, detail="Hotel room not found")
+
+        room.status = status
+        if notes is not None:
+            room.notes = notes
+        room.updated_at = datetime.now(timezone.utc)
+
+        await db.commit()
+        await db.refresh(room)
+        return room
+
+    @classmethod
+    async def assign_rooms_to_booking(
+        cls,
+        db: AsyncSession,
+        listing_id: uuid.UUID,
+        room_ids: List[str],
+        booking_id: str,
+        guest_name: Optional[str] = None,
+        stay_dates: Optional[str] = None,
+    ) -> List[HotelRoom]:
+        """Assign physical room(s) to a booking, auto-transitioning room status to 'reserved'."""
+        rooms = await cls.get_rooms_for_listing(db, listing_id, auto_seed=True)
+
+        target_uuids = set()
+        target_numbers = set()
+        for r_id in room_ids:
+            try:
+                target_uuids.add(uuid.UUID(r_id))
+            except ValueError:
+                target_numbers.add(r_id)
+
+        assigned_numbers = []
+        assigned_id_strs = []
+        now = datetime.now(timezone.utc)
+
+        # Parse booking UUID if valid
+        booking_uuid = None
+        try:
+            booking_uuid = uuid.UUID(booking_id)
+        except ValueError:
+            pass
+
+        for room in rooms:
+            is_target = room.id in target_uuids or room.room_number in target_numbers
+
+            if is_target:
+                room.status = "reserved"
+                room.current_booking_id = booking_uuid
+                room.current_guest_name = guest_name or room.current_guest_name
+                room.stay_dates = stay_dates or room.stay_dates
+                room.last_booking_id = booking_id
+                room.updated_at = now
+                assigned_numbers.append(room.room_number)
+                assigned_id_strs.append(str(room.id))
+            elif room.last_booking_id == booking_id or (booking_uuid and room.current_booking_id == booking_uuid):
+                # Release previous room that was unselected
+                room.status = "available"
+                room.current_booking_id = None
+                room.current_guest_name = None
+                room.stay_dates = None
+                room.updated_at = now
+
+        # Also update the Booking record if booking_uuid exists
+        if booking_uuid:
+            from app.modules.bookings.models import Booking
+            stmt_b = select(Booking).where(Booking.id == booking_uuid)
+            res_b = await db.execute(stmt_b)
+            booking_obj = res_b.scalar_one_or_none()
+            if booking_obj:
+                booking_obj.assigned_room_number = ", ".join(assigned_numbers) if assigned_numbers else None
+                booking_obj.assigned_room_id = ", ".join(assigned_id_strs) if assigned_id_strs else None
+                booking_obj.updated_at = now
+
+        await db.commit()
+        return await cls.get_rooms_for_listing(db, listing_id, auto_seed=False)
+
+    @classmethod
+    async def release_room_from_booking(
+        cls,
+        db: AsyncSession,
+        room_id: uuid.UUID,
+        to_status: str = "cleaning",
+    ) -> HotelRoom:
+        """Release a room upon guest checkout or cancellation."""
+        stmt = select(HotelRoom).where(HotelRoom.id == room_id)
+        res = await db.execute(stmt)
+        room = res.scalar_one_or_none()
+        if not room:
+            raise HTTPException(status_code=404, detail="Hotel room not found")
+
+        room.status = to_status
+        room.current_booking_id = None
+        room.current_guest_name = None
+        room.stay_dates = None
+        room.updated_at = datetime.now(timezone.utc)
+
+        await db.commit()
+        await db.refresh(room)
+        return room
+
