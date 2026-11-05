@@ -301,3 +301,73 @@ class HotelRoomOut(BaseModel):
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+
+VehicleStatusCode = Literal["available", "on_trip", "maintenance", "off_duty"]
+
+
+class TransportVehicleBase(BaseModel):
+    vehicle_type: str = "jeep_4x4"
+    model_name: str
+    license_plate: str
+    driver_name: Optional[str] = None
+    driver_phone: Optional[str] = None
+    seat_capacity: int = 4
+    fare: Optional[float] = None
+    fare_unit: str = "per_day"
+    features: List[str] = Field(default_factory=list)
+    description: Optional[str] = None
+    is_active: bool = True
+    is_in_service: bool = True
+    status: VehicleStatusCode = "available"
+    notes: Optional[str] = None
+    model_config = ConfigDict(protected_namespaces=())
+
+
+
+class TransportVehicleCreate(TransportVehicleBase):
+    business_id: Optional[uuid.UUID] = None
+    listing_id: Optional[uuid.UUID] = None
+
+
+class TransportVehicleUpdate(BaseModel):
+    vehicle_type: Optional[str] = None
+    model_name: Optional[str] = None
+    license_plate: Optional[str] = None
+    driver_name: Optional[str] = None
+    driver_phone: Optional[str] = None
+    seat_capacity: Optional[int] = None
+    fare: Optional[float] = None
+    fare_unit: Optional[str] = None
+    features: Optional[List[str]] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_in_service: Optional[bool] = None
+    status: Optional[VehicleStatusCode] = None
+    notes: Optional[str] = None
+    model_config = ConfigDict(protected_namespaces=())
+
+
+class TransportVehicleOut(BaseModel):
+    id: uuid.UUID
+    business_id: uuid.UUID
+    listing_id: Optional[uuid.UUID] = None
+    vehicle_type: str
+    model_name: str
+    license_plate: str
+    driver_name: Optional[str] = None
+    driver_phone: Optional[str] = None
+    seat_capacity: int
+    fare: Optional[float] = None
+    fare_unit: str = "per_day"
+    features: List[str] = Field(default_factory=list)
+    description: Optional[str] = None
+    is_active: bool
+    is_in_service: bool
+    status: str
+    notes: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True, protected_namespaces=())
+
+
+

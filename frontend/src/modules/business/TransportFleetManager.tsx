@@ -25,6 +25,12 @@ import {
   type ListingItem,
   type PriceUnitCode,
 } from '../../api/listings';
+import {
+  fetchTransportFleet,
+  createTransportVehicle,
+  updateTransportVehicle,
+  deleteTransportVehicle,
+} from '../../api/transportFleet';
 
 export interface FleetVehicle {
   id: string;
@@ -460,6 +466,43 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
     }
   }, [vehicles, storageKey, cleanName, providerId, userId]);
 
+  // Sync fleet from Database on mount
+  useEffect(() => {
+    let isSubscribed = true;
+    fetchTransportFleet(listing?.id, providerId || listing?.business_id).then((dbList) => {
+      if (!isSubscribed || !dbList || dbList.length === 0) return;
+      const mapped: FleetVehicle[] = dbList.map((v) => ({
+        id: v.id,
+        name: v.model_name,
+        category: v.vehicle_type,
+        fare: Number(v.fare || 0),
+        unit: (v.fare_unit as PriceUnitCode) || 'per_day',
+        capacity: v.seat_capacity,
+        regNumber: v.license_plate,
+        driverName: v.driver_name || 'Assigned Driver',
+        driverPhone: v.driver_phone || '',
+        description: v.description || '',
+        features: v.features || [],
+        is_active: v.is_active,
+        is_in_service: v.is_in_service,
+        availabilityNote: v.notes || 'Daily 06:00 AM – 09:00 PM',
+        providerId: v.business_id,
+        providerName: transportName,
+        business_id: v.business_id,
+      }));
+
+      setVehicles((prev) => {
+        const existingIds = new Set(mapped.map((m) => m.id));
+        const merged = [...mapped, ...prev.filter((p) => !existingIds.has(p.id))];
+        return merged;
+      });
+    }).catch(() => {});
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [listing?.id, providerId, listing?.business_id, transportName]);
+
   // Filters
   const [selectedCategory, setSelectedCategory] = useState<string>('All Vehicles');
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'in_service' | 'off_duty'>('all');
@@ -640,6 +683,23 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
         }
       }
 
+      // Persist update to Database transport_vehicles
+      updateTransportVehicle(editingVehicleId, {
+        model_name: formName.trim(),
+        vehicle_type: formCategory,
+        fare: Number(formFare),
+        fare_unit: formUnit,
+        seat_capacity: Number(formCapacity),
+        license_plate: formRegNumber.trim().toUpperCase(),
+        driver_name: formDriverName.trim(),
+        driver_phone: formDriverPhone.trim(),
+        description: formDescription.trim(),
+        features: formFeatures,
+        is_active: formIsActive,
+        is_in_service: formIsInService,
+        notes: formAvailabilityNote.trim(),
+      }).catch(() => {});
+
       showToast(`Vehicle "${formName}" updated successfully.`);
     } else {
       // Add new vehicle
@@ -687,6 +747,25 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
           // offline fallback
         }
       }
+
+      // Persist new vehicle to Database transport_vehicles
+      createTransportVehicle({
+        business_id: listing?.business_id || providerId,
+        listing_id: listing?.id,
+        vehicle_type: formCategory,
+        model_name: formName.trim(),
+        license_plate: formRegNumber.trim().toUpperCase(),
+        driver_name: formDriverName.trim() || 'Assigned Company Driver',
+        driver_phone: formDriverPhone.trim(),
+        seat_capacity: Number(formCapacity),
+        fare: Number(formFare),
+        fare_unit: formUnit,
+        features: formFeatures,
+        description: formDescription.trim(),
+        is_active: formIsActive,
+        is_in_service: formIsInService,
+        notes: formAvailabilityNote.trim(),
+      }).catch(() => {});
 
       showToast(`Vehicle "${formName}" added & published to fleet!`);
     }
@@ -759,6 +838,9 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
         // offline fallback
       }
     }
+
+    // Persist deletion to Database transport_vehicles
+    deleteTransportVehicle(toDelete.id).catch(() => {});
 
     setDeleteModal({ open: false, vehicle: null });
     showToast(`Vehicle "${toDelete.name}" removed from fleet.`);

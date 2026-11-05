@@ -521,9 +521,42 @@ export function bookIntercitySeat(
     const existing = JSON.parse(localStorage.getItem('swat_intercity_bookings') || '[]');
     existing.unshift(record);
     localStorage.setItem('swat_intercity_bookings', JSON.stringify(existing));
+    window.dispatchEvent(new CustomEvent('swat_intercity_bookings_updated', { detail: existing }));
+
+    // Also register in swat_local_bookings for unified booking visibility
+    const localBookings = JSON.parse(localStorage.getItem('swat_local_bookings') || '[]');
+    const unifiedRecord = {
+      id: record.id,
+      reference: record.booking_reference,
+      booking_reference: record.booking_reference,
+      type_code: 'transport',
+      item: `${schedule.operator_name} (${schedule.departure_terminal} → ${schedule.arrival_terminal})`,
+      dates: `${travelDate} • ${schedule.departure_time}`,
+      start_date: travelDate,
+      end_date: travelDate,
+      travellers: seatCount,
+      total_price: totalPrice,
+      total_amount: totalPrice,
+      deposit_amount: totalPrice,
+      payment_status: 'paid',
+      status: 'confirmed',
+      passenger_name: passengerName,
+      passenger_phone: passengerPhone,
+      business_name: schedule.operator_name,
+      listing: {
+        title: `${schedule.operator_name} Express Intercity`,
+        type_code: 'transport',
+        area_name: schedule.arrival_terminal,
+      },
+      created_at: record.created_at,
+    };
+    const updatedLocal = [unifiedRecord, ...localBookings.filter((b: any) => b.reference !== ref && b.id !== record.id)];
+    localStorage.setItem('swat_local_bookings', JSON.stringify(updatedLocal));
+    window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedLocal }));
   } catch {
     // localStorage silent catch
   }
 
   return record;
 }
+

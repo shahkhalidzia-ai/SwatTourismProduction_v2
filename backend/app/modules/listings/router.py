@@ -23,6 +23,9 @@ from app.modules.listings.schemas import (
     HotelRoomOut,
     HotelRoomStatusUpdate,
     AssignRoomToBookingRequest,
+    TransportVehicleCreate,
+    TransportVehicleUpdate,
+    TransportVehicleOut,
 )
 from app.modules.listings.service import ListingsService
 
@@ -327,4 +330,63 @@ async def release_hotel_room_endpoint(
 ):
     """Release a physical room from its active booking back to cleaning or available."""
     return await ListingsService.release_room_from_booking(db, room_id, to_status)
+
+
+# --- Transport Fleet Vehicles Endpoints ---
+@router.get("/transport/fleet", response_model=List[TransportVehicleOut])
+async def list_fleet_vehicles_endpoint(
+    listing_id: Optional[uuid.UUID] = None,
+    business_id: Optional[uuid.UUID] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve transport fleet vehicles for a business or listing."""
+    return await ListingsService.get_fleet_vehicles(
+        db,
+        business_id=business_id,
+        listing_id=listing_id,
+        auto_seed=True if business_id else False,
+    )
+
+
+@router.post("/transport/fleet", response_model=TransportVehicleOut)
+async def create_fleet_vehicle_endpoint(
+    data: TransportVehicleCreate,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Register a new vehicle in the operator's transport fleet."""
+    target_biz_id = data.business_id or profile.id
+    return await ListingsService.create_fleet_vehicle(db, target_biz_id, data)
+
+
+@router.patch("/transport/fleet/{vehicle_id}", response_model=TransportVehicleOut)
+async def update_fleet_vehicle_endpoint(
+    vehicle_id: uuid.UUID,
+    data: TransportVehicleUpdate,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update vehicle specifications, driver assignment, or service status."""
+    return await ListingsService.update_fleet_vehicle(db, vehicle_id, profile.id, data)
+
+
+@router.delete("/transport/fleet/{vehicle_id}")
+async def delete_fleet_vehicle_endpoint(
+    vehicle_id: uuid.UUID,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove a vehicle from the operator's transport fleet."""
+    return await ListingsService.delete_fleet_vehicle(db, vehicle_id, profile.id)
+
+
+@router.post("/transport/fleet/seed", response_model=List[TransportVehicleOut])
+async def seed_fleet_vehicles_endpoint(
+    listing_id: Optional[uuid.UUID] = None,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Initialize or reset default fleet vehicles for the business profile."""
+    return await ListingsService.seed_default_fleet(db, profile.id, listing_id)
+
 

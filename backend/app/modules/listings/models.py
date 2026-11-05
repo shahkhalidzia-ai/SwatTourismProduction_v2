@@ -190,3 +190,39 @@ class HotelRoom(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     listing: Mapped["Listing"] = relationship("Listing", backref="rooms")
     price_item: Mapped[Optional["PriceItem"]] = relationship("PriceItem")
 
+
+class TransportVehicle(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    __tablename__ = "transport_vehicles"
+
+    business_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("business_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    listing_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("listings.id", ondelete="SET NULL"), nullable=True, index=True)
+    vehicle_type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g. 'jeep_4x4', 'hiace_van', 'sedan', 'coaster', 'suv'
+    model_name: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g. 'Toyota Prado TX 4.0'
+    license_plate: Mapped[str] = mapped_column(String(30), nullable=False)  # e.g. 'SWT-7721'
+    driver_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    driver_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    seat_capacity: Mapped[int] = mapped_column(Integer, default=4, nullable=False)
+    fare: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    fare_unit: Mapped[str] = mapped_column(String(20), default="per_day", nullable=False)
+    features_json: Mapped[Optional[Any]] = mapped_column(JSON, default=list, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_in_service: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="available", nullable=False)  # 'available', 'on_trip', 'maintenance', 'off_duty'
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('available', 'on_trip', 'maintenance', 'off_duty')", name="check_transport_vehicle_status"),
+        UniqueConstraint("business_id", "license_plate", name="uq_business_license_plate"),
+    )
+
+    business: Mapped["BusinessProfile"] = relationship("BusinessProfile")
+    listing: Mapped[Optional["Listing"]] = relationship("Listing")
+
+    @property
+    def features(self) -> List[str]:
+        if isinstance(self.features_json, list):
+            return self.features_json
+        return []
+
+

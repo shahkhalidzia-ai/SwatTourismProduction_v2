@@ -19,6 +19,7 @@ from app.modules.listings.models import (
     Availability,
     Media,
     HotelRoom,
+    TransportVehicle,
 )
 from app.modules.places.models import Area
 from app.modules.bookings.models import Booking
@@ -40,6 +41,9 @@ from app.modules.listings.schemas import (
     GuideDetails,
     ActivityDetails,
     ShopDetails,
+    TransportVehicleCreate,
+    TransportVehicleUpdate,
+    TransportVehicleOut,
 )
 
 
@@ -1082,4 +1086,194 @@ class ListingsService:
         await db.commit()
         await db.refresh(room)
         return room
+
+    @classmethod
+    async def get_fleet_vehicles(
+        cls,
+        db: AsyncSession,
+        business_id: Optional[uuid.UUID] = None,
+        listing_id: Optional[uuid.UUID] = None,
+        auto_seed: bool = False,
+    ) -> List[TransportVehicle]:
+        conditions = []
+        if business_id:
+            conditions.append(TransportVehicle.business_id == business_id)
+        if listing_id:
+            conditions.append(TransportVehicle.listing_id == listing_id)
+
+        stmt = select(TransportVehicle)
+        if conditions:
+            stmt = stmt.where(or_(*conditions))
+        stmt = stmt.order_by(TransportVehicle.created_at.asc())
+        res = await db.execute(stmt)
+        vehicles = list(res.scalars().all())
+
+        if not vehicles and auto_seed and business_id:
+            vehicles = await cls.seed_default_fleet(db, business_id, listing_id)
+
+        return vehicles
+
+    @classmethod
+    async def seed_default_fleet(
+        cls,
+        db: AsyncSession,
+        business_id: uuid.UUID,
+        listing_id: Optional[uuid.UUID] = None,
+    ) -> List[TransportVehicle]:
+        default_specs = [
+            {
+                "vehicle_type": "jeep_4x4",
+                "model_name": "4x4 Mountain Jeep (Willys / CJ7 Alpine Special)",
+                "license_plate": "SWT-4921",
+                "driver_name": "Usman Khan (Alpine Certified)",
+                "driver_phone": "0345-9871234",
+                "seat_capacity": 6,
+                "fare": 12000.0,
+                "fare_unit": "per_day",
+                "features_json": ["4x4 Low-Range", "Snow Chains Equipped", "Roof Luggage Carrier", "High Clearance", "First Aid Kit"],
+                "description": "High-clearance 4WD jeep customized for rugged mountain roads (Kalam, Mahodand Lake, Ushu Forest, Kundol). Heavy-duty suspension and all-terrain tires.",
+                "is_active": True,
+                "is_in_service": True,
+                "status": "available",
+            },
+            {
+                "vehicle_type": "hiace_van",
+                "model_name": "Grand Cabin Hiace (Executive High-Roof)",
+                "license_plate": "ICT-8812",
+                "driver_name": "Kamran Shah (Coach Captain)",
+                "driver_phone": "0301-4455667",
+                "seat_capacity": 14,
+                "fare": 1800.0,
+                "fare_unit": "per_seat",
+                "features_json": ["Dual Climate AC & Heater", "Individual Reclining Seats", "High Luggage Capacity", "USB Phone Charging"],
+                "description": "Luxury high-roof passenger van for Swat Express intercity and valley transfers. Spacious legroom with individual reclining seats.",
+                "is_active": True,
+                "is_in_service": True,
+                "status": "available",
+            },
+            {
+                "vehicle_type": "suv",
+                "model_name": "Toyota Land Cruiser Prado TX (4WD Luxury)",
+                "license_plate": "SWT-7721",
+                "driver_name": "Bilal Yousafzai (VIP Chauffeur)",
+                "driver_phone": "0333-1122334",
+                "seat_capacity": 7,
+                "fare": 22000.0,
+                "fare_unit": "per_day",
+                "features_json": ["Full Leather Interior", "Sunroof & Tinted Glass", "All-Terrain 4WD", "Chilled Bottled Water", "English Speaking"],
+                "description": "Executive SUV with ultimate mountain comfort for VIP delegacy and family tours.",
+                "is_active": True,
+                "is_in_service": True,
+                "status": "available",
+            },
+        ]
+
+        created_vehicles = []
+        for spec in default_specs:
+            v = TransportVehicle(
+                business_id=business_id,
+                listing_id=listing_id,
+                **spec
+            )
+            db.add(v)
+            created_vehicles.append(v)
+
+        await db.commit()
+        for v in created_vehicles:
+            await db.refresh(v)
+        return created_vehicles
+
+    @classmethod
+    async def create_fleet_vehicle(
+        cls,
+        db: AsyncSession,
+        business_id: uuid.UUID,
+        data: TransportVehicleCreate,
+    ) -> TransportVehicle:
+        stmt = select(TransportVehicle).where(
+            and_(
+                TransportVehicle.business_id == business_id,
+                TransportVehicle.license_plate == data.license_plate
+            )
+        )
+        res = await db.execute(stmt)
+        if res.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail=f"Vehicle with license plate '{data.license_plate}' already exists in your fleet.")
+
+        vehicle = TransportVehicle(
+            business_id=business_id,
+            listing_id=data.listing_id,
+            vehicle_type=data.vehicle_type,
+            model_name=data.model_name,
+            license_plate=data.license_plate,
+            driver_name=data.driver_name,
+            driver_phone=data.driver_phone,
+            seat_capacity=data.seat_capacity,
+            fare=data.fare,
+            fare_unit=data.fare_unit,
+            features_json=data.features,
+            description=data.description,
+            is_active=data.is_active,
+            is_in_service=data.is_in_service,
+            status=data.status,
+            notes=data.notes,
+        )
+        db.add(vehicle)
+        await db.commit()
+        await db.refresh(vehicle)
+        return vehicle
+
+    @classmethod
+    async def update_fleet_vehicle(
+        cls,
+        db: AsyncSession,
+        vehicle_id: uuid.UUID,
+        business_id: uuid.UUID,
+        data: TransportVehicleUpdate,
+    ) -> TransportVehicle:
+        stmt = select(TransportVehicle).where(
+            and_(
+                TransportVehicle.id == vehicle_id,
+                TransportVehicle.business_id == business_id
+            )
+        )
+        res = await db.execute(stmt)
+        vehicle = res.scalar_one_or_none()
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found in your fleet.")
+
+        update_dict = data.model_dump(exclude_unset=True)
+        if "features" in update_dict:
+            vehicle.features_json = update_dict.pop("features")
+
+        for key, val in update_dict.items():
+            setattr(vehicle, key, val)
+
+        vehicle.updated_at = datetime.now(timezone.utc)
+        await db.commit()
+        await db.refresh(vehicle)
+        return vehicle
+
+    @classmethod
+    async def delete_fleet_vehicle(
+        cls,
+        db: AsyncSession,
+        vehicle_id: uuid.UUID,
+        business_id: uuid.UUID,
+    ) -> Dict[str, Any]:
+        stmt = select(TransportVehicle).where(
+            and_(
+                TransportVehicle.id == vehicle_id,
+                TransportVehicle.business_id == business_id
+            )
+        )
+        res = await db.execute(stmt)
+        vehicle = res.scalar_one_or_none()
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found in your fleet.")
+
+        await db.delete(vehicle)
+        await db.commit()
+        return {"status": "success", "message": "Vehicle removed from fleet."}
+
 
