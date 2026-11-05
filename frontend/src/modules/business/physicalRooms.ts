@@ -15,6 +15,8 @@ export interface PhysicalRoom {
   wing?: string;
   bed_setup?: string;
   status: 'available' | 'reserved' | 'occupied' | 'maintenance' | 'cleaning';
+  cleaning_status?: 'ready' | 'cleaning' | 'inspected' | 'touch_up';
+  stay_state?: 'vacant' | 'reserved' | 'occupied' | 'turnover';
   current_booking_id?: string;
   current_guest_name?: string;
   stay_dates?: string;
@@ -44,6 +46,8 @@ export async function syncPhysicalRoomsFromDb(listingId: string): Promise<Physic
         wing: r.wing || undefined,
         bed_setup: r.bed_setup || undefined,
         status: r.status,
+        cleaning_status: (r.cleaning_status as any) || (r.status === 'cleaning' ? 'cleaning' : 'ready'),
+        stay_state: (r.stay_state as any) || (r.status === 'occupied' ? 'occupied' : 'vacant'),
         current_booking_id: r.current_booking_id || undefined,
         current_guest_name: r.current_guest_name || undefined,
         stay_dates: r.stay_dates || undefined,
@@ -615,10 +619,34 @@ export function updatePhysicalRoomStatus(
   roomId: string,
   newStatus: PhysicalRoom['status'],
   notes?: string,
-  roomNumber?: string
+  roomNumber?: string,
+  cleaningStatus?: PhysicalRoom['cleaning_status'],
+  stayState?: PhysicalRoom['stay_state']
 ): boolean {
   const all = getAllPhysicalRooms();
   let found = false;
+
+  const effCleaning =
+    cleaningStatus ||
+    (newStatus === 'cleaning'
+      ? 'cleaning'
+      : newStatus === 'available'
+      ? 'ready'
+      : newStatus === 'occupied'
+      ? 'inspected'
+      : undefined);
+
+  const effStay =
+    stayState ||
+    (newStatus === 'occupied'
+      ? 'occupied'
+      : newStatus === 'cleaning'
+      ? 'turnover'
+      : newStatus === 'available'
+      ? 'vacant'
+      : newStatus === 'reserved'
+      ? 'reserved'
+      : undefined);
 
   for (const listKey of Object.keys(all)) {
     const rooms = all[listKey] || [];
@@ -639,6 +667,8 @@ export function updatePhysicalRoomStatus(
         return {
           ...r,
           status: newStatus,
+          ...(effCleaning ? { cleaning_status: effCleaning } : {}),
+          ...(effStay ? { stay_state: effStay } : {}),
           notes: notes !== undefined ? notes : r.notes,
           updated_at: new Date().toISOString(),
         };
@@ -667,7 +697,7 @@ export function updatePhysicalRoomStatus(
 
   if (found) {
     saveAllPhysicalRooms(all);
-    updateHotelRoomStatusApi(roomId, newStatus, notes).catch(() => {});
+    updateHotelRoomStatusApi(roomId, newStatus, notes, effCleaning, effStay).catch(() => {});
   }
   return found;
 }

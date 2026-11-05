@@ -38,6 +38,7 @@ import {
   markRoomCleaned,
   clearAllHotelBookingsData,
   getBookingRoomDetails,
+  syncPhysicalRoomsFromDb,
   type PhysicalRoom,
 } from './physicalRooms';
 
@@ -219,13 +220,23 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   // Listen to physical room changes across window/storage
   useEffect(() => {
+    let isSubscribed = true;
     const reload = () => {
       const updated = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
       setPhysicalRooms(updated);
     };
 
+    if (effectiveListingId) {
+      syncPhysicalRoomsFromDb(effectiveListingId).then((synced) => {
+        if (isSubscribed && synced && synced.length > 0) {
+          setPhysicalRooms(synced);
+        }
+      });
+    }
+
     window.addEventListener('swat_physical_rooms_updated', reload);
     return () => {
+      isSubscribed = false;
       window.removeEventListener('swat_physical_rooms_updated', reload);
     };
   }, [effectiveListingId, safeBusinessName, roomTypesKey]);

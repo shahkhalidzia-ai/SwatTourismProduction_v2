@@ -4,6 +4,7 @@ import {
   getPhysicalRoomsForHotel,
   updatePhysicalRoomStatus,
   markRoomCleaned,
+  syncPhysicalRoomsFromDb,
   type PhysicalRoom,
 } from './physicalRooms';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
@@ -45,14 +46,24 @@ export const LiveRoomRackBoard: React.FC<LiveRoomRackBoardProps> = ({
   const roomTypesKey = (roomTypes || []).map((r) => `${r.id || ''}:${r.name || ''}`).join('|');
 
   useEffect(() => {
+    let isSubscribed = true;
     const reload = () => {
       const updated = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
       setPhysicalRooms(updated);
     };
 
+    if (effectiveListingId) {
+      syncPhysicalRoomsFromDb(effectiveListingId).then((synced) => {
+        if (isSubscribed && synced && synced.length > 0) {
+          setPhysicalRooms(synced);
+        }
+      });
+    }
+
     window.addEventListener('swat_physical_rooms_updated', reload);
     window.addEventListener('storage', reload);
     return () => {
+      isSubscribed = false;
       window.removeEventListener('swat_physical_rooms_updated', reload);
       window.removeEventListener('storage', reload);
     };

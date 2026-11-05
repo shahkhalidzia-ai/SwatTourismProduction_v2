@@ -12,6 +12,8 @@ export interface HotelRoomRecord {
   category_name: string;
   bed_setup?: string | null;
   status: RoomStatus;
+  cleaning_status?: string | null;
+  stay_state?: string | null;
   current_booking_id?: string | null;
   current_guest_name?: string | null;
   stay_dates?: string | null;
@@ -56,11 +58,18 @@ export async function seedHotelRooms(listingId: string): Promise<HotelRoomRecord
 export async function updateHotelRoomStatus(
   roomId: string,
   status: RoomStatus,
-  notes?: string
+  notes?: string,
+  cleaningStatus?: string,
+  stayState?: string
 ): Promise<HotelRoomRecord> {
   return await apiRequest<HotelRoomRecord>(`/listings/rooms/${roomId}/status`, {
     method: 'PATCH',
-    body: JSON.stringify({ status, notes }),
+    body: JSON.stringify({
+      status,
+      notes,
+      cleaning_status: cleaningStatus,
+      stay_state: stayState,
+    }),
   });
 }
 
