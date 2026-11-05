@@ -1110,3 +1110,22 @@ textarea:focus-visible {
 
 
 
+
+
+/* Booking.com Style Destination Cards */
+.booking-dest-card {
+  display: flex !important;
+  flex-direction: row !important;
+}
+@media (max-width: 680px) {
+  .booking-dest-card {
+    flex-direction: column !important;
+    padding: 10px !important;
+    gap: 10px !important;
+  }
+  .booking-card-media {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: 160px !important;
+  }
+}
