@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiRequest } from '../api/client';
+import { claimBookingsApi } from '../api/bookings';
 import type { UserRole } from '../layouts/navItems';
 
 export interface UserProfile {
@@ -150,6 +151,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         document.documentElement.removeAttribute('data-reduce-effects');
       }
     }
+
+    // Phase 4: Seamless guest booking claiming into database profile
+    if (data.user?.role === 'tourist') {
+      try {
+        const localRaw = localStorage.getItem('swat_local_bookings');
+        const localList = localRaw ? JSON.parse(localRaw) : [];
+        const refs: string[] = Array.isArray(localList)
+          ? localList.map((b: any) => b.reference || b.booking_reference || b.id).filter(Boolean)
+          : [];
+
+        if (refs.length > 0 || data.user.email || data.user.phone) {
+          claimBookingsApi({
+            references: refs,
+            guest_email: data.user.email,
+            guest_phone: data.user.phone,
+          })
+            .then((res) => {
+              if (res && res.claimed_count > 0) {
+                localStorage.removeItem('swat_local_bookings');
+                window.dispatchEvent(new CustomEvent('swat_bookings_claimed', { detail: res }));
+              }
+            })
+            .catch((err) => {
+              console.warn('Non-fatal guest booking claim notice:', err);
+            });
+        }
+      } catch (e) {
+        console.warn('Could not inspect local bookings for claim:', e);
+      }
+    }
+
     return data.user;
   };
 

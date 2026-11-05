@@ -39,3 +39,29 @@
 ### Step 1.4: Frontend Integration
 - In `frontend/src/api/bookings.ts`: Export `checkInBookingApi`, `checkOutBookingApi`, and ensure `collectBookingBalance` points to `/bookings/{id}/collect-balance`.
 - In `frontend/src/modules/business/HotelTodayScreen.tsx`: Call backend APIs on Check-In, Check-Out, and Collect Balance. Use API response to drive UI state.
+
+
+---
+
+## Detailed Step-by-Step Execution: Phase 2 (Completed)
+- In `backend/app/main.py`: SQLite auto-migration for `hotel_rooms` columns (`cleaning_status`, `stay_state`).
+- In `backend/app/modules/listings/models.py`: Added `cleaning_status`, `stay_state` to `HotelRoom` model with check constraints.
+- In `backend/app/modules/listings/router.py`: Added status mutation endpoint `PATCH /api/v1/listings/rooms/{room_id}/status`.
+- In `frontend/src/api/physicalRooms.ts`: Live synchronization with backend room status API.
+
+---
+
+## Detailed Step-by-Step Execution: Phase 3 (Completed)
+- In `backend/app/modules/listings/models.py`: Added `TransportVehicle` model mapped to table `transport_vehicles`.
+- In `backend/app/modules/listings/router.py`: Added CRUD endpoints `GET/POST/DELETE /api/v1/listings/transport/fleet`.
+- In `frontend/src/api/transportFleet.ts` & `TransportFleetManager.tsx`: Interactive fleet management backed by database REST APIs.
+
+---
+
+## Detailed Step-by-Step Execution: Phase 4 (Completed)
+- In `backend/app/modules/bookings/schemas.py`: Added `ClaimBookingsRequest` and `ClaimBookingsResponse`.
+- In `backend/app/modules/bookings/service.py`: Implemented `claim_bookings()` to link guest/offline reservations to authenticated user accounts.
+- In `backend/app/modules/bookings/router.py`: Added `POST /api/v1/bookings/claim` and aliased `GET /api/v1/bookings/my`.
+- In `frontend/src/api/bookings.ts`: Added `claimBookingsApi()`.
+- In `frontend/src/context/AuthContext.tsx`: Auto-claim guest reservations from `swat_local_bookings` upon user login/registration.
+- In `backend/tests/test_phase4_guest_claim_persistence.py`: Comprehensive test suite verifying booking claiming and community host approval persistence.

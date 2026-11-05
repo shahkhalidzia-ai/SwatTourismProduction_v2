@@ -74,6 +74,7 @@ class BookingStatusHistoryOut(BaseModel):
 
 
 class BookingBriefTourist(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     full_name: str
     email: str
@@ -82,12 +83,14 @@ class BookingBriefTourist(BaseModel):
 
 
 class BookingBriefBusiness(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
-    business_name: str
+    business_name: Optional[str] = None
     primary_type: Optional[str] = None
 
 
 class BookingBriefListing(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
     title: str
     type_code: Optional[str] = None
@@ -254,4 +257,19 @@ class IPNCallbackResponse(BaseModel):
     payment_status: str
     notification_dispatched: bool
     message: str
+
+
+class ClaimBookingsRequest(BaseModel):
+    references: List[str] = Field(default_factory=list)
+    guest_email: Optional[str] = None
+    guest_phone: Optional[str] = None
+
+
+class ClaimBookingsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    claimed_count: int
+    claimed_references: List[str]
+    bookings: List[BookingOut]
+    message: str
+
 

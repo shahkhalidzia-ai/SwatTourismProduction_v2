@@ -17,6 +17,9 @@ from app.modules.bookings.schemas import (
     BookingActionRequest,
     MockPaymentRequest,
     BusinessBookingSummaryOut,
+    BookingOut,
+    ClaimBookingsRequest,
+    ClaimBookingsResponse,
 )
 from app.modules.listings.models import Listing, PriceItem, Availability, HotelRoom
 from app.modules.notifications.service import NotificationService
@@ -1513,3 +1516,84 @@ class BookingService:
                 avail = avail_res.scalar_one_or_none()
                 if avail:
                     avail.units_booked = max(0, avail.units_booked - item.quantity)
+
+    @staticmethod
+    async def claim_bookings(
+        db: AsyncSession,
+        user_id: uuid.UUID,
+        request: ClaimBookingsRequest,
+    ) -> ClaimBookingsResponse:
+        """Link guest session bookings to an authenticated tourist user profile."""
+        user_q = select(User).where(User.id == user_id)
+        current_user = (await db.execute(user_q)).scalar_one_or_none()
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        conditions = []
+        if request.references:
+            conditions.append(Booking.reference.in_(request.references))
+        if request.guest_email:
+            conditions.append(Booking.special_requests.ilike(f"%{request.guest_email}%"))
+        if request.guest_phone:
+            conditions.append(Booking.special_requests.ilike(f"%{request.guest_phone}%"))
+
+        if not conditions:
+            conditions.append(Booking.special_requests.ilike(f"%{current_user.email}%"))
+
+        query = (
+            select(Booking)
+            .options(
+                selectinload(Booking.items).selectinload(BookingItem.price_item),
+                selectinload(Booking.history),
+                selectinload(Booking.tourist),
+                selectinload(Booking.business),
+                selectinload(Booking.listing),
+            )
+            .where(or_(*conditions))
+        )
+        res = await db.execute(query)
+        candidates = list(res.scalars().all())
+
+        claimed_refs = []
+        now = datetime.now(timezone.utc)
+        for b in candidates:
+            if b.tourist_id != user_id:
+                b.tourist_id = user_id
+                b.updated_at = now
+                claimed_refs.append(b.reference)
+
+        if claimed_refs:
+            await db.commit()
+
+        q_user = (
+            select(Booking)
+            .options(
+                selectinload(Booking.items).selectinload(BookingItem.price_item),
+                selectinload(Booking.history),
+                selectinload(Booking.tourist),
+                selectinload(Booking.business),
+                selectinload(Booking.listing),
+            )
+            .where(Booking.tourist_id == user_id)
+            .order_by(Booking.created_at.desc())
+        )
+        all_user_bookings = list((await db.execute(q_user)).scalars().all())
+
+        for b in all_user_bookings:
+            for it in b.items:
+                if it.price_item:
+                    it.price_item_name = it.price_item.name
+                    it.price_item_unit = it.price_item.unit
+
+        booking_outs = [
+            BookingOut.model_validate(b, from_attributes=True)
+            for b in all_user_bookings
+        ]
+
+        return ClaimBookingsResponse(
+            claimed_count=len(claimed_refs),
+            claimed_references=claimed_refs,
+            bookings=booking_outs,
+            message=f"Successfully claimed {len(claimed_refs)} guest bookings into your verified account profile.",
+        )
+

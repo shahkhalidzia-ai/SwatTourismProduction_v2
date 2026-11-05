@@ -344,3 +344,26 @@ export async function fetchBookingVoucherData(bookingId: string): Promise<any> {
   return apiRequest<any>(`/bookings/${bookingId}/voucher/data`);
 }
 
+
+
+export interface ClaimBookingsRequest {
+  references?: string[];
+  guest_email?: string;
+  guest_phone?: string;
+}
+
+export interface ClaimBookingsResponse {
+  claimed_count: number;
+  claimed_references: string[];
+  bookings: Booking[];
+  message: string;
+}
+
+export async function claimBookingsApi(
+  payload: ClaimBookingsRequest
+): Promise<ClaimBookingsResponse> {
+  return apiRequest<ClaimBookingsResponse>('/bookings/claim', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

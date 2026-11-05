@@ -22,6 +22,8 @@ from app.modules.bookings.schemas import (
     UnifiedCheckoutRequest,
     UnifiedCheckoutResponse,
     IPNCallbackResponse,
+    ClaimBookingsRequest,
+    ClaimBookingsResponse,
 )
 from app.modules.bookings.service import BookingService
 from app.modules.bookings.payment_adapter import PaymentGatewayManager, JazzCashPaymentAdapter
@@ -59,6 +61,7 @@ async def create_bookings_for_trip(
 
 
 @router.get("/my-bookings", response_model=List[BookingOut])
+@router.get("/my", response_model=List[BookingOut])
 async def get_my_bookings(
     payload: dict = Depends(get_current_token_payload),
     db: AsyncSession = Depends(get_db),
@@ -840,3 +843,16 @@ async def clear_hotel_bookings_endpoint():
     from scripts.clear_hotel_bookings import clear_hotel_bookings
     clear_hotel_bookings()
     return {"message": "All hotel bookings and booking requests data successfully cleared."}
+
+
+@router.post("/claim", response_model=ClaimBookingsResponse)
+async def claim_bookings_endpoint(
+    request: ClaimBookingsRequest,
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Claim and link guest session bookings into the authenticated user profile."""
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.claim_bookings(db, user_id, request)
+
+
