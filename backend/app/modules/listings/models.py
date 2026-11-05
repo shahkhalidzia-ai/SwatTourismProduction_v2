@@ -19,6 +19,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.modules.accounts.models import BusinessProfile
+from app.modules.places.models import Area
 
 
 class ListingType(Base, UUIDPrimaryKeyMixin):
@@ -76,8 +78,8 @@ class Listing(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     listing_detail: Mapped[Optional["ListingDetail"]] = relationship("ListingDetail", back_populates="listing", uselist=False, cascade="all, delete-orphan")
     price_items: Mapped[List["PriceItem"]] = relationship("PriceItem", back_populates="listing", cascade="all, delete-orphan", order_by="PriceItem.sort_order")
     tags: Mapped[List["Tag"]] = relationship("Tag", secondary="listing_tags")
-    business_profile: Mapped[Optional["app.modules.accounts.models.BusinessProfile"]] = relationship("app.modules.accounts.models.BusinessProfile")
-    area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("app.modules.places.models.Area")
+    business_profile: Mapped[Optional["app.modules.accounts.models.BusinessProfile"]] = relationship("BusinessProfile")
+    area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("Area")
 
 
 class ListingDetail(Base, UUIDPrimaryKeyMixin, TimestampMixin):

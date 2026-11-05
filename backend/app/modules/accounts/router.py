@@ -1,12 +1,15 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update, case, func
+from sqlalchemy.orm import selectinload
 from jose import jwt, JWTError
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import create_access_token, create_refresh_token
 from app.core.deps import get_current_token_payload
+from app.modules.accounts.models import User
 from app.modules.accounts.schemas import (
     RegisterRequest,
     LoginRequest,
@@ -135,9 +138,11 @@ async def demo_login(role: str, db: AsyncSession = Depends(get_db)):
     """Fast login/seed helper for one-click switching in prototype demo."""
     demo_specs = {
         "tourist": {
-            "email": "tourist@swattourism.pk",
-            "full_name": "Sara Ahmed",
-            "phone": "+923009990001",
+            "email": "skhalidzia@yahoo.com",
+            "full_name": "Sara Swati Verified",
+            "phone": "+923444413869",
+            "whatsapp_number": "+923444413869",
+            "address_text": "house no 431",
             "home_city": "Islamabad",
             "nationality": "Pakistani",
             "emergency_contact_name": "Tariq Ahmed",
@@ -222,10 +227,27 @@ async def demo_login(role: str, db: AsyncSession = Depends(get_db)):
 
     spec = demo_specs[role]
     target_role = "business" if role in ("serena", "hotel", "transport", "restaurant") else ("admin" if role == "demo" else role)
+
+    # 1. Search first by spec email
     user = await AccountService.get_user_by_identifier(db, spec["email"])
 
+    # 2. If not found by spec email, search by persistent demo_role
     if not user:
-        # Register on first demand
+        stmt = (
+            select(User)
+            .options(
+                selectinload(User.tourist_profile),
+                selectinload(User.business_profiles),
+                selectinload(User.community_profile),
+                selectinload(User.authority_profile),
+            )
+            .where(User.demo_role == role)
+        )
+        res = await db.execute(stmt)
+        user = res.scalar_one_or_none()
+
+    # 3. If still not found, register on first demand and tag demo_role
+    if not user:
         reg_req = RegisterRequest(
             email=spec["email"],
             phone=spec["phone"],
@@ -235,6 +257,19 @@ async def demo_login(role: str, db: AsyncSession = Depends(get_db)):
             **{k: v for k, v in spec.items() if k not in ("email", "phone", "full_name")}
         )
         user = await AccountService.register(db, reg_req)
+        user.demo_role = role
+        await db.commit()
+
+    if role == "tourist" and user:
+        from app.modules.bookings.models import Booking
+        b_res = await db.execute(select(Booking).where(Booking.tourist_id == user.id, Booking.status == "completed"))
+        if not b_res.scalars().first():
+            any_b = await db.execute(select(Booking).where(Booking.tourist_id == user.id).order_by(Booking.created_at.desc()))
+            first_b = any_b.scalars().first()
+            if first_b:
+                first_b.status = "completed"
+                first_b.payment_status = "paid"
+                await db.commit()
 
     user_out = AccountService.user_to_user_out(user)
     access_token = create_access_token(subject=str(user.id), role=user.role)

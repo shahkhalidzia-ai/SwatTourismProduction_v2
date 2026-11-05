@@ -57,14 +57,24 @@ class ReviewService:
             )
             db.add(history)
 
-        # 2. Check if a review already exists for this booking
+        # 2. Check if a review already exists for this booking (UPSERT: update if existing)
         existing_q = select(Review).where(Review.booking_id == req.booking_id)
         existing = (await db.execute(existing_q)).scalar_one_or_none()
         if existing:
-            raise HTTPException(
-                status_code=400,
-                detail="A review has already been submitted for this booking",
-            )
+            if existing.tourist_id == user_id:
+                existing.rating = req.rating
+                existing.title = req.title
+                existing.comment = req.comment
+                existing.updated_at = datetime.now(timezone.utc)
+                await db.flush()
+                await ReviewService._update_listing_ratings(db, booking.listing_id)
+                await db.commit()
+                return await ReviewService.get_review_by_id(db, existing.id)
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="A review has already been submitted for this booking",
+                )
 
         # 3. Create review
         new_review = Review(

@@ -35,6 +35,9 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     phone_otp: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     phone_otp_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     is_phone_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    whatsapp_number: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    address_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    demo_role: Mapped[Optional[str]] = mapped_column(String(30), nullable=True, index=True)
     theme: Mapped[str] = mapped_column(String(20), default="lake", nullable=False)
     reduce_effects: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 

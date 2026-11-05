@@ -13,6 +13,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.modules.accounts.models import User, BusinessProfile
 
 
 class VerificationDocument(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -31,8 +32,8 @@ class VerificationDocument(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         CheckConstraint("status IN ('pending', 'approved', 'rejected')", name="check_doc_status"),
     )
 
-    business_profile: Mapped["app.modules.accounts.models.BusinessProfile"] = relationship("app.modules.accounts.models.BusinessProfile")
-    reviewer: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("app.modules.accounts.models.User")
+    business_profile: Mapped["app.modules.accounts.models.BusinessProfile"] = relationship("BusinessProfile")
+    reviewer: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("User")
 
 
 class AuditLog(Base, UUIDPrimaryKeyMixin):
@@ -47,4 +48,4 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), server_default=func.now(), nullable=False)
 
-    user: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("app.modules.accounts.models.User")
+    user: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("User")

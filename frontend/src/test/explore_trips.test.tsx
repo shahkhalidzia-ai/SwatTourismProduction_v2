@@ -27,7 +27,9 @@ vi.mock('leaflet', () => ({
 describe('Step 4 Tourist Explore and Trips UI', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     localStorage.setItem('swat_token', 'mock_tourist_jwt');
+    localStorage.setItem('swat_landing_version', 'classic');
 
     vi.spyOn(tripsApi, 'getAreas').mockResolvedValue([
       { id: 'area-1', name: 'Kalam', area_type: 'valley' },
@@ -131,7 +133,7 @@ describe('Step 4 Tourist Explore and Trips UI', () => {
   it('renders Home tab with active advisory banner and popular destinations', async () => {
     render(<TouristShell activeTab="home" />);
 
-    expect(screen.getByText(/Weather Advisory/i)).toBeDefined();
+    expect(screen.getAllByText(/Weather Advisory/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Explore the Beauty of Swat Valley/i)).toBeDefined();
 
     await waitFor(() => {
@@ -189,6 +191,10 @@ describe('Step 4 Tourist Explore and Trips UI', () => {
     });
 
     render(<TouristShell activeTab="home" />);
+
+    // Switch to Valleys search tab to show destination search input
+    const valleysTab = screen.queryByTestId('tab-home-valleys');
+    if (valleysTab) fireEvent.click(valleysTab);
 
     // Verify search box and destinations header on home screen
     expect(screen.getByPlaceholderText(/Search Kalam, Mahodand, Malam Jabba/i)).toBeDefined();

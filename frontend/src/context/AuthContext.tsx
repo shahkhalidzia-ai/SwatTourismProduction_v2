@@ -6,6 +6,9 @@ export interface UserProfile {
   id: string;
   email?: string;
   phone?: string;
+  whatsapp_number?: string;
+  address_text?: string;
+  address?: string;
   role: UserRole;
   full_name: string;
   language: string;
@@ -66,6 +69,7 @@ interface AuthContextType {
   register: (data: Record<string, unknown>) => Promise<UserProfile>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  updateProfile: (data: Record<string, unknown>) => Promise<UserProfile>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -181,6 +185,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateProfile = async (profileData: Record<string, unknown>): Promise<UserProfile> => {
+    const updated = await apiRequest<UserProfile>('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    });
+    setUser(updated);
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -194,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         refreshUser,
+        updateProfile,
       }}
     >
       {children}
@@ -205,6 +219,10 @@ const mockDefaultUser: UserProfile = {
   id: 'mock-user-1',
   role: 'tourist',
   full_name: 'Sara Ahmed',
+  email: 'sara@swat.local',
+  phone: '+923001234567',
+  whatsapp_number: '+923001234567',
+  address_text: 'F-7/2, Street 14, Islamabad',
   language: 'en',
   status: 'active',
   created_at: new Date().toISOString(),
@@ -249,6 +267,7 @@ const defaultTestContext: AuthContextType = {
   register: async () => mockDefaultUser,
   logout: () => {},
   refreshUser: async () => {},
+  updateProfile: async () => mockDefaultUser,
 };
 
 export const useAuth = () => {

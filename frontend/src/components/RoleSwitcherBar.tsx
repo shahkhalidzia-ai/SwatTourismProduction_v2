@@ -3,8 +3,9 @@ import type { UserRole } from '../layouts/navItems';
 import type { ViewMode } from '../design/ViewSwitch';
 import { useAuth } from '../context/AuthContext';
 import { Tag } from '../design/Tag';
-import { Moon, Sun, CheckCircle, XCircle, LogIn, LogOut, User, Trash2 } from 'lucide-react';
+import { Moon, Sun, CheckCircle, XCircle, LogIn, LogOut, User, Trash2, Edit2 } from 'lucide-react';
 import { ThemeSwitchButton } from './ThemeSwitchButton';
+import { ProfileSettingsModal } from './ProfileSettingsModal';
 
 interface RoleSwitcherBarProps {
   currentRole: UserRole;
@@ -27,6 +28,7 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
 }) => {
   const { user, isAuthenticated, logout, demoLogin } = useAuth();
   const [apiOk, setApiOk] = useState<boolean | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     fetch('/api/v1/auth/status')
@@ -155,9 +157,28 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
               border: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: '#FFFFFF', fontWeight: 600 }}>
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              title="Click to update Profile, Phone, WhatsApp & Address"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: 600,
+                fontSize: '11px',
+                padding: '2px 4px',
+                borderRadius: '4px',
+                transition: 'background-color 0.15s ease',
+              }}
+              data-testid="btn-open-profile-settings"
+            >
               <User size={13} color="var(--acc)" /> {user.full_name}
-            </span>
+              <Edit2 size={11} color="var(--mute)" />
+            </button>
             <Tag variant="ok" style={{ textTransform: 'capitalize', fontSize: '10px', padding: '1px 6px' }}>
               {user.role}
             </Tag>
@@ -286,6 +307,12 @@ export const RoleSwitcherBar: React.FC<RoleSwitcherBarProps> = ({
           {isDark ? <Sun size={14} color="var(--acc)" /> : <Moon size={14} />}
         </button>
       </div>
+
+      {/* Global Profile & Contact Info Settings Modal */}
+      <ProfileSettingsModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </div>
   );
 };

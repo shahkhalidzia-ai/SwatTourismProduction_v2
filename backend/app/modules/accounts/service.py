@@ -1,6 +1,7 @@
 import uuid
 import secrets
 import random
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from sqlalchemy import select, or_, func
@@ -120,6 +121,8 @@ class AccountService:
             status="active",
             theme=getattr(req, "theme", "lake") or "lake",
             reduce_effects=getattr(req, "reduce_effects", False) or False,
+            whatsapp_number=getattr(req, "whatsapp_number", None),
+            address_text=getattr(req, "address_text", None),
         )
         db.add(user)
         await db.flush()
@@ -326,7 +329,9 @@ class AccountService:
         return UserOut(
             id=user.id,
             email=user.email,
-            phone=user.phone,
+            phone=user.phone or (first_biz.contact_phone if first_biz else None),
+            whatsapp_number=getattr(user, "whatsapp_number", None) or (first_biz.whatsapp_number if first_biz else None),
+            address_text=getattr(user, "address_text", None) or (first_biz.address_text if first_biz else None),
             role=user.role,
             full_name=user.full_name,
             language=user.language,
@@ -348,8 +353,8 @@ class AccountService:
             raise HTTPException(status_code=404, detail="User not found")
 
         if req.full_name:
-            user.full_name = req.full_name
-        if req.avatar_url:
+            user.full_name = req.full_name.strip()
+        if req.avatar_url is not None:
             user.avatar_url = req.avatar_url
         if req.language:
             user.language = req.language
@@ -357,43 +362,118 @@ class AccountService:
             user.theme = req.theme
         if req.reduce_effects is not None:
             user.reduce_effects = req.reduce_effects
+        if req.password:
+            user.password_hash = get_password_hash(req.password)
 
-        if user.role == "tourist" and user.tourist_profile:
-            if req.home_city is not None:
-                user.tourist_profile.home_city = req.home_city
-            if req.nationality is not None:
-                user.tourist_profile.nationality = req.nationality
-            if req.emergency_contact_name is not None:
-                user.tourist_profile.emergency_contact_name = req.emergency_contact_name
-            if req.emergency_contact_phone is not None:
-                user.tourist_profile.emergency_contact_phone = req.emergency_contact_phone
-            if req.budget_level is not None:
+        # Update Email with duplicate check
+        if "email" in req.model_fields_set:
+            if req.email:
+                clean_email = str(req.email).strip().lower()
+                if clean_email != (user.email or "").lower():
+                    dup_email = await db.execute(
+                        select(User).where(func.lower(User.email) == clean_email, User.id != user_id)
+                    )
+                    if dup_email.scalar_one_or_none():
+                        raise HTTPException(
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail="This email address is already registered to another account."
+                        )
+                    user.email = clean_email
+            else:
+                user.email = None
+
+        # Update Phone & Contact Phone with duplicate check
+        phone_provided = "phone" in req.model_fields_set or "contact_phone" in req.model_fields_set
+        if phone_provided:
+            phone_input = req.phone if "phone" in req.model_fields_set else req.contact_phone
+            if phone_input:
+                clean_phone = str(phone_input).strip()
+                digits_only = re.sub(r"[\s\-\(\)]", "", clean_phone)
+                user_digits = re.sub(r"[\s\-\(\)]", "", (user.phone or "").strip())
+                if digits_only and digits_only != user_digits:
+                    # Check if another user has this exact canonical phone
+                    all_others = await db.execute(
+                        select(User).where(User.id != user_id, User.phone.is_not(None))
+                    )
+                    for other in all_others.scalars().all():
+                        if other.phone and re.sub(r"[\s\-\(\)]", "", other.phone) == digits_only:
+                            raise HTTPException(
+                                status_code=status.HTTP_409_CONFLICT,
+                                detail="This phone number is already registered to another account."
+                            )
+                    user.phone = clean_phone
+                else:
+                    user.phone = clean_phone
+            else:
+                user.phone = None
+
+            # Keep business profile contact_phone in sync
+            if user.business_profiles:
+                for b in user.business_profiles:
+                    b.contact_phone = user.phone or b.contact_phone
+
+        # Update WhatsApp Number
+        if "whatsapp_number" in req.model_fields_set:
+            if req.whatsapp_number:
+                clean_wa = str(req.whatsapp_number).strip()
+                user.whatsapp_number = clean_wa
+            else:
+                user.whatsapp_number = None
+            if user.business_profiles:
+                for b in user.business_profiles:
+                    b.whatsapp_number = user.whatsapp_number
+
+        # Update Address
+        if "address_text" in req.model_fields_set or "address" in req.model_fields_set:
+            addr_val = req.address_text if "address_text" in req.model_fields_set else req.address
+            if addr_val:
+                clean_addr = str(addr_val).strip()
+                user.address_text = clean_addr
+            else:
+                user.address_text = None
+            if user.business_profiles:
+                for b in user.business_profiles:
+                    b.address_text = user.address_text
+
+        # Role specific updates
+        if user.role == "tourist":
+            if not user.tourist_profile:
+                user.tourist_profile = TouristProfile(user_id=user.id)
+                db.add(user.tourist_profile)
+                await db.flush()
+            if "home_city" in req.model_fields_set:
+                user.tourist_profile.home_city = req.home_city.strip() if req.home_city else None
+            if "nationality" in req.model_fields_set:
+                user.tourist_profile.nationality = req.nationality.strip() if req.nationality else None
+            if "emergency_contact_name" in req.model_fields_set:
+                user.tourist_profile.emergency_contact_name = req.emergency_contact_name.strip() if req.emergency_contact_name else None
+            if "emergency_contact_phone" in req.model_fields_set:
+                user.tourist_profile.emergency_contact_phone = req.emergency_contact_phone.strip() if req.emergency_contact_phone else None
+            if "budget_level" in req.model_fields_set:
                 user.tourist_profile.budget_level = req.budget_level
-            if req.travel_style is not None:
+            if "travel_style" in req.model_fields_set:
                 user.tourist_profile.travel_style = req.travel_style
-            if req.interests is not None:
+            if "interests" in req.model_fields_set:
                 user.tourist_profile.interests = req.interests
 
         elif user.role == "business" and user.business_profiles:
             biz = user.business_profiles[0]
             if req.business_name is not None:
-                biz.business_name = req.business_name
+                biz.business_name = req.business_name.strip()
             if req.accommodation_type is not None:
                 biz.accommodation_type = req.accommodation_type
             if req.contact_phone is not None:
-                biz.contact_phone = req.contact_phone
-            if req.whatsapp_number is not None:
-                biz.whatsapp_number = req.whatsapp_number
-            if req.address_text is not None:
-                biz.address_text = req.address_text
+                biz.contact_phone = req.contact_phone.strip()
+                if not user.phone:
+                    user.phone = req.contact_phone.strip()
             if req.registration_no is not None:
-                biz.registration_no = req.registration_no
+                biz.registration_no = req.registration_no.strip() if req.registration_no else None
             if req.area_id is not None:
                 biz.area_id = req.area_id
 
         elif user.role == "community" and user.community_profile:
             if req.bio is not None:
-                user.community_profile.bio = req.bio
+                user.community_profile.bio = req.bio.strip() if req.bio else None
             if req.area_id is not None:
                 user.community_profile.area_id = req.area_id
             if req.member_type is not None:

@@ -16,6 +16,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, UUIDPrimaryKeyMixin, TimestampMixin
+from app.modules.accounts.models import User
+from app.modules.places.models import Area
 
 
 class Advisory(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -51,8 +53,8 @@ class Advisory(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Index("idx_advisories_area_status", "area_id", "status"),
     )
 
-    author: Mapped["app.modules.accounts.models.User"] = relationship("app.modules.accounts.models.User")
-    area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("app.modules.places.models.Area")
+    author: Mapped["app.modules.accounts.models.User"] = relationship("User")
+    area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("Area")
 
 
 class RoadStatus(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -73,9 +75,9 @@ class RoadStatus(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         CheckConstraint("source IN ('authority', 'community')", name="check_road_source"),
     )
 
-    from_area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("app.modules.places.models.Area", foreign_keys=[from_area_id])
-    to_area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("app.modules.places.models.Area", foreign_keys=[to_area_id])
-    reporter: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("app.modules.accounts.models.User")
+    from_area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("Area", foreign_keys=[from_area_id])
+    to_area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("Area", foreign_keys=[to_area_id])
+    reporter: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("User")
 
 
 class EmergencyContact(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -97,7 +99,7 @@ class EmergencyContact(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ),
     )
 
-    area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("app.modules.places.models.Area")
+    area: Mapped[Optional["app.modules.places.models.Area"]] = relationship("Area")
 
 
 class SOSEvent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -122,5 +124,5 @@ class SOSEvent(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         Index("idx_sos_status_created", "status", "created_at"),
     )
 
-    tourist: Mapped["app.modules.accounts.models.User"] = relationship("app.modules.accounts.models.User", foreign_keys=[tourist_id])
-    acknowledged_user: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("app.modules.accounts.models.User", foreign_keys=[acknowledged_by])
+    tourist: Mapped["app.modules.accounts.models.User"] = relationship("User", foreign_keys=[tourist_id])
+    acknowledged_user: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("User", foreign_keys=[acknowledged_by])

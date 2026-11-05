@@ -331,6 +331,25 @@ textarea:focus-visible {
   }
 }
 
+/* Horizontal Split Listing Card (Classic View Match to Concept Reference) */
+.listing-card-horizontal {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  min-height: 175px;
+}
+
+@media (max-width: 440px) {
+  .listing-card-horizontal {
+    flex-direction: column !important;
+  }
+  .listing-card-horizontal .listing-card-cover {
+    width: 100% !important;
+    min-height: 140px !important;
+    max-width: 100% !important;
+  }
+}
+
 /* ==========================================================================
    Mobile Phone View Scoped Layout Rules
    Guarantees that inside Phone View (#mobile-phone-frame or .phone-layout),
@@ -410,8 +429,10 @@ textarea:focus-visible {
 
 #mobile-phone-frame .listing-card-cover,
 .phone-layout .listing-card-cover {
-  height: 140px !important;
-  padding: 12px 16px !important;
+  height: auto !important;
+  min-height: 140px !important;
+  align-self: stretch !important;
+  padding: 10px !important;
 }
 
 #mobile-phone-frame .listing-card-action-row,
@@ -693,7 +714,9 @@ textarea:focus-visible {
     max-width: 100% !important;
   }
   .listing-card-cover {
-    height: 140px !important;
+    height: auto !important;
+    min-height: 140px !important;
+    align-self: stretch !important;
   }
   .listing-card-action-row {
     grid-template-columns: 1fr 1fr !important;

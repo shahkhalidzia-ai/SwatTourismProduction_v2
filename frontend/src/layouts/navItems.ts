@@ -16,6 +16,8 @@ import {
   Car,
   UtensilsCrossed,
   Users,
+  Receipt,
+  Landmark,
 } from 'lucide-react';
 
 export type UserRole = 'tourist' | 'business' | 'community' | 'authority' | 'admin';
@@ -57,10 +59,10 @@ export const getBusinessNavItems = (primaryType?: string): NavItemConfig[] => {
     case 'hotel':
     default:
       return [
-        homeItem,
         { id: 'today', label: 'Today', icon: React.createElement(CalendarDays, { size: 20 }) },
         { id: 'listings', label: 'Listings', icon: React.createElement(Store, { size: 20 }) },
         { id: 'availability', label: 'Availability', icon: React.createElement(Calendar, { size: 20 }) },
+        { id: 'invoices', label: 'Invoices & Commission', icon: React.createElement(Receipt, { size: 20 }) },
         { id: 'reviews', label: 'Reviews', icon: React.createElement(Star, { size: 20 }) },
         { id: 'profile', label: 'Profile', icon: React.createElement(User, { size: 20 }) },
       ];
@@ -79,6 +81,7 @@ export const ROLE_NAV_ITEMS: Record<UserRole, NavItemConfig[]> = {
     { id: 'today', label: 'Today', icon: React.createElement(CalendarDays, { size: 20 }) },
     { id: 'listings', label: 'Listings', icon: React.createElement(Store, { size: 20 }) },
     { id: 'availability', label: 'Availability', icon: React.createElement(Calendar, { size: 20 }) },
+    { id: 'invoices', label: 'Invoices & Commission', icon: React.createElement(Receipt, { size: 20 }) },
     { id: 'reviews', label: 'Reviews', icon: React.createElement(Star, { size: 20 }) },
     { id: 'profile', label: 'Profile', icon: React.createElement(User, { size: 20 }) },
   ],
@@ -90,6 +93,7 @@ export const ROLE_NAV_ITEMS: Record<UserRole, NavItemConfig[]> = {
   ],
   authority: [
     { id: 'overview', label: 'Overview', icon: React.createElement(LayoutDashboard, { size: 20 }) },
+    { id: 'finances', label: 'Finances & Commission', icon: React.createElement(Landmark, { size: 20 }) },
     { id: 'users', label: 'User Management', icon: React.createElement(Users, { size: 20 }) },
     { id: 'directory', label: 'Directory', icon: React.createElement(Store, { size: 20 }) },
     { id: 'advisories', label: 'Advisories', icon: React.createElement(BellRing, { size: 20 }) },
@@ -98,6 +102,7 @@ export const ROLE_NAV_ITEMS: Record<UserRole, NavItemConfig[]> = {
   ],
   admin: [
     { id: 'overview', label: 'Overview', icon: React.createElement(LayoutDashboard, { size: 20 }) },
+    { id: 'finances', label: 'Finances & Commission', icon: React.createElement(Landmark, { size: 20 }) },
     { id: 'users', label: 'User Management', icon: React.createElement(Users, { size: 20 }) },
     { id: 'directory', label: 'Directory', icon: React.createElement(Store, { size: 20 }) },
     { id: 'approvals', label: 'Approvals', icon: React.createElement(CheckSquare, { size: 20 }) },

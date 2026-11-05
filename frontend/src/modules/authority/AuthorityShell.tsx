@@ -74,6 +74,7 @@ import {
   type IssueStatus,
   type HostApplication,
 } from '../../api/community';
+import { OwnerFinancialControlCenter } from './OwnerFinancialControlCenter';
 
 interface AuthorityShellProps {
   activeTab: string;
@@ -2333,6 +2334,13 @@ export const AuthorityShell: React.FC<AuthorityShellProps> = ({ activeTab, isMob
           </div>
         );
       })()}
+
+      {/* ===================================================================== */}
+      {/* TAB: FINANCES & COMMISSION COMMAND CENTER */}
+      {/* ===================================================================== */}
+      {activeTab === 'finances' && (
+        <OwnerFinancialControlCenter />
+      )}
 
       {/* ===================================================================== */}
       {/* TAB 2: ADVISORIES */}

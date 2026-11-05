@@ -137,25 +137,40 @@ const MainAppContent: React.FC = () => {
     }
   }, []);
 
-  // When auth state changes, sync active role and load public page by default
+  // When auth state changes, sync active role and load default page
   useEffect(() => {
     if (!isTourOpen && user && user.role) {
       const targetRole = (user.role === 'authority' ? 'admin' : user.role) as UserRole;
       if (targetRole !== role) {
         setRole(targetRole);
-        setActiveTab('home');
+        const isHotel = targetRole === 'business' && (!user?.business_profile?.primary_type || user?.business_profile?.primary_type === 'hotel');
+        setActiveTab(isHotel ? 'today' : 'home');
       }
     }
   }, [user, isTourOpen]);
 
-  // If business role and restaurant, ensure activeTab isn't today or availability
+  // If business role and restaurant/hotel, ensure activeTab is valid
   useEffect(() => {
-    if (role === 'business' && user?.business_profile?.primary_type === 'restaurant') {
-      if (activeTab === 'today' || activeTab === 'availability') {
-        setActiveTab('listings');
+    if (role === 'business') {
+      const pType = user?.business_profile?.primary_type;
+      if (pType === 'restaurant') {
+        if (activeTab === 'today' || activeTab === 'availability') {
+          setActiveTab('listings');
+        }
+      } else if (!pType || pType === 'hotel') {
+        if (activeTab === 'home') {
+          setActiveTab('today');
+        }
       }
     }
   }, [role, user?.business_profile?.primary_type, activeTab]);
+
+  // Guard My Bookings tab: only accessible to authenticated tourist users
+  useEffect(() => {
+    if (activeTab === 'bookings' && (!user || user.role !== 'tourist')) {
+      setActiveTab('home');
+    }
+  }, [activeTab, user]);
 
   const handleAuthSuccess = (authUser: UserProfile) => {
     if (window.location.search) {
@@ -163,8 +178,8 @@ const MainAppContent: React.FC = () => {
     }
     const targetRole = (authUser.role === 'authority' ? 'admin' : authUser.role) as UserRole;
     setRole(targetRole);
-    // When any user logs in, load public page by default
-    setActiveTab('home');
+    const isHotel = targetRole === 'business' && (!authUser?.business_profile?.primary_type || authUser?.business_profile?.primary_type === 'hotel');
+    setActiveTab(isHotel ? 'today' : 'home');
   };
 
   const handleLogout = () => {
@@ -341,54 +356,6 @@ const MainAppContent: React.FC = () => {
           {/* Universal Phone / Web View Switcher */}
           <ViewSwitch currentMode={viewMode} onModeChange={handleViewModeChange} />
 
-          {/* Direct My Bookings Button for Guest Tourist */}
-          <button
-            type="button"
-            className="btn-header-my-bookings"
-            onClick={() => {
-              setRole('tourist');
-              setActiveTab('bookings');
-            }}
-            data-testid="btn-header-my-bookings"
-            title="View your bookings, reservations, and digital travel passes"
-            aria-label="My Bookings"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              height: '30px',
-              minHeight: '0px',
-              maxHeight: '30px',
-              boxSizing: 'border-box',
-              padding: '0 12px',
-              borderRadius: '20px',
-              backgroundColor: activeTab === 'bookings' ? 'var(--acc)' : 'rgba(255, 255, 255, 0.16)',
-              backdropFilter: 'blur(6px)',
-              color: '#FFFFFF',
-              border: activeTab === 'bookings' ? '1px solid var(--acc)' : '1px solid rgba(255, 255, 255, 0.35)',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--acc)';
-              e.currentTarget.style.borderColor = 'var(--acc)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              if (activeTab !== 'bookings') {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
-                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
-              }
-              e.currentTarget.style.transform = 'none';
-            }}
-          >
-            <CalendarCheck size={13} />
-            <span>My Bookings</span>
-          </button>
-
           {/* List Your Property Partner CTA */}
           <button
             type="button"
@@ -522,53 +489,55 @@ const MainAppContent: React.FC = () => {
           </div>
         )}
 
-        {/* Direct My Bookings Button for Authenticated Traveler */}
-        <button
-          type="button"
-          className="btn-header-my-bookings"
-          onClick={() => {
-            setRole('tourist');
-            setActiveTab('bookings');
-          }}
-          data-testid="btn-header-my-bookings"
-          title="View your bookings, reservations, and digital travel passes"
-          aria-label="My Bookings"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            height: '30px',
-            minHeight: '0px',
-            maxHeight: '30px',
-            boxSizing: 'border-box',
-            padding: '0 12px',
-            borderRadius: '20px',
-            backgroundColor: activeTab === 'bookings' ? 'var(--acc)' : 'rgba(255, 255, 255, 0.16)',
-            backdropFilter: 'blur(6px)',
-            color: '#FFFFFF',
-            border: activeTab === 'bookings' ? '1px solid var(--acc)' : '1px solid rgba(255, 255, 255, 0.35)',
-            fontSize: '11.5px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'var(--acc)';
-            e.currentTarget.style.borderColor = 'var(--acc)';
-            e.currentTarget.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            if (activeTab !== 'bookings') {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
-            }
-            e.currentTarget.style.transform = 'none';
-          }}
-        >
-          <CalendarCheck size={13} />
-          <span>My Bookings</span>
-        </button>
+        {/* Direct My Bookings Button ONLY for Authenticated Tourist */}
+        {user.role === 'tourist' && (
+          <button
+            type="button"
+            className="btn-header-my-bookings"
+            onClick={() => {
+              setRole('tourist');
+              setActiveTab('bookings');
+            }}
+            data-testid="btn-header-my-bookings"
+            title="View your bookings, reservations, and digital travel passes"
+            aria-label="My Bookings"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              height: '30px',
+              minHeight: '0px',
+              maxHeight: '30px',
+              boxSizing: 'border-box',
+              padding: '0 12px',
+              borderRadius: '20px',
+              backgroundColor: activeTab === 'bookings' ? 'var(--acc)' : 'rgba(255, 255, 255, 0.16)',
+              backdropFilter: 'blur(6px)',
+              color: '#FFFFFF',
+              border: activeTab === 'bookings' ? '1px solid var(--acc)' : '1px solid rgba(255, 255, 255, 0.35)',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--acc)';
+              e.currentTarget.style.borderColor = 'var(--acc)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'bookings') {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.16)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.35)';
+              }
+              e.currentTarget.style.transform = 'none';
+            }}
+          >
+            <CalendarCheck size={13} />
+            <span>My Bookings</span>
+          </button>
+        )}
 
         <button
           type="button"
@@ -644,7 +613,7 @@ const MainAppContent: React.FC = () => {
             : role === 'tourist'
             ? [
                 { id: 'home', label: 'Explore Swat', icon: <Compass size={20} /> },
-                { id: 'bookings', label: 'My Bookings', icon: <CalendarCheck size={20} /> },
+                ...(user && user.role === 'tourist' ? [{ id: 'bookings', label: 'My Bookings', icon: <CalendarCheck size={20} /> }] : []),
                 { id: 'trips', label: 'Trips', icon: <CalendarDays size={20} /> },
                 { id: 'safety', label: 'Safety', icon: <ShieldAlert size={20} /> },
                 { id: 'profile', label: 'Profile', icon: <UserIcon size={20} /> },

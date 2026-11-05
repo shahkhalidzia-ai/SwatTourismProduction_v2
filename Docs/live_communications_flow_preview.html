@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Swat Tourism Platform - Live Communications Flow Preview</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0B131E;
+      color: #E2E8F0;
+      margin: 0;
+      padding: 30px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #007A55;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 26px;
+      color: #F8FAFC;
+      margin: 6px 0;
+    }
+    .subtitle {
+      color: #94A3B8;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(540px, 1fr));
+      gap: 30px;
+    }
+    .stage-card {
+      background: #131E2D;
+      border: 1px solid #1E2D42;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+    }
+    .stage-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      border-bottom: 1px dashed #24354D;
+      padding-bottom: 12px;
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #007A55;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    .stage-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #F1F5F9;
+    }
+    .phone-mockup {
+      background: #111B21;
+      border-radius: 18px;
+      padding: 16px;
+      border: 2px solid #202C33;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    .wa-header {
+      color: #25D366;
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .wa-bubble {
+      background: #005C4B;
+      color: #E9EDEF;
+      padding: 12px 14px;
+      border-radius: 12px 12px 2px 12px;
+      white-space: pre-wrap;
+      line-height: 1.45;
+      font-family: inherit;
+      border-left: 3px solid #25D366;
+    }
+    .email-mockup {
+      background: #FFFFFF;
+      color: #1E293B;
+      border-radius: 12px;
+      padding: 18px;
+      font-size: 13px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .email-header {
+      border-bottom: 1px solid #E2E8F0;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .email-subj {
+      font-weight: bold;
+      color: #0F4C81;
+      font-size: 14px;
+    }
+    .email-to {
+      color: #64748B;
+      font-size: 11.5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">KPCTA Official Service</span>
+      <h1>Swat Tourism Platform — Communications Gateway Flow</h1>
+      <p class="subtitle">Real-time simulation of Tourist & Hotel WhatsApp & Transactional Email Dispatches</p>
+    </div>
+
+    <div class="grid">
+      <!-- Stage 1 Hotel Alert -->
+      <div class="stage-card">
+        <div class="stage-header">
+          <div class="step-num">1A</div>
+          <div class="stage-title">Hotel Alert (create_booking)</div>
+        </div>
+        <div class="phone-mockup">
+          <div class="wa-header">💬 WhatsApp Business Notification • Hotel Manager</div>
+          <div class="wa-bubble">🏨 *NEW RESERVATION ALERT - SWAT SERENA HOTEL*
+
+Dear Management,
+A new verified booking request has been placed on Swat Tourism Platform:
+
+📋 *Booking Reference:* `SWT-GF07O1`
+👤 *Guest Name:* Sara Ahmed (+923001234567)
+📅 *Stay Dates:* 2026-11-05 to 2026-11-07
+🛏️ *Reserved Units:* Executive Deluxe River Suite
+💰 *Total Booking Value:* PKR 37,000.00
+💳 *Payment Guarantee:* Pay at Hotel on Arrival (Confirmed Guarantee)
+📝 *Special Requests:* High floor with quiet garden view
+
+👉 *Open Business Portal to Review & Assign Room:*
+https://swattourism.pk/business/bookings</div>
+        </div>
+      </div>
+
+      <!-- Stage 1 Tourist Receipt -->
+      <div class="stage-card">
+        <div class="stage-header">
+          <div class="step-num">1B</div>
+          <div class="stage-title">Tourist Booking Receipt (create_booking)</div>
+        </div>
+        <div class="phone-mockup">
+          <div class="wa-header">💬 WhatsApp Notification • Tourist</div>
+          <div class="wa-bubble">📋 *BOOKING RECEIPT - SWAT TOURISM*
+
+Dear Sara Ahmed,
+Thank you for choosing Swat Valley! We have registered your reservation request:
+
+🏨 *Property / Service:* Swat Serena Hotel
+🔖 *Booking Reference:* `SWT-GF07O1`
+📅 *Dates:* 2026-11-05 to 2026-11-07
+🛏️ *Stay Details:* Executive Deluxe River Suite
+💵 *Amount Paid Today:* PKR 0.00
+💳 *Payment Mode:* Pay at Hotel on Arrival
+🏦 *Balance Due at Hotel:* PKR 37,000.00
+
+📄 *Track Your Booking & Updates:*
+https://swattourism.pk/my-bookings
+
+📞 *24/7 Swat Tourist Police Helpline:* 0946-9240400 | Rescue 1122</div>
+        </div>
+      </div>
+
+      <!-- Stage 2 Confirmed Voucher -->
+      <div class="stage-card">
+        <div class="stage-header">
+          <div class="step-num">2</div>
+          <div class="stage-title">Official Confirmed Voucher (accept_booking)</div>
+        </div>
+        <div class="phone-mockup">
+          <div class="wa-header">🌟 WhatsApp Pass • Tourist Official Voucher</div>
+          <div class="wa-bubble">🌟 *SWAT TOURISM OFFICIAL BOOKING VOUCHER*
+
+Dear Sara Ahmed,
+Your reservation for *Swat Serena Hotel* is officially *CONFIRMED*!
+
+📋 *Booking Reference:* `SWT-GF07O1`
+🛡️ *KPCTA Verification Code:* `KPCTA-SWT-GF07O1`
+📅 *Stay Dates:* 2026-11-05 to 2026-11-07
+🛏️ *Room / Stay Details:* Executive Deluxe River Suite
+💳 *Payment Guarantee:* Confirmed Guarantee
+💰 *Amount Paid:* PKR 0.00
+💵 *Balance Due at Check-In:* PKR 37,000.00
+
+📄 *View & Download Official PDF Voucher & QR Pass:*
+https://swattourism.pk/bookings/a025eb02-2f77-4d55-8cf9-0e6c09ed8d8f/voucher
+
+📍 *Hotel GPS Directions:* https://maps.google.com/?q=Mingora+Swat
+📞 *24/7 Swat Tourist Police & Emergency Helpline:* 0946-9240400 | Rescue 1122</div>
+        </div>
+      </div>
+
+      <!-- Stage 3 Checkout Review -->
+      <div class="stage-card">
+        <div class="stage-header">
+          <div class="step-num">3</div>
+          <div class="stage-title">Checkout 5-Star Review Invite (complete_booking)</div>
+        </div>
+        <div class="phone-mockup">
+          <div class="wa-header">⭐ WhatsApp Review • Tourist Rating</div>
+          <div class="wa-bubble">⭐ *HOW WAS YOUR STAY AT SWAT SERENA HOTEL?*
+
+Dear Sara Ahmed,
+We hope you had a serene and pleasant stay during your trip (2026-11-05 to 2026-11-07)!
+
+Your feedback empowers verified local hospitality operators and guides other travellers.
+
+Please take 1 minute to rate your stay and leave a verified review:
+👉 https://swattourism.pk/reviews/new?booking_id=a025eb02-2f77-4d55-8cf9-0e6c09ed8d8f&ref=SWT-GF07O1
+
+Thank you for traveling with the Swat Tourism Platform!
+Khyber Pakhtunkhwa Culture & Tourism Authority (KPCTA)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

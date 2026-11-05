@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { BookingRow, BusinessBookingSummary } from './BusinessShell';
 import {
   CheckCircle,
+  CheckCircle2,
   Clock,
   XCircle,
   Bed,
@@ -19,6 +20,8 @@ import {
   LayoutGrid,
   List,
   X,
+  MessageSquare,
+  Mail,
 } from 'lucide-react';
 import { AssignRoomModal } from './AssignRoomModal';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
@@ -566,6 +569,65 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated'));
   };
 
+  const handleShareWhatsAppBooking = (booking: BookingRow) => {
+    const rawTourist = (booking.rawBooking as any)?.tourist || {};
+    const guestPhone = (
+      booking.touristPhone ||
+      rawTourist.whatsapp_number ||
+      rawTourist.phone ||
+      rawTourist.phone_number ||
+      ''
+    ).replace(/[^0-9]/g, '');
+    const roomDetails = getBookingRoomDetails(booking);
+    const assignedRoom = physicalRooms.find((r) => r.current_booking_id === booking.id || r.current_booking_id === booking.reference);
+    const effectiveRoom = assignedRoom ? `Room ${assignedRoom.room_number}` : (booking.assigned_room_number ? `Room ${booking.assigned_room_number}` : 'Reserved Unit');
+    const rawAmt = Number(booking.rawAmount) || 0;
+    const isCollected = Boolean(collectedBalanceMap[booking.id] || collectedBalanceMap[booking.reference]);
+    const balanceDue = isCollected ? 0 : Math.max(0, rawAmt - (booking.deposit_amount || 0));
+
+    const text = encodeURIComponent(
+      `🏨 *${safeBusinessName} - Reservation Confirmation*\n\n` +
+      `Dear ${booking.tourist},\n` +
+      `Your booking at *${safeBusinessName}* is confirmed!\n\n` +
+      `📋 *Booking Ref:* ${booking.reference}\n` +
+      `🛏️ *Room Allocated:* ${effectiveRoom} (${roomDetails.roomType})\n` +
+      `📅 *Stay Schedule:* ${booking.dates}\n` +
+      `💰 *Total Cost:* PKR ${rawAmt.toLocaleString()}\n` +
+      `💵 *Folio Balance:* ${balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()} (due upon desk check-in)` : 'Zero balance - fully paid'}\n\n` +
+      `📍 *Location:* Mingora, Swat Valley, Khyber Pakhtunkhwa\n` +
+      `🌐 *Digital Key & Voucher:* https://swattourism.pk/my-bookings?ref=${booking.reference}\n\n` +
+      `For any front desk assistance, reply to this message. We look forward to welcoming you!`
+    );
+    window.open(`https://wa.me/${guestPhone}?text=${text}`, '_blank');
+  };
+
+  const handleShareEmailBooking = (booking: BookingRow) => {
+    const guestEmail = booking.touristEmail || (booking.rawBooking as any)?.tourist?.email || '';
+    const roomDetails = getBookingRoomDetails(booking);
+    const assignedRoom = physicalRooms.find((r) => r.current_booking_id === booking.id || r.current_booking_id === booking.reference);
+    const effectiveRoom = assignedRoom ? `Room ${assignedRoom.room_number}` : (booking.assigned_room_number ? `Room ${booking.assigned_room_number}` : 'Reserved Unit');
+    const rawAmt = Number(booking.rawAmount) || 0;
+    const isCollected = Boolean(collectedBalanceMap[booking.id] || collectedBalanceMap[booking.reference]);
+    const balanceDue = isCollected ? 0 : Math.max(0, rawAmt - (booking.deposit_amount || 0));
+
+    const subject = encodeURIComponent(`Booking Confirmation: ${booking.reference} - ${safeBusinessName}`);
+    const body = encodeURIComponent(
+      `Dear ${booking.tourist},\n\n` +
+      `Thank you for choosing ${safeBusinessName}. Your reservation is confirmed.\n\n` +
+      `RESERVATION DETAILS:\n` +
+      `----------------------------------------\n` +
+      `Booking Reference: ${booking.reference}\n` +
+      `Room Allocated: ${effectiveRoom} (${roomDetails.roomType})\n` +
+      `Stay Schedule: ${booking.dates}\n` +
+      `Total Cost: PKR ${rawAmt.toLocaleString()}\n` +
+      `Folio Balance: ${balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()} (due upon desk check-in)` : 'Zero balance - fully paid'}\n\n` +
+      `Property Address: Mingora, Swat Valley, Khyber Pakhtunkhwa\n` +
+      `Digital Key & Guest Pass: https://swattourism.pk/my-bookings?ref=${booking.reference}\n\n` +
+      `Best regards,\nFront Desk & Guest Services\n${safeBusinessName}`
+    );
+    window.open(`mailto:${guestEmail}?subject=${subject}&body=${body}`, '_self');
+  };
+
   const [weekOffset, setWeekOffset] = useState<number>(0);
 
   // Dynamic current week days (starts on Monday of active week, e.g. Mon 19 - Sun 25)
@@ -975,6 +1037,27 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 {booking.touristEmail && (
                   <span style={{ fontSize: '11px', color: '#64748B' }}>
                     ({booking.touristEmail})
+                  </span>
+                )}
+                {['accepted', 'confirmed', 'checked_in', 'checked_out'].includes(effStatus) && (
+                  <span
+                    data-testid={`badge-comm-sent-${booking.reference}`}
+                    title="Official booking confirmation voucher dispatched automatically via WhatsApp & Email gateway to tourist"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      fontSize: '9.5px',
+                      fontWeight: 700,
+                      color: '#047857',
+                      background: '#ECFDF5',
+                      border: '1px solid #A7F3D0',
+                      padding: '1px 5px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <CheckCircle2 size={10} color="#059669" />
+                    <span>✓ WhatsApp &amp; Email Sent</span>
                   </span>
                 )}
               </div>
@@ -1756,6 +1839,56 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 >
                   <FileText size={11} color="#38BDF8" />
                   <span>Tax Invoice &amp; Receipt</span>
+                </button>
+
+                {/* 1-Click WhatsApp Direct Share */}
+                <button
+                  type="button"
+                  onClick={() => handleShareWhatsAppBooking(booking)}
+                  data-testid={`btn-fd-wa-${booking.reference}`}
+                  title="Share confirmation directly to tourist WhatsApp"
+                  style={{
+                    background: '#25D366',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    borderRadius: '5px',
+                    padding: '4px 8px',
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    boxShadow: '0 1px 3px rgba(37, 211, 102, 0.25)',
+                  }}
+                >
+                  <MessageSquare size={11} color="#FFFFFF" />
+                  <span>WhatsApp</span>
+                </button>
+
+                {/* 1-Click Email Direct Share */}
+                <button
+                  type="button"
+                  onClick={() => handleShareEmailBooking(booking)}
+                  data-testid={`btn-fd-email-${booking.reference}`}
+                  title="Send confirmation letter via email to tourist"
+                  style={{
+                    background: '#0284C7',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    borderRadius: '5px',
+                    padding: '4px 8px',
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    boxShadow: '0 1px 3px rgba(2, 132, 199, 0.2)',
+                  }}
+                >
+                  <Mail size={11} color="#FFFFFF" />
+                  <span>Email</span>
                 </button>
               </div>
             </>

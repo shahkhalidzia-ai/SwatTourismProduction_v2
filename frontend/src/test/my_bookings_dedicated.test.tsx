@@ -176,11 +176,20 @@ describe('Dedicated My Bookings Page and Workflow', () => {
     vi.spyOn(bookingsApi, 'fetchMyBookings').mockResolvedValue(sampleBookings);
   });
 
-  it('1. Navigation & Accessibility: renders My Bookings tab in tourist navigation and direct button in header', async () => {
+  it('1. Navigation & Accessibility: renders My Bookings tab in tourist navigation and direct button in header only for logged in tourist', async () => {
     render(<App />);
 
-    // Check direct button in header for guest and travelers
-    const headerMyBookingsBtn = screen.getByTestId('btn-header-my-bookings');
+    // When no user is logged in, My Bookings button should NOT be visible
+    expect(screen.queryByTestId('btn-header-my-bookings')).not.toBeInTheDocument();
+
+    // Login as demo tourist Sara Ahmed
+    const touristBtn = screen.getByTitle(/Login as demo Sara Ahmed/i);
+    await act(async () => {
+      fireEvent.click(touristBtn);
+    });
+
+    // Check direct button in header is now visible for authenticated tourist
+    const headerMyBookingsBtn = await screen.findByTestId('btn-header-my-bookings');
     expect(headerMyBookingsBtn).toBeInTheDocument();
     expect(headerMyBookingsBtn.textContent).toContain('My Bookings');
 
@@ -194,16 +203,9 @@ describe('Dedicated My Bookings Page and Workflow', () => {
       expect(screen.getAllByText('My Bookings & Reservations').length).toBeGreaterThanOrEqual(1);
     });
 
-    // Login as demo tourist Sara Ahmed to inspect sidebar navigation
-    const touristBtn = screen.getByTitle(/Login as demo Sara Ahmed/i);
-    await act(async () => {
-      fireEvent.click(touristBtn);
-    });
-
-    await waitFor(() => {
-      const navTabBookings = screen.getByTestId('nav-tab-bookings');
-      expect(navTabBookings).toBeInTheDocument();
-    });
+    // Verify navigation tab for bookings is rendered for logged-in tourist
+    const navTabBookings = screen.getByTestId('nav-tab-bookings');
+    expect(navTabBookings).toBeInTheDocument();
   });
 
   it('2. Comprehensive Booking Dashboard: displays all service bookings across categories, item breakdown, and status badges', async () => {

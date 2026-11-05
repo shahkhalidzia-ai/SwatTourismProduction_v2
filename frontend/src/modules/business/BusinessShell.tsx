@@ -35,6 +35,7 @@ import { TransportFleetManager, getFleetVehiclesForProvider } from './TransportF
 import { HotelTodayScreen } from './HotelTodayScreen';
 import { LiveRoomRackBoard } from './LiveRoomRackBoard';
 import { getPhysicalRoomsForHotel } from './physicalRooms';
+import { OperatorEarningsInvoicesView } from './OperatorEarningsInvoicesView';
 import {
   fetchMyListings,
   createListing,
@@ -86,6 +87,7 @@ export interface BookingRow {
   reference: string;
   tourist: string;
   touristEmail?: string;
+  touristPhone?: string;
   item: string;
   dates: string;
   amount: string;
@@ -1025,27 +1027,38 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
   // Business Profile In-App Edit Form State (Gap 1.1)
   const [editBizName, setEditBizName] = useState(user?.business_profile?.business_name || 'Swat Serena Hotel');
   const [editRegNo, setEditRegNo] = useState(user?.business_profile?.registration_no || 'KP-HOTEL-SERENA-001');
+  const [editEmail, setEditEmail] = useState(user?.email || 'hotel@swattourism.pk');
   const [editPhone, setEditPhone] = useState(user?.business_profile?.contact_phone || user?.phone || '+92 946 711640');
-  const [editWhatsapp, setEditWhatsapp] = useState(user?.business_profile?.whatsapp_number || '+92 300 1234567');
-  const [editAddress, setEditAddress] = useState(user?.business_profile?.address_text || 'Saidu Sharif, Swat Valley');
+  const [editWhatsapp, setEditWhatsapp] = useState(user?.business_profile?.whatsapp_number || user?.whatsapp_number || '+92 300 1234567');
+  const [editAddress, setEditAddress] = useState(user?.business_profile?.address_text || user?.address_text || 'Saidu Sharif, Swat Valley');
   const [editAccommodationType, setEditAccommodationType] = useState((user?.business_profile as any)?.accommodation_type || 'Hotel');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   useEffect(() => {
-    if (user?.business_profile) {
-      if (user.business_profile.business_name) setEditBizName(user.business_profile.business_name);
-      if (user.business_profile.registration_no) setEditRegNo(user.business_profile.registration_no);
-      if (user.business_profile.contact_phone) setEditPhone(user.business_profile.contact_phone);
-      if (user.business_profile.whatsapp_number) setEditWhatsapp(user.business_profile.whatsapp_number);
-      if (user.business_profile.address_text) setEditAddress(user.business_profile.address_text);
-      if ((user.business_profile as any).accommodation_type) setEditAccommodationType((user.business_profile as any).accommodation_type);
-      setVerificationStatus({
-        business_id: user.business_profile.id,
-        business_name: user.business_profile.business_name,
-        verification_status: (user.business_profile.verification_status as any) || 'unverified',
-        registration_no: user.business_profile.registration_no || 'PENDING',
-        documents: [],
-      });
+    if (user) {
+      if (user.email) setEditEmail(user.email);
+      if (user.business_profile) {
+        if (user.business_profile.business_name) setEditBizName(user.business_profile.business_name);
+        if (user.business_profile.registration_no) setEditRegNo(user.business_profile.registration_no);
+        if (user.business_profile.contact_phone) setEditPhone(user.business_profile.contact_phone);
+        else if (user.phone) setEditPhone(user.phone);
+        if (user.business_profile.whatsapp_number) setEditWhatsapp(user.business_profile.whatsapp_number);
+        else if (user.whatsapp_number) setEditWhatsapp(user.whatsapp_number);
+        if (user.business_profile.address_text) setEditAddress(user.business_profile.address_text);
+        else if (user.address_text) setEditAddress(user.address_text);
+        if ((user.business_profile as any).accommodation_type) setEditAccommodationType((user.business_profile as any).accommodation_type);
+        setVerificationStatus({
+          business_id: user.business_profile.id,
+          business_name: user.business_profile.business_name,
+          verification_status: (user.business_profile.verification_status as any) || 'unverified',
+          registration_no: user.business_profile.registration_no || 'PENDING',
+          documents: [],
+        });
+      } else {
+        if (user.phone) setEditPhone(user.phone);
+        if (user.whatsapp_number) setEditWhatsapp(user.whatsapp_number);
+        if (user.address_text) setEditAddress(user.address_text);
+      }
     }
   }, [user]);
 
@@ -1057,17 +1070,19 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
         body: JSON.stringify({
           business_name: editBizName.trim(),
           registration_no: editRegNo.trim(),
-          contact_phone: editPhone.trim(),
-          whatsapp_number: editWhatsapp.trim(),
-          address_text: editAddress.trim(),
+          email: editEmail.trim() || undefined,
+          phone: editPhone.trim() || undefined,
+          contact_phone: editPhone.trim() || undefined,
+          whatsapp_number: editWhatsapp.trim() || undefined,
+          address_text: editAddress.trim() || undefined,
           accommodation_type: currentBizType === 'hotel' ? editAccommodationType : undefined,
         }),
       });
       if (refreshUser) await refreshUser();
       setVerificationStatus((prev) => prev ? { ...prev, business_name: editBizName.trim(), registration_no: editRegNo.trim() } : prev);
       showToast('Business profile updated successfully!');
-    } catch {
-      showToast('Business profile updated successfully (local demo mode)!');
+    } catch (err: any) {
+      showToast(err?.message || 'Error updating business profile.');
     } finally {
       setIsSavingProfile(false);
     }
@@ -1271,6 +1286,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               reference: b.reference,
               tourist: b.tourist?.full_name || 'Guest Tourist',
               touristEmail: b.tourist?.email,
+              touristPhone: (b.tourist as any)?.whatsapp_number || (b.tourist as any)?.phone,
               item: currentBizType === 'hotel' && roomType ? roomType : (b.listing?.title || roomType || 'Booking Service'),
               dates: b.end_date ? `${b.start_date} – ${b.end_date}` : b.start_date,
               amount: `Rs ${Number(b.total_amount).toLocaleString()}`,
@@ -1464,10 +1480,10 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       .then((s) => s && setVerificationStatus(s))
       .catch(() => {});
     fetchMyDocuments()
-      .then((d) => d && setUploadedDocs(d))
+      .then((d) => Array.isArray(d) && setUploadedDocs(d))
       .catch(() => {});
     fetchBusinessReviews()
-      .then((r) => r && setReviewsList(r))
+      .then((r) => Array.isArray(r) && setReviewsList(r))
       .catch(() => {});
 
     return () => {
@@ -3593,6 +3609,29 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                  Official Email Address
+                </label>
+                <input
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="e.g. manager@swatserena.com"
+                  data-testid="input-edit-email"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
                   Primary Contact Phone
                 </label>
                 <input
@@ -3615,9 +3654,29 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
-                  WhatsApp Support Number
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)' }}>
+                    WhatsApp Support Number
+                  </label>
+                  {editPhone && editPhone !== editWhatsapp && (
+                    <button
+                      type="button"
+                      onClick={() => setEditWhatsapp(editPhone)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        padding: 0,
+                        fontWeight: 600,
+                      }}
+                      title="Use contact phone number for WhatsApp"
+                    >
+                      Same as phone
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={editWhatsapp}
@@ -3814,7 +3873,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
             {/* Document List */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {uploadedDocs.map((doc, idx) => (
+              {(Array.isArray(uploadedDocs) ? uploadedDocs : []).map((doc, idx) => (
                 <div
                   key={idx}
                   style={{
@@ -3842,6 +3901,15 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
             </div>
           </Card>
         </div>
+      )}
+
+      {/* Invoices & Commission Tab */}
+      {activeTab === 'invoices' && (
+        <OperatorEarningsInvoicesView
+          businessId={user?.business_profile?.id}
+          businessName={currentBizName}
+          primaryType={currentBizType}
+        />
       )}
 
       {/* Decline Reason Modal */}

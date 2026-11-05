@@ -33,6 +33,7 @@ export interface MyBookingsViewProps {
   onWithdrawBooking: (bookingId: string) => Promise<void>;
   onPayBooking?: (bookingId: string) => void;
   onRateBooking?: (booking: Booking) => void;
+  onCompleteBooking?: (bookingId: string) => Promise<void>;
   onExploreServices?: () => void;
   onOpenAuth?: (mode?: 'login' | 'register') => void;
   isGuest?: boolean;
@@ -47,6 +48,7 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
   onWithdrawBooking,
   onPayBooking,
   onRateBooking,
+  onCompleteBooking,
   onExploreServices,
   onOpenAuth,
   isGuest = false,
@@ -1205,8 +1207,37 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
                         borderColor: 'var(--acc)',
                       }}
                     >
-                      <Star size={13} />
-                      <span>Rate & Review</span>
+                      <Star size={13} fill="var(--acc)" />
+                      <span>★ Rate Stay / Write Review</span>
+                    </Button>
+                  )}
+
+                  {/* Conclude Stay & Rate for Confirmed / Accepted Stays */}
+                  {(onCompleteBooking || onRateBooking) && (b.status === 'confirmed' || b.status === 'accepted') && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={async () => {
+                        if (onCompleteBooking) {
+                          await onCompleteBooking(b.id);
+                        } else if (onRateBooking) {
+                          onRateBooking(b);
+                        }
+                      }}
+                      data-testid={`btn-complete-booking-${b.reference || b.id}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: '#059669',
+                        borderColor: 'rgba(5, 150, 105, 0.4)',
+                        backgroundColor: 'rgba(5, 150, 105, 0.08)',
+                      }}
+                    >
+                      <CheckCircle2 size={13} />
+                      <span>Conclude Stay &amp; Rate</span>
                     </Button>
                   )}
 

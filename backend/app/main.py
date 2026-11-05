@@ -16,6 +16,9 @@ from app.modules.verification.router import router as verification_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.content.router import router as content_router
 from app.modules.reviews.router import router as reviews_router
+from app.modules.communications.router import router as communications_router
+from app.modules.finance.router import router as finance_router
+import app.modules.finance.models  # ensure models are registered with Base.metadata
 
 
 @asynccontextmanager
@@ -38,7 +41,10 @@ async def lifespan(app: FastAPI):
                         ("reset_token_expires_at", "DATETIME"),
                         ("phone_otp", "VARCHAR(10)"),
                         ("phone_otp_expires_at", "DATETIME"),
-                        ("is_phone_verified", "BOOLEAN DEFAULT 0 NOT NULL")
+                        ("is_phone_verified", "BOOLEAN DEFAULT 0 NOT NULL"),
+                        ("whatsapp_number", "VARCHAR(20)"),
+                        ("address_text", "TEXT"),
+                        ("demo_role", "VARCHAR(30)")
                     ]
                     for col_name, col_type in new_cols:
                         if col_name not in cols:
@@ -125,6 +131,18 @@ os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 
+import logging
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+logger = logging.getLogger("uvicorn.error")
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
+    return JSONResponse(status_code=500, content={"detail": f"Internal server error: {exc}"})
+
+
 # Health check
 @app.get("/health", tags=["system"])
 async def health_check():
@@ -149,3 +167,5 @@ app.include_router(verification_router, prefix=api_v1_prefix)
 app.include_router(notifications_router, prefix=api_v1_prefix)
 app.include_router(content_router, prefix=api_v1_prefix)
 app.include_router(reviews_router, prefix=api_v1_prefix)
+app.include_router(communications_router, prefix=api_v1_prefix)
+app.include_router(finance_router, prefix=api_v1_prefix)

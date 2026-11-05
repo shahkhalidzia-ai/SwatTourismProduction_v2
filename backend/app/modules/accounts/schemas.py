@@ -65,6 +65,8 @@ class UserOut(BaseModel):
     id: uuid.UUID
     email: Optional[str] = None
     phone: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+    address_text: Optional[str] = None
     role: RoleType
     full_name: str
     language: str
@@ -190,10 +192,16 @@ class AuthMessageResponse(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    whatsapp_number: Optional[str] = None
+    address_text: Optional[str] = None
+    address: Optional[str] = None
     avatar_url: Optional[str] = None
     language: Optional[Literal["en", "ur", "ps"]] = None
     theme: Optional[Literal["lake", "glass"]] = None
     reduce_effects: Optional[bool] = None
+    password: Optional[str] = None
     
     # Tourist
     home_city: Optional[str] = None
@@ -208,14 +216,34 @@ class UpdateProfileRequest(BaseModel):
     business_name: Optional[str] = None
     accommodation_type: Optional[str] = None
     contact_phone: Optional[str] = None
-    whatsapp_number: Optional[str] = None
-    address_text: Optional[str] = None
     registration_no: Optional[str] = None
     area_id: Optional[uuid.UUID] = None
 
     # Community
     bio: Optional[str] = None
-    area_id: Optional[uuid.UUID] = None
     member_type: Optional[Literal["resident", "host", "artisan"]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_profile_fields(cls, data: dict):
+        if isinstance(data, dict):
+            for field in [
+                "full_name",
+                "email",
+                "phone",
+                "contact_phone",
+                "whatsapp_number",
+                "address_text",
+                "address",
+                "emergency_contact_name",
+                "emergency_contact_phone",
+                "business_name",
+                "registration_no",
+                "bio",
+            ]:
+                if field in data and isinstance(data[field], str):
+                    stripped = data[field].strip()
+                    data[field] = stripped if stripped else None
+        return data
 
     model_config = ConfigDict(extra="forbid")

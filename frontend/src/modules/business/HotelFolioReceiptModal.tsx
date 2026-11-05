@@ -5,6 +5,8 @@ import {
   QrCode,
   ShieldCheck,
   FileText,
+  MessageSquare,
+  Mail,
 } from 'lucide-react';
 import type { BookingRow } from './BusinessShell';
 import { getBookingRoomDetails } from './physicalRooms';
@@ -53,6 +55,51 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
     window.print();
   };
 
+  const handleShareWhatsApp = () => {
+    const rawTourist = (booking.rawBooking as any)?.tourist || {};
+    const guestPhone = (
+      booking.touristPhone ||
+      rawTourist.whatsapp_number ||
+      rawTourist.phone ||
+      rawTourist.phone_number ||
+      ''
+    ).replace(/[^0-9]/g, '');
+    const text = encodeURIComponent(
+      `🏨 *${hotelName} - Reservation Confirmation*\n\n` +
+      `Dear ${booking.tourist},\n` +
+      `Your booking at *${hotelName}* is confirmed!\n\n` +
+      `📋 *Booking Ref:* ${booking.reference}\n` +
+      `🛏️ *Room Allocated:* ${effectiveRoom} (${effectiveCategory})\n` +
+      `📅 *Stay Dates:* ${booking.dates}\n` +
+      `💰 *Total Amount:* PKR ${rawTotal.toLocaleString()}\n` +
+      `💵 *Folio Balance:* ${remainingDue > 0 ? `PKR ${remainingDue.toLocaleString()} (Due on arrival)` : 'Zero balance - fully paid'}\n\n` +
+      `📍 *Location:* ${hotelAddress}\n` +
+      `🌐 *Digital Key & Voucher:* https://swattourism.pk/my-bookings?ref=${booking.reference}\n\n` +
+      `For any front desk assistance, reply to this message. We look forward to welcoming you!`
+    );
+    window.open(`https://wa.me/${guestPhone}?text=${text}`, '_blank');
+  };
+
+  const handleShareEmail = () => {
+    const guestEmail = booking.touristEmail || (booking.rawBooking as any)?.tourist?.email || '';
+    const subject = encodeURIComponent(`Booking Confirmation: ${booking.reference} - ${hotelName}`);
+    const body = encodeURIComponent(
+      `Dear ${booking.tourist},\n\n` +
+      `Thank you for choosing ${hotelName}. Your reservation is confirmed.\n\n` +
+      `RESERVATION DETAILS:\n` +
+      `----------------------------------------\n` +
+      `Booking Reference: ${booking.reference}\n` +
+      `Room Allocated: ${effectiveRoom} (${effectiveCategory})\n` +
+      `Stay Schedule: ${booking.dates}\n` +
+      `Total Cost: PKR ${rawTotal.toLocaleString()}\n` +
+      `Folio Balance: ${remainingDue > 0 ? `PKR ${remainingDue.toLocaleString()} (due upon desk check-in)` : 'PKR 0 (Fully paid & guaranteed)'}\n\n` +
+      `Property Address: ${hotelAddress}\n` +
+      `Digital Key & Guest Pass: https://swattourism.pk/my-bookings?ref=${booking.reference}\n\n` +
+      `Best regards,\nFront Desk & Guest Services\n${hotelName}`
+    );
+    window.open(`mailto:${guestEmail}?subject=${subject}&body=${body}`, '_self');
+  };
+
   return (
     <div
       style={{
@@ -73,7 +120,7 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
           backgroundColor: '#FFFFFF',
           borderRadius: '18px',
           width: '100%',
-          maxWidth: '580px',
+          maxWidth: '620px',
           maxHeight: '94vh',
           display: 'flex',
           flexDirection: 'column',
@@ -92,6 +139,8 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: '1px solid #E2E8F0',
+            flexWrap: 'wrap',
+            gap: '8px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 700, color: '#0A4D68' }}>
@@ -100,7 +149,57 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
               {receiptType === 'arrival_pass' ? 'Guest Arrival & Keycard Pass' : 'Official Checkout Receipt & Folio'}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            {/* WhatsApp Share Button */}
+            <button
+              type="button"
+              onClick={handleShareWhatsApp}
+              data-testid="btn-share-whatsapp-receipt"
+              title="Share confirmed reservation directly to guest WhatsApp"
+              style={{
+                background: '#25D366',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '0 1px 3px rgba(37, 211, 102, 0.3)',
+              }}
+            >
+              <MessageSquare size={13} />
+              <span>WhatsApp</span>
+            </button>
+
+            {/* Email Share Button */}
+            <button
+              type="button"
+              onClick={handleShareEmail}
+              data-testid="btn-share-email-receipt"
+              title="Send confirmation letter via email to guest"
+              style={{
+                background: '#0284C7',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: '0 1px 3px rgba(2, 132, 199, 0.25)',
+              }}
+            >
+              <Mail size={13} />
+              <span>Email</span>
+            </button>
+
             <button
               type="button"
               onClick={handlePrint}
@@ -110,16 +209,16 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '8px',
-                padding: '6px 12px',
-                fontSize: '12px',
+                padding: '6px 10px',
+                fontSize: '11.5px',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '5px',
+                gap: '4px',
               }}
             >
-              <Printer size={14} />
+              <Printer size={13} />
               <span>Print</span>
             </button>
             <button
@@ -130,8 +229,8 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
                 background: '#FFFFFF',
                 border: '1px solid #CBD5E1',
                 borderRadius: '8px',
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -139,7 +238,7 @@ export const HotelFolioReceiptModal: React.FC<HotelFolioReceiptModalProps> = ({
                 color: '#64748B',
               }}
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
         </div>

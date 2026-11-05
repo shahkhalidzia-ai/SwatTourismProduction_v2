@@ -1,3 +1,4 @@
+import logging
 import secrets
 import string
 import uuid
@@ -19,7 +20,10 @@ from app.modules.bookings.schemas import (
 )
 from app.modules.listings.models import Listing, PriceItem, Availability
 from app.modules.notifications.service import NotificationService
+from app.modules.communications.dispatcher import CommunicationDispatcher
 from app.modules.trips.models import Trip, TripStop
+
+logger = logging.getLogger("swat_tourism.bookings")
 
 
 def generate_booking_reference() -> str:
@@ -309,7 +313,15 @@ class BookingService:
         await db.commit()
 
         # Re-fetch fully populated booking
-        return await BookingService.get_booking_by_id(db, booking.id)
+        populated_booking = await BookingService.get_booking_by_id(db, booking.id)
+
+        # Phase 2: Dispatch communications gateway triggers (WhatsApp & Email alerts)
+        try:
+            await CommunicationDispatcher.dispatch_booking_created(db, populated_booking)
+        except Exception as comm_err:
+            logger.warning(f"Communications gateway error in create_booking: {comm_err}")
+
+        return populated_booking
 
     @staticmethod
     async def create_bookings_for_trip(
@@ -605,7 +617,15 @@ class BookingService:
         )
 
         await db.commit()
-        return await BookingService.get_booking_by_id(db, booking.id)
+        updated_booking = await BookingService.get_booking_by_id(db, booking.id)
+
+        # Phase 2: Dispatch communications gateway trigger (Official Confirmed Voucher with QR)
+        try:
+            await CommunicationDispatcher.dispatch_booking_accepted(db, updated_booking, action.note)
+        except Exception as comm_err:
+            logger.warning(f"Communications gateway error in accept_booking: {comm_err}")
+
+        return updated_booking
 
     @staticmethod
     async def complete_booking(
@@ -667,7 +687,15 @@ class BookingService:
         )
 
         await db.commit()
-        return await BookingService.get_booking_by_id(db, booking.id)
+        updated_booking = await BookingService.get_booking_by_id(db, booking.id)
+
+        # Phase 2: Dispatch communications gateway trigger (Checkout Review Invite)
+        try:
+            await CommunicationDispatcher.dispatch_booking_completed(db, updated_booking)
+        except Exception as comm_err:
+            logger.warning(f"Communications gateway error in complete_booking: {comm_err}")
+
+        return updated_booking
 
     @staticmethod
     async def decline_booking(

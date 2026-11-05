@@ -110,6 +110,10 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({ activeTab }) => 
 
   // Community Profile Tab State (Gap 1.2)
   const [profileFullName, setProfileFullName] = useState(user?.full_name || 'Gul Zaman');
+  const [profileEmail, setProfileEmail] = useState(user?.email || 'community@swattourism.pk');
+  const [profilePhone, setProfilePhone] = useState(user?.phone || '+92 300 9990003');
+  const [profileWhatsapp, setProfileWhatsapp] = useState(user?.whatsapp_number || '+92 300 9990003');
+  const [profileAddress, setProfileAddress] = useState(user?.address_text || 'Ushu Valley, Kalam, Swat');
   const [profileBio, setProfileBio] = useState(
     user?.community_profile?.bio ||
     'Local trekking guide, heritage advocate and community homestay host based in Utror, Swat Valley.'
@@ -117,13 +121,15 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({ activeTab }) => 
   const [profileMemberType, setProfileMemberType] = useState<string>(
     user?.community_profile?.member_type || 'host'
   );
-  const [profilePhone, setProfilePhone] = useState(user?.phone || '+92 301 5544332');
   const [isSavingCommunityProfile, setIsSavingCommunityProfile] = useState(false);
 
   useEffect(() => {
     if (user) {
       if (user.full_name) setProfileFullName(user.full_name);
+      if (user.email) setProfileEmail(user.email);
       if (user.phone) setProfilePhone(user.phone);
+      if (user.whatsapp_number) setProfileWhatsapp(user.whatsapp_number);
+      if (user.address_text) setProfileAddress(user.address_text);
       if (user.community_profile?.bio) setProfileBio(user.community_profile.bio);
       if (user.community_profile?.member_type) setProfileMemberType(user.community_profile.member_type);
     }
@@ -136,14 +142,18 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({ activeTab }) => 
         method: 'PUT',
         body: JSON.stringify({
           full_name: profileFullName.trim(),
+          email: profileEmail.trim() || undefined,
+          phone: profilePhone.trim() || undefined,
+          whatsapp_number: profileWhatsapp.trim() || undefined,
+          address_text: profileAddress.trim() || undefined,
           bio: profileBio.trim(),
           member_type: profileMemberType,
         }),
       });
       if (refreshUser) await refreshUser();
       showToast('Community profile updated successfully!');
-    } catch {
-      showToast('Profile updated (local demo mode)!');
+    } catch (err: any) {
+      showToast(err?.message || 'Error updating community profile.');
     } finally {
       setIsSavingCommunityProfile(false);
     }
@@ -2014,13 +2024,103 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({ activeTab }) => 
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
-                  Mobile Phone / WhatsApp
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={profileEmail}
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                  data-testid="input-community-email"
+                  placeholder="e.g. gul@swat.pk"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                  Mobile Phone Number
                 </label>
                 <input
                   type="text"
                   value={profilePhone}
                   onChange={(e) => setProfilePhone(e.target.value)}
                   data-testid="input-community-phone"
+                  placeholder="e.g. +92 300 9990003"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)' }}>
+                    WhatsApp Number
+                  </label>
+                  {profilePhone && profilePhone !== profileWhatsapp && (
+                    <button
+                      type="button"
+                      onClick={() => setProfileWhatsapp(profilePhone)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        padding: 0,
+                        fontWeight: 600,
+                      }}
+                      title="Use mobile number for WhatsApp"
+                    >
+                      Same as mobile
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={profileWhatsapp}
+                  onChange={(e) => setProfileWhatsapp(e.target.value)}
+                  data-testid="input-community-whatsapp"
+                  placeholder="e.g. +92 300 9990003"
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                  Home / Village Address
+                </label>
+                <input
+                  type="text"
+                  value={profileAddress}
+                  onChange={(e) => setProfileAddress(e.target.value)}
+                  data-testid="input-community-address"
+                  placeholder="e.g. Main Village, Ushu Valley, Kalam, Swat"
                   style={{
                     width: '100%',
                     padding: '8px 12px',

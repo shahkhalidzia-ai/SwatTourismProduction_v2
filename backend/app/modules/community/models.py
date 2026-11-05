@@ -15,6 +15,9 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base, UUIDPrimaryKeyMixin, TimestampMixin
+from app.modules.accounts.models import User
+from app.modules.places.models import Area
+from app.modules.listings.models import Listing
 
 
 class CommunityPost(Base, UUIDPrimaryKeyMixin, TimestampMixin):
@@ -55,13 +58,13 @@ class CommunityPost(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
 
     author: Mapped["app.modules.accounts.models.User"] = relationship(
-        "app.modules.accounts.models.User", foreign_keys=[author_id]
+        "User", foreign_keys=[author_id]
     )
     area: Mapped[Optional["app.modules.places.models.Area"]] = relationship(
-        "app.modules.places.models.Area"
+        "Area"
     )
     moderator: Mapped[Optional["app.modules.accounts.models.User"]] = relationship(
-        "app.modules.accounts.models.User", foreign_keys=[moderated_by]
+        "User", foreign_keys=[moderated_by]
     )
 
 
@@ -109,16 +112,16 @@ class IssueReport(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
 
     reporter: Mapped["app.modules.accounts.models.User"] = relationship(
-        "app.modules.accounts.models.User", foreign_keys=[reporter_id]
+        "User", foreign_keys=[reporter_id]
     )
     area: Mapped[Optional["app.modules.places.models.Area"]] = relationship(
-        "app.modules.places.models.Area"
+        "Area"
     )
     listing: Mapped[Optional["app.modules.listings.models.Listing"]] = relationship(
-        "app.modules.listings.models.Listing"
+        "Listing"
     )
     assignee: Mapped[Optional["app.modules.accounts.models.User"]] = relationship(
-        "app.modules.accounts.models.User", foreign_keys=[assigned_to]
+        "User", foreign_keys=[assigned_to]
     )
 
 
@@ -155,8 +158,8 @@ class HostApplication(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
 
     user: Mapped["app.modules.accounts.models.User"] = relationship(
-        "app.modules.accounts.models.User", foreign_keys=[user_id]
+        "User", foreign_keys=[user_id]
     )
     reviewer: Mapped[Optional["app.modules.accounts.models.User"]] = relationship(
-        "app.modules.accounts.models.User", foreign_keys=[reviewed_by]
+        "User", foreign_keys=[reviewed_by]
     )

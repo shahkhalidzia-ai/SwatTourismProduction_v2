@@ -77,6 +77,8 @@ class BookingBriefTourist(BaseModel):
     id: uuid.UUID
     full_name: str
     email: str
+    phone: Optional[str] = None
+    whatsapp_number: Optional[str] = None
 
 
 class BookingBriefBusiness(BaseModel):

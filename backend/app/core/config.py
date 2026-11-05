@@ -50,6 +50,24 @@ class Settings(BaseSettings):
     SMS_SENDER_ID: str = "SWAT-TOURISM"
     SMS_GATEWAY_URL: str = "https://api.sms-gateway.pk/v2/send"
 
+    # WhatsApp Cloud API & Twilio Settings
+    WHATSAPP_PROVIDER: str = "mock"  # 'mock', 'meta', 'twilio'
+    META_WHATSAPP_TOKEN: Optional[str] = None
+    META_PHONE_NUMBER_ID: Optional[str] = None
+    TWILIO_ACCOUNT_SID: Optional[str] = None
+    TWILIO_AUTH_TOKEN: Optional[str] = None
+    TWILIO_WHATSAPP_NUMBER: str = "+14155238886"
+
+    # Transactional Email Gateway Settings
+    EMAIL_PROVIDER: str = "mock"  # 'mock', 'smtp', 'sendgrid'
+    SMTP_HOST: str = "smtp.swattourism.pk"
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: str = "bookings@swattourism.pk"
+    SMTP_FROM_NAME: str = "Swat Tourism Platform"
+    SENDGRID_API_KEY: Optional[str] = None
+
     # Weather Feed Settings
     WEATHER_PROVIDER: str = "mock"  # 'mock', 'pmd', 'openweathermap'
     OPENWEATHER_API_KEY: str = "mock_weather_key"

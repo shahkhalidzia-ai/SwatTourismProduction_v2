@@ -20,6 +20,7 @@ import {
   HeartPulse,
   ArrowRight,
 } from 'lucide-react';
+import { fetchRoadStatuses, type RoadStatus } from '../../api/safety';
 
 export interface TouristHomeModernProps {
   listings: Listing[];
@@ -33,6 +34,7 @@ export interface TouristHomeModernProps {
   onOpenAuth?: (mode?: 'login' | 'register', role?: any) => void;
   onNavigateTab?: (tab: string) => void;
   user?: any;
+  roadStatuses?: RoadStatus[];
   renderRoadStatusFrame?: () => React.ReactNode;
   renderAdvisoryFrame?: (isSidebar?: boolean) => React.ReactNode;
   renderWeekendWeatherCard?: () => React.ReactNode;
@@ -50,7 +52,23 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
   onOpenAuth,
   onNavigateTab,
   user,
+  roadStatuses,
 }) => {
+  const [internalRoads, setInternalRoads] = useState<RoadStatus[]>(roadStatuses || []);
+
+  useEffect(() => {
+    if (roadStatuses && roadStatuses.length > 0) {
+      setInternalRoads(roadStatuses);
+    } else {
+      fetchRoadStatuses()
+        .then((roads) => {
+          if (roads && roads.length > 0) {
+            setInternalRoads(roads);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [roadStatuses]);
   // Ensure the page background is pure white (#FFFFFF) for the modern proof-of-concept portal
   useEffect(() => {
     const prevBg = document.documentElement.style.getPropertyValue('--bg');
@@ -1434,37 +1452,66 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                     Real-time Road Conditions
                   </h3>
                   <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
-                    Real-time road conditions for commutation corridors.
+                    Live verified road status &amp; travel advisories across Swat.
                   </p>
                 </div>
               </div>
 
-              {/* Artery Status Indicators from Proof of Concept */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-                  <span style={{ color: '#475569', fontWeight: 600 }}>M-16 Swat Expressway:</span>
-                  <span style={{ color: '#007A55', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '4px' }}>
-                    Clear &amp; Open
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-                  <span style={{ color: '#475569', fontWeight: 600 }}>N-95 Mingora ↔ Bahrain:</span>
-                  <span style={{ color: '#007A55', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '4px' }}>
-                    All Clear
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-                  <span style={{ color: '#475569', fontWeight: 600 }}>Bahrain ↔ Kalam Pass:</span>
-                  <span style={{ color: '#D97706', fontWeight: 800, backgroundColor: '#FEF3C7', padding: '2px 8px', borderRadius: '4px' }}>
-                    4x4 Chains Advised
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-                  <span style={{ color: '#475569', fontWeight: 600 }}>Kalam ↔ Mahodand Pass:</span>
-                  <span style={{ color: '#028AC8', fontWeight: 800, backgroundColor: '#EFF6FF', padding: '2px 8px', borderRadius: '4px' }}>
-                    High-Clearance 4x4
-                  </span>
-                </div>
+              {/* Dynamic Artery Status Indicators */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
+                {(internalRoads && internalRoads.length > 0 ? internalRoads : [
+                  { id: 'def-1', road_name: 'M-16 Swat Expressway', status: 'open', vehicle_note: 'Clear & Open' } as RoadStatus,
+                  { id: 'def-2', road_name: 'N-95 Mingora ↔ Kalam Highway', status: 'open', vehicle_note: 'All Vehicles Permitted' } as RoadStatus,
+                  { id: 'def-3', road_name: 'Malam Jabba Hill Road', status: 'open', vehicle_note: 'All Standard Vehicles' } as RoadStatus,
+                  { id: 'def-4', road_name: 'Kalam ↔ Mahodand Lake Track', status: 'limited', vehicle_note: 'High-Clearance 4x4' } as RoadStatus,
+                ]).map((road) => {
+                  const isClosed = road.status === 'closed';
+                  const isLimited = road.status === 'limited';
+                  const badgeBg = isClosed ? '#FEF2F2' : isLimited ? '#EFF6FF' : '#ECFDF5';
+                  const badgeColor = isClosed ? '#DC2626' : isLimited ? '#028AC8' : '#007A55';
+                  const note = road.vehicle_note || (isClosed ? 'Closed' : isLimited ? '4x4 Required' : 'Clear & Open');
+
+                  return (
+                    <div
+                      key={road.id || road.road_name}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '11px',
+                        gap: '8px',
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: '#475569',
+                          fontWeight: 600,
+                          minWidth: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={road.road_name}
+                      >
+                        {road.road_name}:
+                      </span>
+                      <span
+                        style={{
+                          color: badgeColor,
+                          fontWeight: 800,
+                          backgroundColor: badgeBg,
+                          padding: '2px 8px',
+                          borderRadius: '4px',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          fontSize: '10.5px',
+                        }}
+                      >
+                        {note}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

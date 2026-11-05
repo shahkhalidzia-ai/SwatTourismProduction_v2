@@ -213,3 +213,65 @@ async def test_theme_and_reduce_effects_saved_and_restored(async_client):
     assert me_user["reduce_effects"] is True
 
 
+@pytest.mark.asyncio
+async def test_update_profile_user_contact_and_address(async_client):
+    # 1. Register a fresh tourist
+    reg_payload = {
+        "email": "fresh.profile.user@example.com",
+        "phone": "+923004445566",
+        "password": "Password123!",
+        "full_name": "Original Name",
+        "role": "tourist",
+    }
+    reg_res = await async_client.post("/api/v1/auth/register", json=reg_payload)
+    assert reg_res.status_code == 201
+    token = reg_res.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 2. Update all contact and address fields
+    update_payload = {
+        "full_name": "Updated Full Name",
+        "email": "new.email.updated@example.com",
+        "phone": "+923009998877",
+        "whatsapp_number": "+923007776655",
+        "address_text": "House 10, Street 5, Mingora, Swat Valley",
+    }
+    update_res = await async_client.put("/api/v1/auth/profile", json=update_payload, headers=headers)
+    assert update_res.status_code == 200
+    data = update_res.json()
+    assert data["full_name"] == "Updated Full Name"
+    assert data["email"] == "new.email.updated@example.com"
+    assert data["phone"] == "+923009998877"
+    assert data["whatsapp_number"] == "+923007776655"
+    assert data["address_text"] == "House 10, Street 5, Mingora, Swat Valley"
+
+    # 3. Verify /auth/me returns the persisted values
+    me_res = await async_client.get("/api/v1/auth/me", headers=headers)
+    assert me_res.status_code == 200
+    me_data = me_res.json()
+    assert me_data["full_name"] == "Updated Full Name"
+    assert me_data["email"] == "new.email.updated@example.com"
+    assert me_data["phone"] == "+923009998877"
+    assert me_data["whatsapp_number"] == "+923007776655"
+    assert me_data["address_text"] == "House 10, Street 5, Mingora, Swat Valley"
+
+    # 4. Register a second user and attempt to update email to that second user's email -> Should return 409 Conflict
+    reg2_payload = {
+        "email": "existing.second@example.com",
+        "phone": "+923001119988",
+        "password": "Password123!",
+        "full_name": "Second User",
+        "role": "tourist",
+    }
+    reg2_res = await async_client.post("/api/v1/auth/register", json=reg2_payload)
+    assert reg2_res.status_code == 201
+
+    conflict_payload = {
+        "email": "existing.second@example.com",
+    }
+    conflict_res = await async_client.put("/api/v1/auth/profile", json=conflict_payload, headers=headers)
+    assert conflict_res.status_code == 409
+    assert "already registered" in conflict_res.json()["detail"]
+
+
+

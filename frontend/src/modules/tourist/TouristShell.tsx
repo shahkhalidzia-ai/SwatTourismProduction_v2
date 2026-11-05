@@ -24,6 +24,7 @@ import {
   Shield,
   Save,
   CheckCircle2,
+  AlertCircle,
   Compass as CompassIcon,
   CloudSun,
   Sun,
@@ -49,7 +50,6 @@ import { InstantServiceReservationModal } from './InstantServiceReservationModal
 import { RestaurantDetailsModal } from './RestaurantDetailsModal';
 import { IntercityTransportExplorer } from './IntercityTransportExplorer';
 import { TouristHomeModern } from './TouristHomeModern';
-import { ThemeAppearanceSection } from '../../components/ThemeAppearanceSection';
 import type { TransportSchedule } from '../../api/intercityTransport';
 import {
   getAreas,
@@ -1639,7 +1639,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const [selectedAreaId, setSelectedAreaId] = useState<string>('');
   const [destCategoryFilter, setDestCategoryFilter] = useState<string>('all');
   const [activeItineraryPreset, setActiveItineraryPreset] = useState<string | null>(null);
-  const [homeSearchTab, setHomeSearchTab] = useState<'valleys' | 'explore' | 'transport'>('explore');
+  const [homeSearchTab, setHomeSearchTab] = useState<'valleys' | 'explore' | 'transport'>('valleys');
   const [homeExploreFilter, setHomeExploreFilter] = useState<'all' | 'hotel' | 'restaurant' | 'transport' | 'guide' | 'activity' | 'shop'>('all');
   const [homeOriginCity, setHomeOriginCity] = useState<string>('Islamabad / Rawalpindi');
   const [transportMode, setTransportMode] = useState<'local' | 'intercity'>('local');
@@ -1664,8 +1664,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   }, [destinations]);
 
   // Auth & Profile state (Group 2 & 3: Tourist Profile management)
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout, refreshUser, updateProfile, demoLogin } = useAuth();
   const [profileName, setProfileName] = useState(user?.full_name || '');
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [profilePhone, setProfilePhone] = useState(user?.phone || '');
+  const [profileWhatsapp, setProfileWhatsapp] = useState(user?.whatsapp_number || '');
+  const [profileAddress, setProfileAddress] = useState(user?.address_text || user?.address || '');
   const [profileLang, setProfileLang] = useState(user?.language || 'en');
   const [profileEmergencyName, setProfileEmergencyName] = useState(user?.tourist_profile?.emergency_contact_name || '');
   const [profileEmergencyPhone, setProfileEmergencyPhone] = useState(user?.tourist_profile?.emergency_contact_phone || '');
@@ -1678,10 +1682,15 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
+  const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       setProfileName(user.full_name || '');
+      setProfileEmail(user.email || '');
+      setProfilePhone(user.phone || '');
+      setProfileWhatsapp(user.whatsapp_number || '');
+      setProfileAddress(user.address_text || user.address || '');
       setProfileLang(user.language || 'en');
       if (user.tourist_profile) {
         setProfileEmergencyName(user.tourist_profile.emergency_contact_name || '');
@@ -1700,27 +1709,76 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
   }, [user]);
 
   const handleSaveProfile = async () => {
-    setIsSavingProfile(true);
     setProfileSuccessMsg(null);
+    setProfileErrorMsg(null);
+
+    let activeUser = user;
+    if (!activeUser) {
+      try {
+        activeUser = await demoLogin('tourist');
+      } catch {
+        setProfileErrorMsg('You are not currently logged in. Please click "Tourist (Sara)" in the DEMO LOGINS bar above or sign in to save profile changes to the database.');
+        return;
+      }
+    }
+
+    if (!profileName.trim()) {
+      setProfileErrorMsg('Full Name is required.');
+      return;
+    }
+
+    setIsSavingProfile(true);
     try {
-      await apiRequest('/auth/profile', {
-        method: 'PUT',
-        body: JSON.stringify({
-          full_name: profileName,
-          language: profileLang,
-          emergency_contact_name: profileEmergencyName,
-          emergency_contact_phone: profileEmergencyPhone,
-          budget_level: profileBudget,
-          travel_style: profileTravelStyle,
-          interests: profileInterests,
-        }),
-      });
-      await refreshUser();
-      setProfileSuccessMsg('Profile and preferences updated successfully!');
-      setTimeout(() => setProfileSuccessMsg(null), 4000);
+      const payload: Record<string, unknown> = {
+        full_name: profileName.trim(),
+        email: profileEmail.trim() || '',
+        phone: profilePhone.trim() || '',
+        whatsapp_number: profileWhatsapp.trim() || '',
+        address_text: profileAddress.trim() || '',
+        language: profileLang,
+        emergency_contact_name: profileEmergencyName.trim() || '',
+        emergency_contact_phone: profileEmergencyPhone.trim() || '',
+        budget_level: profileBudget,
+        travel_style: profileTravelStyle,
+        interests: profileInterests,
+      };
+
+      let updatedUser: any = null;
+      if (updateProfile) {
+        updatedUser = await updateProfile(payload);
+      } else {
+        updatedUser = await apiRequest('/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+      }
+      if (refreshUser) {
+        await refreshUser();
+      }
+
+      if (updatedUser) {
+        setProfileName(updatedUser.full_name || profileName.trim());
+        setProfileEmail(updatedUser.email || '');
+        setProfilePhone(updatedUser.phone || '');
+        setProfileWhatsapp(updatedUser.whatsapp_number || '');
+        setProfileAddress(updatedUser.address_text || '');
+      }
+
+      // Purge any stale legacy cache keys
+      try {
+        localStorage.removeItem('swat_cached_profile');
+        if (activeUser?.id) {
+          localStorage.removeItem(`swat_cached_profile_${activeUser.id}`);
+        }
+      } catch {
+        // ignore
+      }
+
+      setProfileSuccessMsg('Profile and contact details saved successfully in database!');
+      setTimeout(() => setProfileSuccessMsg(null), 5000);
     } catch (err: any) {
-      setProfileSuccessMsg('Error updating profile: ' + (err?.message || 'Check fields'));
-      setTimeout(() => setProfileSuccessMsg(null), 4000);
+      setProfileErrorMsg(err?.message || 'Error updating profile. Please check that email/phone are not already taken.');
+      setTimeout(() => setProfileErrorMsg(null), 6000);
     } finally {
       setIsSavingProfile(false);
     }
@@ -2026,6 +2084,38 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
       loadSafetyData();
     }
   }, [activeTab, safetyAreaFilter]);
+
+  // Automatically refresh bookings when navigating to bookings tab or when tourist user changes
+  useEffect(() => {
+    if (activeTab === 'bookings' || user) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('swat_token') : null;
+      if (token) {
+        fetchMyBookings()
+          .then((serverBookings) => {
+            if (serverBookings && Array.isArray(serverBookings)) {
+              setMyBookings((prev) => {
+                const map = new Map<string, Booking>();
+                serverBookings.forEach((b) => {
+                  if (b.id) map.set(b.id, b);
+                  if (b.reference) map.set(b.reference, b);
+                });
+                prev.forEach((b) => {
+                  if (b.id && !map.has(b.id) && (!b.reference || !map.has(b.reference))) {
+                    map.set(b.id, b);
+                  }
+                });
+                const merged = Array.from(new Set(map.values()));
+                try {
+                  localStorage.setItem('swat_local_bookings', JSON.stringify(merged));
+                } catch {}
+                return merged;
+              });
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [activeTab, user?.id]);
 
   const handleDetectLocation = () => {
     if (typeof navigator !== 'undefined' && navigator.geolocation) {
@@ -3484,37 +3574,66 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               Real-time Road Conditions
             </h3>
             <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
-              Real-time road conditions for commutation corridors.
+              Live verified road status &amp; travel advisories across Swat.
             </p>
           </div>
         </div>
 
-        {/* Artery Status Indicators from Proof of Concept */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-            <span style={{ color: '#475569', fontWeight: 600 }}>M-16 Swat Expressway:</span>
-            <span style={{ color: '#007A55', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '4px' }}>
-              Clear &amp; Open
-            </span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-            <span style={{ color: '#475569', fontWeight: 600 }}>N-95 Mingora ↔ Bahrain:</span>
-            <span style={{ color: '#007A55', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: '4px' }}>
-              All Clear
-            </span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-            <span style={{ color: '#475569', fontWeight: 600 }}>Bahrain ↔ Kalam Pass:</span>
-            <span style={{ color: '#D97706', fontWeight: 800, backgroundColor: '#FEF3C7', padding: '2px 8px', borderRadius: '4px' }}>
-              4x4 Chains Advised
-            </span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-            <span style={{ color: '#475569', fontWeight: 600 }}>Kalam ↔ Mahodand Pass:</span>
-            <span style={{ color: '#028AC8', fontWeight: 800, backgroundColor: '#EFF6FF', padding: '2px 8px', borderRadius: '4px' }}>
-              High-Clearance 4x4
-            </span>
-          </div>
+        {/* Dynamic Artery Status Indicators */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
+          {(roadStatuses && roadStatuses.length > 0 ? roadStatuses : [
+            { id: 'def-1', road_name: 'M-16 Swat Expressway', status: 'open', vehicle_note: 'Clear & Open' } as RoadStatus,
+            { id: 'def-2', road_name: 'N-95 Mingora ↔ Kalam Highway', status: 'open', vehicle_note: 'All Vehicles Permitted' } as RoadStatus,
+            { id: 'def-3', road_name: 'Malam Jabba Hill Road', status: 'open', vehicle_note: 'All Standard Vehicles' } as RoadStatus,
+            { id: 'def-4', road_name: 'Kalam ↔ Mahodand Lake Track', status: 'limited', vehicle_note: 'High-Clearance 4x4' } as RoadStatus,
+          ]).map((road) => {
+            const isClosed = road.status === 'closed';
+            const isLimited = road.status === 'limited';
+            const badgeBg = isClosed ? '#FEF2F2' : isLimited ? '#EFF6FF' : '#ECFDF5';
+            const badgeColor = isClosed ? '#DC2626' : isLimited ? '#028AC8' : '#007A55';
+            const note = road.vehicle_note || (isClosed ? 'Closed' : isLimited ? '4x4 Required' : 'Clear & Open');
+
+            return (
+              <div
+                key={road.id || road.road_name}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '11px',
+                  gap: '8px',
+                }}
+              >
+                <span
+                  style={{
+                    color: '#475569',
+                    fontWeight: 600,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={road.road_name}
+                >
+                  {road.road_name}:
+                </span>
+                <span
+                  style={{
+                    color: badgeColor,
+                    fontWeight: 800,
+                    backgroundColor: badgeBg,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    fontSize: '10.5px',
+                  }}
+                >
+                  {note}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -3773,6 +3892,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               onOpenAuth={onOpenAuth}
               onNavigateTab={onTabChange}
               user={user}
+              roadStatuses={roadStatuses}
               renderRoadStatusFrame={renderRoadStatusFrame}
               renderAdvisoryFrame={renderAdvisoryFrame}
               renderWeekendWeatherCard={renderWeekendWeatherCard}
@@ -6453,6 +6573,26 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             onWithdrawBooking={handleWithdrawBooking}
             onPayBooking={handlePaySingleBooking}
             onRateBooking={(b) => setReviewModal({ isOpen: true, booking: b })}
+            onCompleteBooking={async (bookingId) => {
+              try {
+                await completeBooking(bookingId);
+                const allB = await fetchMyBookings().catch(() => []);
+                if (allB && allB.length > 0) setMyBookings(allB);
+                showToast('Stay marked as completed! You can now write your verified review.');
+                const target = (allB || myBookings).find((x) => x.id === bookingId);
+                if (target) {
+                  setReviewModal({ isOpen: true, booking: target });
+                }
+              } catch (err) {
+                setMyBookings((prev) =>
+                  prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b))
+                );
+                const target = myBookings.find((x) => x.id === bookingId);
+                if (target) {
+                  setReviewModal({ isOpen: true, booking: { ...target, status: 'completed' } });
+                }
+              }
+            }}
             onExploreServices={() => onTabChange ? onTabChange('home') : null}
             onOpenAuth={onOpenAuth}
             isGuest={!user || !localStorage.getItem('swat_token')}
@@ -7054,6 +7194,27 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             </div>
           )}
 
+          {profileErrorMsg && (
+            <div
+              style={{
+                backgroundColor: 'rgba(214, 86, 74, 0.12)',
+                border: '1px solid var(--bad)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+                fontSize: 'var(--font-sm)',
+                color: 'var(--bad)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              data-testid="profile-error-message"
+            >
+              <AlertCircle size={18} />
+              {profileErrorMsg}
+            </div>
+          )}
+
           {/* Personal Info & Language */}
           <Card padding="md">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
@@ -7064,13 +7225,13 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Full Name
+                  Full Name *
                 </label>
                 <input
                   type="text"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="e.g. Ali Ahmed"
+                  placeholder="e.g. Sara Ahmed"
                   style={{
                     width: '100%',
                     padding: '10px 12px',
@@ -7082,6 +7243,120 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     boxSizing: 'border-box',
                   }}
                   data-testid="input-profile-name"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={profileEmail}
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                  placeholder="e.g. sara.ahmed@example.com"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-profile-email"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Mobile Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  placeholder="e.g. +92 300 1234567"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-profile-phone"
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)' }}>
+                    WhatsApp Number
+                  </label>
+                  {profilePhone && profilePhone !== profileWhatsapp && (
+                    <button
+                      type="button"
+                      onClick={() => setProfileWhatsapp(profilePhone)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        padding: 0,
+                        fontWeight: 600,
+                      }}
+                      title="Use mobile phone number for WhatsApp"
+                    >
+                      Same as mobile
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="tel"
+                  value={profileWhatsapp}
+                  onChange={(e) => setProfileWhatsapp(e.target.value)}
+                  placeholder="e.g. +92 300 1234567"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-profile-whatsapp"
+                />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Physical / Residential Address
+                </label>
+                <textarea
+                  rows={2}
+                  value={profileAddress}
+                  onChange={(e) => setProfileAddress(e.target.value)}
+                  placeholder="e.g. House 42, Street 18, F-7/2, Islamabad"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                  }}
+                  data-testid="input-profile-address"
                 />
               </div>
 
@@ -7112,18 +7387,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
               <div>
                 <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', marginBottom: '6px' }}>
-                  Registered Email / Phone
+                  Account Status & Role
                 </label>
-                <div style={{ padding: '10px 12px', backgroundColor: 'var(--card-subtle)', borderRadius: 'var(--radius-button)', fontSize: 'var(--font-sm)', color: 'var(--ink)' }}>
-                  {user?.email || user?.phone || 'tourist@swat.local'}
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', marginBottom: '6px' }}>
-                  Account Status
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', height: '42px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '8px' }}>
                   <Tag variant="ok">Active Verified Tourist</Tag>
                 </div>
               </div>
@@ -7313,10 +7579,68 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             </div>
           </Card>
 
-          {/* Visual Appearance & Theme Switcher */}
-          <Card padding="md">
-            <ThemeAppearanceSection />
-          </Card>
+          {/* Feedback messages right above action buttons for immediate visibility */}
+          {profileSuccessMsg && (
+            <div
+              style={{
+                backgroundColor: 'rgba(56, 161, 105, 0.12)',
+                border: '1px solid var(--ok)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+                fontSize: 'var(--font-sm)',
+                color: 'var(--ok)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              data-testid="profile-bottom-status-message"
+            >
+              <CheckCircle2 size={18} />
+              {profileSuccessMsg}
+            </div>
+          )}
+
+          {profileErrorMsg && (
+            <div
+              style={{
+                backgroundColor: 'rgba(214, 86, 74, 0.12)',
+                border: '1px solid var(--bad)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+                fontSize: 'var(--font-sm)',
+                color: 'var(--bad)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              data-testid="profile-bottom-error-message"
+            >
+              <AlertCircle size={18} />
+              {profileErrorMsg}
+            </div>
+          )}
+
+          {!user && (
+            <div
+              style={{
+                backgroundColor: 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid #EAB308',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 14px',
+                fontSize: 'var(--font-xs)',
+                color: '#CA8A04',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <AlertCircle size={16} />
+              <span>You are viewing as a Guest. Click <strong>Tourist (Sara)</strong> in the top DEMO LOGINS bar or Sign In to save profile data to the database.</span>
+            </div>
+          )}
 
           {/* Action Buttons: Save & Logout */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '4px' }}>
@@ -7798,8 +8122,12 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         isOpen={reviewModal.isOpen}
         onClose={() => setReviewModal({ isOpen: false, booking: null })}
         booking={reviewModal.booking}
-        onSuccess={() => {
+        onSuccess={async () => {
           showToast('Review submitted successfully! Thank you for your feedback.');
+          try {
+            const allB = await fetchMyBookings().catch(() => []);
+            if (allB && allB.length > 0) setMyBookings(allB);
+          } catch {}
         }}
       />
 
