@@ -1,8340 +1,8340 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { EasypaisaPaymentModal } from '../../components/EasypaisaPaymentModal';
-import { SwatPayModal } from '../../components/SwatPayModal';
-import { Card } from '../../design/Card';
-import { Button } from '../../design/Button';
-import { Tag } from '../../design/Tag';
-import { Chip } from '../../design/Chip';
-import { ListingCard } from '../../design/ListingCard';
-import {
-  AlertTriangle,
-  Search,
-  ShieldAlert,
-  MapPin,
-  Plus,
-  CheckCircle,
-  PhoneCall,
-  Clock,
-  Sparkles,
-  Plane,
-  X,
-  User,
-  LogOut,
-  Bell,
-  Shield,
-  Save,
-  CheckCircle2,
-  AlertCircle,
-  Compass as CompassIcon,
-  CloudSun,
-  Sun,
-  CloudRain,
-  Bus,
-  Car,
-  ShieldCheck,
-  ChevronRight,
-  Mountain,
-  Trees,
-  Waves,
-  Landmark,
-  Star,
-  Navigation,
-} from 'lucide-react';
-import type { UserRole } from '../../layouts/navItems';
-import { useAuth } from '../../context/AuthContext';
-import { apiRequest } from '../../api/client';
-import { MapModal } from './MapModal';
-import { AvailabilityModal } from './AvailabilityModal';
-import { HotelDetailsModal } from './HotelDetailsModal';
-import { InstantServiceReservationModal } from './InstantServiceReservationModal';
-import { RestaurantDetailsModal } from './RestaurantDetailsModal';
-import { IntercityTransportExplorer } from './IntercityTransportExplorer';
-import { TouristHomeModern } from './TouristHomeModern';
-import type { TransportSchedule } from '../../api/intercityTransport';
-import {
-  getAreas,
-  getDestinations,
-  getExploreListings,
-  getTrips,
-  createTrip,
-  patchTripById,
-  getMyTrip,
-  updateMyTrip,
-  deleteTrip,
-  addTripStop,
-  removeTripStop,
-  toggleSaveItem,
-  getSavedItems,
-  type Area,
-  type Destination,
-  type Trip,
-  type TripStop,
-  type SavedItem,
-} from '../../api/trips';
-import {
-  fetchMyBookings,
-  requestBookingCancellation,
-  withdrawBooking,
-  removeBookingFromTrip,
-  getCancellationPreview,
-  completeBooking,
-  type Booking,
-} from '../../api/bookings';
-import { TripManagerView } from './TripManagerView';
-import { MyTripsListView } from './MyTripsListView';
-import { MyBookingsView } from './MyBookingsView';
-import { ReviewModal } from './ReviewModal';
-import { WeatherForecastModal } from './WeatherForecastModal';
-import { TouristAIAssistantModal } from './TouristAIAssistantModal';
-import { AITripGeneratorModal } from './AITripGeneratorModal';
-import { TourismAnimatedBanner } from '../../components/TourismAnimatedBanner';
-import {
-  fetchActiveAdvisories,
-  fetchRoadStatuses,
-  fetchEmergencyContacts,
-  createSOSEvent,
-  fetchMyActiveSOS,
-  type Advisory,
-  type RoadStatus,
-  type EmergencyContact,
-  type SOSEvent,
-} from '../../api/safety';
-import type { ListingItem, PriceItem, ListingTypeCode, MediaItem } from '../../api/listings';
-import { getPublishedTransportListingItems } from '../business/TransportFleetManager';
-import {
-  fetchApprovedHostServices,
-  hostApplicationToListing,
-  getStoredHostApplications,
-  SWAT_COMMUNITY_APPS_EVENT,
-} from '../../api/community';
-
-const makeMediaItem = (id: string, url: string, caption: string, owner_id: string): MediaItem => ({
-  id,
-  owner_type: 'listing',
-  owner_id,
-  url,
-  media_type: 'image',
-  caption,
-  sort_order: 0,
-  created_at: new Date().toISOString(),
-});
-
-const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
-  {
-    id: 'listing-demo-1',
-    business_id: 'biz-demo-1',
-    business_name: 'Riverside Inn Madyan',
-    type_id: 'type-hotel',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Madyan, Swat',
-    title: 'Riverside Inn, Madyan',
-    description: 'Charming riverside hotel overlooking the Swat river with heating and trout fishing.',
-    address_text: 'Main Trout Valley Road, Madyan, Swat',
-    phone: '+92-946-772100',
-    whatsapp_number: '+92-345-7721001',
-    latitude: 35.1347,
-    longitude: 72.5342,
-    is_verified: true,
-    status: 'published',
-    tags: [
-      { id: 't-1', tag_group: 'facility', label: 'Wi-Fi' },
-      { id: 't-2', tag_group: 'facility', label: 'Heating' },
-      { id: 't-3', tag_group: 'feature', label: 'River View' },
-    ],
-    price_items: [
-      {
-        id: 'pi-demo-1',
-        name: 'Deluxe River View Room',
-        price: 7500,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 5,
-        description: 'Cozy room facing the rushing Swat river with heating, private bathroom, and hot water.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-demo-1b',
-        name: 'Deluxe Family Suite',
-        price: 11000,
-        unit: 'per_night',
-        capacity: 4,
-        default_units: 2,
-        description: 'Large family suite with king bed and two single beds, private riverfront balcony, and sitting area.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      total_rooms: 15,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free High-Speed Wi-Fi',
-        '24/7 Hot Water & Room Heating',
-        'Direct Riverbank Access & Fishing Deck',
-        'Free Secure Parking',
-        'Power Backup Generator (24/7)',
-        'In-House Fresh Trout Restaurant',
-        '24/7 Front Desk & Concierge',
-      ],
-      activities: [
-        {
-          name: 'Swat Riverbank Trout Fly-Fishing',
-          duration: '2-3 hours',
-          desc: 'Private deck fly fishing with gear and guidance from resident angler.',
-        },
-        {
-          name: 'Riverside Evening Bonfire & Fish BBQ',
-          duration: 'Evening',
-          desc: 'Fresh caught trout fried or grilled beside riverside fire pit.',
-        },
-        {
-          name: 'Madyan Trout Hatcheries Cultural Walk',
-          duration: '1.5 hours',
-          desc: 'Visit local freshwater fish breeding ponds and historical bazaar.',
-        },
-        {
-          name: 'Chail Valley Day Hike',
-          duration: 'Half day',
-          desc: 'Guided nature walk through pristine pine forests of Chail valley.',
-        },
-      ],
-    },
-    media: [],
-    rating_count: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'listing-demo-2',
-    business_id: 'biz-demo-2',
-    business_name: 'Mountain Grill Kalam',
-    type_id: 'type-restaurant',
-    type_code: 'restaurant',
-    type_label: 'Restaurants & Cafes',
-    area_name: 'Kalam',
-    title: 'Mountain Grill, Kalam',
-    description: 'Authentic Swat trout fish, fresh chapli kebabs, and traditional dining with panoramic mountain views.',
-    address_text: 'Main River Road, Upper Bazaar, Kalam Valley, Swat',
-    phone: '+92-946-812888',
-    whatsapp_number: '+92-345-8128880',
-    latitude: 35.48,
-    longitude: 72.58,
-    is_verified: true,
-    status: 'published',
-    tags: [
-      { id: 't-4', tag_group: 'feature', label: 'Trout Fish' },
-      { id: 't-5', tag_group: 'feature', label: 'Chapli Kebab' },
-      { id: 't-6', tag_group: 'feature', label: 'Halal' },
-    ],
-    price_items: [
-      {
-        id: 'pi-demo-2',
-        name: 'Pan-Fried Swat River Trout',
-        category: 'Fresh River Trout',
-        price: 1400,
-        unit: 'per_item',
-        description: 'Fresh caught cold-water river trout seasoned with local wild herbs and served with lemon mint chutney.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-demo-2b',
-        name: 'Trout Fish Karahi (Full)',
-        category: 'Fresh River Trout',
-        price: 1800,
-        unit: 'per_item',
-        description: 'Fresh trout cooked in an authentic iron wok with fresh tomatoes, green chilies, ginger, and black pepper.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-demo-2c',
-        name: 'Traditional Chapli Kebab (2 pcs)',
-        category: 'BBQ & Kebabs',
-        price: 600,
-        unit: 'per_item',
-        description: 'Crispy beef patties pan-fried with pomegranate seeds, crushed coriander, and tomatoes.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-demo-2d',
-        name: 'Special Mutton Karahi (1kg)',
-        category: 'Karahi & Curries',
-        price: 2200,
-        unit: 'per_item',
-        description: 'Slow-cooked mountain mutton in pure butter, green chilies, and ripe tomatoes.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-demo-2e',
-        name: 'Chicken Shinwari Tikka (Half)',
-        category: 'BBQ & Kebabs',
-        price: 850,
-        unit: 'per_item',
-        description: 'Charcoal-grilled tender chicken seasoned with salt and black pepper.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-demo-2f',
-        name: 'Swati Kabuli Pulao',
-        category: 'Rice & Breads',
-        price: 650,
-        unit: 'per_item',
-        description: 'Fragrant Basmati rice with tender braised meat, sweet glazed carrots, and golden sultanas.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-demo-2g',
-        name: 'Kandahari Sesame Tandoor Naan',
-        category: 'Rice & Breads',
-        price: 70,
-        unit: 'per_item',
-        description: 'Hot clay oven baked bread with sesame seeds and butter glaze.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-demo-2h',
-        name: 'Peshawari Cardamom Qahwa',
-        category: 'Beverages',
-        price: 120,
-        unit: 'per_item',
-        description: 'Traditional green tea infused with crushed cardamom pods and saffron.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-demo-2i',
-        name: 'Kalam Walnut & Desi Ghee Halwa',
-        category: 'Desserts',
-        price: 350,
-        unit: 'per_item',
-        description: 'Warm traditional dessert rich with local wild walnuts and pure butter.',
-        is_bookable: false,
-      },
-    ],
-    details: {
-      cuisine: 'Swati BBQ, River Trout & Karahi',
-      seating_capacity: 85,
-      opening_hours: '08:00 AM – 11:00 PM (Daily)',
-      halal: true,
-    },
-    opening_time: '08:00',
-    closing_time: '23:00',
-    media: [],
-    rating_count: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'listing-demo-adnan-platter',
-    business_id: 'a6245b257b654c05bec9b653bc3a08f9',
-    business_name: 'Adnan Platter house',
-    type_id: 'type-restaurant',
-    type_code: 'restaurant',
-    type_label: 'Restaurants & Cafes',
-    area_name: 'Mingora',
-    title: 'Adnan Platter House & Shinwari BBQ',
-    description: 'Famous for authentic Swati Shinwari platters, mutton dumpukht, succulent seekh kebabs, and family dining in Mingora.',
-    address_text: 'Main GT Road, Opposite Green Chowk, Mingora, Swat',
-    phone: '+92-344-4138685',
-    whatsapp_number: '+92-344-4138685',
-    latitude: 34.7717,
-    longitude: 72.3602,
-    is_verified: true,
-    status: 'published',
-    tags: [
-      { id: 't-adnan-1', tag_group: 'feature', label: 'Shinwari BBQ' },
-      { id: 't-adnan-2', tag_group: 'feature', label: 'Mixed Platters' },
-      { id: 't-adnan-3', tag_group: 'feature', label: 'Halal' },
-      { id: 't-adnan-4', tag_group: 'feature', label: 'Family Seating' },
-    ],
-    price_items: [
-      {
-        id: 'pi-adnan-1',
-        name: 'Adnan Special Mixed BBQ Platter (Family)',
-        category: 'Platters & Combos',
-        price: 2800,
-        unit: 'per_item',
-        description: 'Grand assortment of malai boti, seekh kebab, mutton chops, served with kabuli rice, dips, and naan.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-adnan-2',
-        name: 'Shinwari Mutton Karahi (1kg)',
-        category: 'Karahi & Curries',
-        price: 2400,
-        unit: 'per_item',
-        description: 'Fresh mountain mutton cooked purely in animal fat and salt with fresh tomatoes and green chilies.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-adnan-3',
-        name: 'Authentic Swati Chapli Kebab (2 pcs)',
-        category: 'BBQ & Kebabs',
-        price: 650,
-        unit: 'per_item',
-        description: 'Crispy spiced beef patties with crushed pomegranate and garden herbs.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-adnan-4',
-        name: 'Special Kabuli Pulao with Mutton',
-        category: 'Rice & Breads',
-        price: 750,
-        unit: 'per_item',
-        description: 'Long grain basmati rice infused with tender mutton, caramelised carrots, and golden raisins.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-adnan-5',
-        name: 'Crispy Fried Finger Fish',
-        category: 'Seafood',
-        price: 1100,
-        unit: 'per_item',
-        description: 'Crisp battered Swat freshwater fish strips served with tartare dip and lemon.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-adnan-6',
-        name: 'Fresh Roghani Sesame Naan',
-        category: 'Rice & Breads',
-        price: 80,
-        unit: 'per_item',
-        description: 'Tandoor baked fluffy flatbread with sesame seeds and butter glaze.',
-        is_bookable: false,
-      },
-      {
-        id: 'pi-adnan-7',
-        name: 'Peshawari Cardamom Qahwa',
-        category: 'Beverages',
-        price: 120,
-        unit: 'per_item',
-        description: 'Digestive green tea brewed with green cardamom, cinnamon, and saffron.',
-        is_bookable: false,
-      },
-    ],
-    details: {
-      cuisine: 'Swati Shinwari BBQ, Dumpukht & Mixed Platters',
-      seating_capacity: 120,
-      opening_hours: '11:00 AM - 11:30 PM (Daily)',
-      halal: true,
-      has_delivery: true,
-      takes_reservations: true,
-    },
-    opening_time: '11:00',
-    closing_time: '23:30',
-    media: [],
-    rating_count: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '1f11f9dee99146b8902933656035f1d2',
-    business_id: 'biz-demo-serena',
-    business_name: 'Swat Serena Hotel Mingora',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Mingora',
-    title: 'Swat Serena Hotel, Mingora',
-    description: 'Heritage luxury hotel in Mingora with landscaped rose gardens, executive rooms and Swati fine dining.',
-    address_text: 'Saidu Sharif Road, Mingora, Swat',
-    phone: '+92-946-710201',
-    whatsapp_number: '+92-345-7102010',
-    latitude: 34.7717,
-    longitude: 72.3602,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-serena-1',
-        name: 'Executive Deluxe Room',
-        price: 12000,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 8,
-        description: 'Spacious heritage room with king bed, garden view balcony, marble bathroom with hot shower, heating, LED TV.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-serena-2',
-        name: 'Royal Swat Suite',
-        price: 22000,
-        unit: 'per_night',
-        capacity: 4,
-        default_units: 3,
-        description: 'Ultra-luxury suite with separate sitting lounge, colonial fireplace, panoramic mountain terrace, and jacuzzi.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Hotel',
-      total_rooms: 48,
-      star_rating: 5,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free High-Speed Wi-Fi',
-        '24/7 Room Heating & Hot Water',
-        'Colonial Rose Gardens & Mountain Vistas',
-        'Free Secure Parking & Valet',
-        'Power Backup Generator (24/7)',
-        'In-House Fine Dining & Buffet Breakfast',
-        '24/7 Front Desk & Concierge Service',
-        'Daily Housekeeping & Laundry',
-        'Wheelchair Accessible Grounds',
-        'Airport & Mingora City Transfers',
-      ],
-      activities: [
-        {
-          name: 'Colonial Rose Garden Heritage Walk',
-          duration: '1 hour',
-          desc: 'Stroll through landscaped heritage rose gardens with hotel historian guide.',
-        },
-        {
-          name: 'Swat Heritage Crafts & Gems Evening',
-          duration: '2 hours',
-          desc: 'Interactive display of Swati woodwork, shawls, and authentic emeralds.',
-        },
-        {
-          name: 'Traditional Pashtun Rabab Music Night',
-          duration: 'Evening',
-          desc: 'Live acoustic Rabab melodies and folk poetry beside courtyard fireplace.',
-        },
-        {
-          name: 'Guided Mingora Bazaar & Stupa Excursions',
-          duration: 'Half day',
-          desc: 'Guided private tour of Mingora bazaars and ancient Buddhist heritage ruins.',
-        },
-      ],
-    },
-    media: [],
-    rating_count: 14,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '4e1c284aa59b4f24ad6898f50e89ab53',
-    business_id: 'biz-demo-pc',
-    business_name: 'PC Malam Jabba Resort',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Malam Jabba',
-    title: 'PC Malam Jabba Ski Resort & Hotel',
-    description: '5-star alpine resort offering panoramic snow-capped valley views, heated rooms, ski slope access and chairlift.',
-    address_text: 'Ski Slope Heights, Malam Jabba, Swat',
-    phone: '+92-946-756111',
-    whatsapp_number: '+92-345-7561110',
-    latitude: 34.7997,
-    longitude: 72.5714,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-pc-1',
-        name: 'Panoramic Valley View Room',
-        price: 18500,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 6,
-        description: 'Cozy alpine room with floor-to-ceiling windows looking over snow-covered pine slopes.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-pc-2',
-        name: 'Alpine Ski Chalet Suite',
-        price: 32000,
-        unit: 'per_night',
-        capacity: 4,
-        default_units: 2,
-        description: 'Two-bedroom wooden alpine chalet suite with fireplace and direct slope vista.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Resort',
-      total_rooms: 80,
-      star_rating: 5,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Ski-in / Ski-out Access',
-        'Free High-Speed Wi-Fi',
-        'Centralized Heated Rooms & Heated Floors',
-        '24/7 Hot Water & Power Backup',
-        'Panoramic Snow Valley Views',
-        'Free On-site Heated Parking',
-        'Alpine Dining Restaurant & Coffee Lounge',
-        '24/7 Ski Gear Locker & Concierge',
-      ],
-      activities: [
-        {
-          name: 'Alpine Skiing & Snowboarding Lessons',
-          duration: '2-4 hours',
-          desc: 'Certified ski instructors with equipment rental directly from resort ski room.',
-        },
-        {
-          name: 'Malam Jabba Chairlift & Zipline VIP Access',
-          duration: 'Flexible',
-          desc: 'Fast-track chairlift ride overlooking snow-draped Himalayan slopes.',
-        },
-        {
-          name: 'Snow Tubing & Sledge Racing',
-          duration: '1-2 hours',
-          desc: 'Thrilling groomed snow track activity safe for families and children.',
-        },
-        {
-          name: 'Evening Campfire BBQ Under the Stars',
-          duration: 'Evening',
-          desc: 'Outdoor snow campfire with live barbecue and mountain hot cider.',
-        },
-      ],
-    },
-    media: [],
-    rating_count: 22,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'fb89fd2592454750a374634ad00388f7',
-    business_id: 'biz-demo-walnut',
-    business_name: 'Walnut Heights Kalam',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Kalam',
-    title: 'Walnut Heights Resort, Kalam',
-    description: 'Scenic boutique wooden chalet resort nestled amid walnut pine forests along the river.',
-    address_text: 'Upper Swat Riverbank, Kalam Valley, Swat',
-    phone: '+92-946-812345',
-    whatsapp_number: '+92-345-8123450',
-    latitude: 35.485,
-    longitude: 72.585,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-walnut-1',
-        name: 'Riverside Cedar Room',
-        price: 9500,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 10,
-        description: 'Handcrafted cedar wood room with river verandas, electric blankets, and mountain views.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-walnut-2',
-        name: 'Family Mountain Chalet',
-        price: 16000,
-        unit: 'per_night',
-        capacity: 5,
-        default_units: 4,
-        description: 'Spacious family duplex chalet with living area, double verandas, and dining space.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Resort',
-      total_rooms: 24,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free High-Speed Wi-Fi',
-        'Cedar Wood Heated Chalets',
-        '24/7 Hot Water with Wood Heating',
-        'River & Walnut Forest Views',
-        'Free Private Parking',
-        'Riverside BBQ Terrace & Dining',
-        'Generator Power Backup',
-      ],
-      activities: [
-        {
-          name: 'Pine & Walnut Forest Nature Hike',
-          duration: '2 hours',
-          desc: 'Scenic trail walk through ancient walnut groves along the upper Swat river.',
-        },
-        {
-          name: 'Kalam River Trout Fishing Experience',
-          duration: 'Half day',
-          desc: 'Catch-and-cook river trout angling with rods, bait, and local fishing guide.',
-        },
-        {
-          name: 'Mahodand & Saifullah Lakes 4x4 Excursion',
-          duration: 'Full day',
-          desc: 'Jeep excursion arranged directly from resort to azure glacier lakes.',
-        },
-      ],
-    },
-    media: [],
-    rating_count: 18,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'listing-demo-guesthouse-1',
-    business_id: 'biz-demo-guesthouse',
-    business_name: 'Kalam Pine Valley Guest House',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Kalam',
-    title: 'Kalam Pine Valley Guest House',
-    description: 'Charming traditional wooden guesthouse overlooking Kalam pine forest, offering cozy family rooms, home-cooked Swati meals, and warm hospitality.',
-    address_text: 'Pine Forest Road, Kalam Valley, Swat',
-    phone: '+92-946-812777',
-    whatsapp_number: '+92-345-8127770',
-    latitude: 35.488,
-    longitude: 72.589,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-gh-1',
-        name: 'Deluxe Pine Mountain Room',
-        price: 6500,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 6,
-        description: 'Warm pine-paneled room with king bed, electric heating, attached bath with 24/7 hot water, and forest view balcony.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-gh-2',
-        name: 'Family Guesthouse Suite',
-        price: 11000,
-        unit: 'per_night',
-        capacity: 5,
-        default_units: 3,
-        description: 'Spacious 2-bedroom guesthouse suite with private sitting area, traditional rugs, and mountain terrace.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Guesthouse',
-      total_rooms: 12,
-      star_rating: 4,
-      check_in_time: '13:00',
-      check_out_time: '11:00',
-      facilities: [
-        'Free Wi-Fi',
-        'Traditional Homestyle Breakfast',
-        '24/7 Hot Water & Heating',
-        'Pine Forest & Valley Views',
-        'On-site Parking',
-        'Campfire & Lawn Sitting',
-      ],
-      activities: [
-        {
-          name: 'Guided Kalam Pine Forest Trail',
-          duration: '1.5 hours',
-          desc: 'Relaxing walking tour through virgin pine groves with guesthouse host.',
-        },
-      ],
-    },
-    media: [],
-    rating_count: 19,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '1adef98f3df65bbda51b0c084304091b',
-    business_id: 'biz-demo-apartment',
-    business_name: 'Fizagat Luxury Riverview Apartments',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Mingora',
-    title: 'Fizagat Luxury Riverview Apartments',
-    description: 'Modern serviced holiday apartments overlooking Swat River in Fizagat, featuring fully-equipped kitchens, private river-view balconies, and elevator access.',
-    address_text: 'Fizagat Riverside Park Road, Mingora, Swat',
-    phone: '+92-946-722888',
-    whatsapp_number: '+92-345-7228880',
-    latitude: 34.786,
-    longitude: 72.368,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-apt-1',
-        name: '2-Bedroom Serviced Apartment',
-        price: 14500,
-        unit: 'per_night',
-        capacity: 4,
-        default_units: 4,
-        description: 'Complete 2-bedroom luxury flat with furnished living lounge, full kitchen, high-speed WiFi, smart TV, and river balcony.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-apt-2',
-        name: '3-Bedroom Executive Penthouse Flat',
-        price: 24000,
-        unit: 'per_night',
-        capacity: 7,
-        default_units: 2,
-        description: 'Spacious family penthouse apartment with 3 ensuite bedrooms, panoramic river terrace, laundry machines, and dining hall.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Apartment',
-      total_rooms: 16,
-      star_rating: 4,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Complete Kitchen with Refrigerator & Microwave',
-        'Free High-Speed Wi-Fi & Smart TVs',
-        '24/7 Power Backup & Elevator',
-        'River Swat Front Balconies',
-        'Secure Basement Parking',
-        'Daily Housekeeping',
-      ],
-      activities: [
-        {
-          name: 'Fizagat Riverside Walking Tour',
-          duration: '1 hour',
-          desc: 'Direct access to Fizagat riverside park and children play areas.',
-        },
-      ],
-    },
-    media: [makeMediaItem('m-fiz-apt', '/images/deluxe_room.jpg', 'Fizagat Luxury Riverview Apartments', '1adef98f3df65bbda51b0c084304091b')],
-    rating_count: 24,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '8b167bd31f6c4b2a85333a5861200ae8',
-    business_id: 'biz-rock-city',
-    business_name: 'Rock City Resort Fizagat',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Mingora',
-    title: 'Rock City Resort, Fizagat',
-    description: 'Iconic cliffside resort perched above the roaring Swat River with terraced botanical gardens, open-air riverside BBQ gazebos, and serene mountain panoramas.',
-    address_text: 'Fizagat Cliff Heights, Swat River Road, Fizagat, Swat',
-    phone: '+92-946-724500',
-    whatsapp_number: '+92-345-7245001',
-    latitude: 34.7865,
-    longitude: 72.3725,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-rock-1',
-        name: 'River View Executive Room',
-        price: 9500,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 8,
-        description: 'Cliffside room with private wooden balcony directly looking over the roaring Swat River.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-rock-2',
-        name: 'Cliffside Family Villa',
-        price: 17500,
-        unit: 'per_night',
-        capacity: 5,
-        default_units: 3,
-        description: 'Spacious family duplex villa with scenic parlor, master bedroom, and panoramic river deck.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Resort',
-      total_rooms: 36,
-      star_rating: 4,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free High-Speed Wi-Fi',
-        'Swat River Panoramic Terraces',
-        '24/7 Room Heating & Hot Water',
-        'Terraced Riverside Dining Gazebos',
-        'Power Backup Generator (24/7)',
-        'Secure Private Parking',
-        'Children\'s Play Garden',
-        'BBQ & Trout Fish Specialties',
-      ],
-      activities: [
-        {
-          name: 'Fizagat River Cliff Walking Trail',
-          duration: '1 hour',
-          desc: 'Private resort trail leading down to pristine riverside stone beaches.',
-        },
-        {
-          name: 'Swat River Trout Sunset Barbecue',
-          duration: 'Evening',
-          desc: 'Chef-grilled fresh river trout with traditional naan on open river terrace.',
-        },
-      ],
-    },
-    media: [makeMediaItem('m-rock-city', '/images/rock_city_resort.jpg', 'Rock City Resort Fizagat', '8b167bd31f6c4b2a85333a5861200ae8')],
-    rating_count: 22,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '5f3a9e710b844f6cae6712390a1bc901',
-    business_id: 'biz-hotel-one',
-    business_name: 'Hotel One Swat',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Mingora',
-    title: 'Hotel One Swat, Fizagat',
-    description: 'Contemporary upscale hotel managed by Hashoo Group, featuring elegant air-conditioned and heated rooms, multi-cuisine restaurant, and business facilities.',
-    address_text: 'Main Kalam Highway, Fizagat, Swat',
-    phone: '+92-946-722110',
-    whatsapp_number: '+92-345-7221100',
-    latitude: 34.7891,
-    longitude: 72.3752,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-h1-1',
-        name: 'Deluxe King Room',
-        price: 11000,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 10,
-        description: 'Modern room with plush king bed, workspace, 43-inch smart LED, and heated bath.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-h1-2',
-        name: 'Premium River Suite',
-        price: 16500,
-        unit: 'per_night',
-        capacity: 3,
-        default_units: 4,
-        description: 'Suite featuring separate parlor lounge, complimentary mini-bar, and panoramic views of Fizagat ridge.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Hotel',
-      total_rooms: 42,
-      star_rating: 4,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free High-Speed Wi-Fi',
-        'Modern Climate Control (Heating/AC)',
-        '24/7 Room Service & Reception',
-        'In-House Restaurant \'Kafe One\'',
-        'Free Secure Basement Parking',
-        '24/7 Power Backup Generator',
-      ],
-      activities: [
-        {
-          name: 'Swat Cultural Museum & White Palace Day Trip',
-          duration: 'Half day',
-          desc: 'Guided concierge trip exploring Swat Museum and historic Royal White Palace.',
-        },
-      ],
-    },
-    media: [makeMediaItem('m-hotel-one', '/images/hotel_one_swat.jpg', 'Hotel One Swat', '5f3a9e710b844f6cae6712390a1bc901')],
-    rating_count: 19,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '6c4e1290fa81498b8c4d29310e54b677',
-    business_id: 'biz-greens-kalam',
-    business_name: 'Greens Hotel Kalam',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Kalam',
-    title: 'Greens Hotel by Roomy, Kalam',
-    description: 'Kalam\'s most iconic historic hotel on a scenic pine plateau, offering lush manicured lawns, pine-paneled rooms, room heaters, and tranquil mountain vistas.',
-    address_text: 'Kalam Hilltop, Main Bazaar Road, Kalam Valley, Swat',
-    phone: '+92-946-812111',
-    whatsapp_number: '+92-345-8121112',
-    latitude: 35.4912,
-    longitude: 72.5833,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-greens-1',
-        name: 'Pine View Deluxe Room',
-        price: 10500,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 12,
-        description: 'Pine-paneled heritage room with plush king bed, heating, hot shower, and direct pine forest vista.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-greens-2',
-        name: 'Valley Family Suite',
-        price: 18000,
-        unit: 'per_night',
-        capacity: 5,
-        default_units: 5,
-        description: 'Two-room interconnecting family suite with comfortable seating area and valley view verandas.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Hotel',
-      total_rooms: 50,
-      star_rating: 4,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free Wi-Fi',
-        'Pine Lawn Mountain Vistas',
-        '24/7 Hot Water & Room Heating',
-        'Traditional Swati & Continental Dining',
-        '24/7 Power Backup Generator',
-        'Free On-site Secure Parking',
-      ],
-      activities: [
-        {
-          name: 'Kalam Valley Pine Plateau Stroll',
-          duration: '1 hour',
-          desc: 'Morning walk through ancient Himalayan cedar and pine woods surrounding the property.',
-        },
-        {
-          name: 'Evening Garden Bonfire & Chai Gathering',
-          duration: 'Evening',
-          desc: 'Warm outdoor wood fire with Cardamom Kashmiri chai and local mountain tales.',
-        },
-      ],
-    },
-    media: [makeMediaItem('m-greens-kalam', '/images/greens_hotel_kalam.jpg', 'Greens Hotel Kalam', '6c4e1290fa81498b8c4d29310e54b677')],
-    rating_count: 25,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '7a5c8b3e2109485aafe931085cd49022',
-    business_id: 'biz-zen-luxus',
-    business_name: 'Zen Luxus Hotel Kalam',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Kalam',
-    title: 'Zen Luxus Hotel Kalam',
-    description: 'Ultra-modern architectural hotel in upper Kalam featuring floor-to-ceiling glass panorama walls, central climate heating, luxury bedding, and fine continental cuisine.',
-    address_text: 'Upper Kalam Heights, Riverbank Bypass, Kalam Valley, Swat',
-    phone: '+92-946-812999',
-    whatsapp_number: '+92-345-8129990',
-    latitude: 35.4940,
-    longitude: 72.5870,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-zen-1',
-        name: 'Luxury Panorama King Room',
-        price: 13500,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 8,
-        description: 'Floor-to-ceiling glass suite looking directly onto snow-covered peaks, king bed, smart heating.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-zen-2',
-        name: 'Presidential Mountain Suite',
-        price: 22500,
-        unit: 'per_night',
-        capacity: 4,
-        default_units: 3,
-        description: 'Corner executive penthouse suite with 270-degree valley vistas, designer fireplace, and jacuzzi.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Hotel',
-      total_rooms: 30,
-      star_rating: 4,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free Ultra High-Speed Wi-Fi',
-        'Central Heating & Heated Floors',
-        'Floor-to-Ceiling Snow Peak Views',
-        '24/7 Hot Water & Power Backup',
-        'Rooftop Observation & Stargazing Terrace',
-        'Gourmet Cafe & Fine Dining Lounge',
-      ],
-      activities: [
-        {
-          name: 'Rooftop Stargazing & Snow Peak Astronomy',
-          duration: 'Evening',
-          desc: 'High-powered telescope session observing Milky Way skies over Falak Sar peak.',
-        },
-      ],
-    },
-    media: [makeMediaItem('m-zen-kalam', '/images/zen_luxus_kalam.jpg', 'Zen Luxus Hotel Kalam', '7a5c8b3e2109485aafe931085cd49022')],
-    rating_count: 21,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '8c2d914560ea4f11bd3209841ca91122',
-    business_id: 'biz-white-palace',
-    business_name: 'White Palace Marghazar',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Mingora',
-    title: 'White Palace Hotel, Marghazar',
-    description: 'Iconic royal summer residence built in 1940 by the first Wali of Swat using white chinar marble, surrounded by natural mountain streams and whispering chinars.',
-    address_text: 'Marghazar Valley, 12 km South of Saidu Sharif, Swat',
-    phone: '+92-946-741122',
-    whatsapp_number: '+92-345-7411220',
-    latitude: 34.6622,
-    longitude: 72.3167,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-wp-1',
-        name: 'Royal Heritage Room',
-        price: 8500,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 8,
-        description: 'Marble-floored heritage room with royal arch windows, mountain views, heating, and queen bed.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-wp-2',
-        name: 'Wali-e-Swat Imperial Suite',
-        price: 15000,
-        unit: 'per_night',
-        capacity: 4,
-        default_units: 2,
-        description: 'Palatial suite with antique wooden carvings, private royal reception salon, and garden fountain balcony.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Hotel',
-      total_rooms: 28,
-      star_rating: 4,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Historic White Marble Architecture',
-        'Natural Spring Water Cascades & Lawns',
-        '24/7 Hot Water & Room Heating',
-        'Royal Banquet Hall & Courtyard Dining',
-        'Free Secure Grounds Parking',
-        'Power Backup Generator',
-      ],
-      activities: [
-        {
-          name: 'Royal Wali of Swat Heritage Palace Tour',
-          duration: '1 hour',
-          desc: 'Guided walking tour through royal suites, original 1940 furniture, and historic photographs.',
-        },
-      ],
-    },
-    media: [makeMediaItem('m-white-palace', '/images/white_palace_marghuzar.jpg', 'White Palace Hotel Marghazar', '8c2d914560ea4f11bd3209841ca91122')],
-    rating_count: 20,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '9a12401f5e7c41328905b1c402e9a567',
-    business_id: 'biz-kuwait-cont',
-    business_name: 'Kuwait Continental Hotel Bahrain',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Bahrain',
-    title: 'Kuwait Continental Hotel, Bahrain',
-    description: 'Established riverfront hotel located directly at the roaring confluence of Swat and Daral rivers in Bahrain, offering fresh river trout and wooden riverside balconies.',
-    address_text: 'River Confluence Road, Main Bazaar, Bahrain, Swat',
-    phone: '+92-946-781200',
-    whatsapp_number: '+92-345-7812000',
-    latitude: 35.2075,
-    longitude: 72.5488,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-kc-1',
-        name: 'River Sound Deluxe Room',
-        price: 7000,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 10,
-        description: 'Cozy wood-accented room with private balcony directly overlooking the thundering river.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-kc-2',
-        name: 'Bahrain Riverside Family Suite',
-        price: 12000,
-        unit: 'per_night',
-        capacity: 4,
-        default_units: 4,
-        description: 'Two connected bedrooms with panoramic river terrace, attached baths, and 24/7 hot water.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Hotel',
-      total_rooms: 32,
-      star_rating: 3,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free Wi-Fi',
-        'Swat River Confluence Balconies',
-        '24/7 Hot Water & Room Heating',
-        'Riverside Fresh Trout Specialty Dining',
-        'Power Backup Generator',
-      ],
-      activities: [
-        {
-          name: 'Bahrain Woodcraft & Souvenir Bazaar Tour',
-          duration: '1.5 hours',
-          desc: 'Walk through Bahrain\'s famous market for hand-carved cedar furniture and walnut bowls.',
-        },
-      ],
-    },
-    media: [makeMediaItem('m-kuwait-cont', '/images/kuwait_continental_bahrain.jpg', 'Kuwait Continental Hotel Bahrain', '9a12401f5e7c41328905b1c402e9a567')],
-    rating_count: 18,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '3e9b11409ac64d999015c7a02b113456',
-    business_id: 'biz-miandam-palace',
-    business_name: 'Hotel Miandam Palace',
-    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
-    type_code: 'hotel',
-    type_label: 'Hotels & Stays',
-    area_name: 'Swat',
-    title: 'Hotel Miandam Palace',
-    description: 'Quiet hilltop retreat in the terraced fruit orchards of Miandam, famous for its crisp cool climate, medicinal herb forests, and panoramic views.',
-    address_text: 'Upper Ridge Road, Miandam Valley, Swat',
-    phone: '+92-946-791144',
-    whatsapp_number: '+92-345-7911440',
-    latitude: 35.0416,
-    longitude: 72.5517,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-miandam-1',
-        name: 'Terrace Pine Room',
-        price: 6000,
-        unit: 'per_night',
-        capacity: 2,
-        default_units: 8,
-        description: 'Serene room with balcony opening onto apple orchards and pine mountain slopes.',
-        is_bookable: true,
-      },
-      {
-        id: 'pi-miandam-2',
-        name: 'Miandam Panoramic Suite',
-        price: 10000,
-        unit: 'per_night',
-        capacity: 4,
-        default_units: 2,
-        description: 'Spacious family suite with floor-to-ceiling wooden windows overlooking the entire valley basin.',
-        is_bookable: true,
-      },
-    ],
-    details: {
-      accommodation_type: 'Guesthouse',
-      total_rooms: 20,
-      star_rating: 3,
-      check_in_time: '14:00',
-      check_out_time: '12:00',
-      facilities: [
-        'Free Wi-Fi',
-        'Orchard & Valley Panorama Terraces',
-        '24/7 Hot Water & Heating',
-        'Locally Sourced Organic Pashtun Meals',
-        'Free Parking',
-      ],
-      activities: [
-        {
-          name: 'Miandam Medicinal Plants & Orchard Walk',
-          duration: '2 hours',
-          desc: 'Guided nature trek across apple, peach, and walnut groves with local herbalist.',
-        },
-      ],
-    },
-    media: [makeMediaItem('m-miandam', '/images/miandam_valley.jpg', 'Hotel Miandam Palace', '3e9b11409ac64d999015c7a02b113456')],
-    rating_count: 14,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'ceca7963dc2a40d4a83995ae4f9078ae',
-    business_id: 'biz-demo-trans-snow',
-    business_name: 'Malam Jabba Snow & Mountain 4x4 Cruiser',
-    type_id: 'bef2e082a8664dbba8cb7c7e5eb014f5',
-    type_code: 'transport',
-    type_label: 'Transport & 4x4',
-    area_name: 'Malam Jabba',
-    title: 'Malam Jabba Snow & Mountain 4x4 Cruiser',
-    description: 'Rugged Toyota Land Cruiser 4x4 equipped with snow chains, heated seats, roof rack, and expert local driver for high-altitude passes.',
-    address_text: 'Resort Road, Malam Jabba',
-    latitude: 34.7997,
-    longitude: 72.5714,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-trans-snow-1',
-        name: 'Full Day 4x4 Mountain Cruiser with Driver',
-        price: 8500,
-        unit: 'per_day',
-        capacity: 4,
-        is_bookable: true,
-      },
-    ],
-    details: { vehicle_model: 'Toyota Land Cruiser 4x4', seating_capacity: 4 },
-    media: [],
-    rating_count: 9,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '01d0d59e6bd949c4a29f742c3dd30c63',
-    business_id: 'biz-demo-trans-prado',
-    business_name: 'Swat Valley 4x4 Mountain Jeep Safari',
-    type_id: 'bef2e082a8664dbba8cb7c7e5eb014f5',
-    type_code: 'transport',
-    type_label: 'Transport & 4x4',
-    area_name: 'Mingora',
-    title: '4x4 Mountain Jeep, Swat Rides',
-    description: 'Custom Toyota Prado 4x4 for Kalam, Mahodand Lake, and Ushu forest excursions with fuel and driver.',
-    address_text: 'Fizagat Bypass, Mingora',
-    latitude: 34.78,
-    longitude: 72.36,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-trans-prado-1',
-        name: 'Full Day 4x4 Jeep with Driver',
-        price: 14000,
-        unit: 'per_day',
-        capacity: 5,
-        is_bookable: true,
-      },
-    ],
-    details: { vehicle_model: 'Toyota Prado TX 4x4', seating_capacity: 5 },
-    media: [],
-    rating_count: 12,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'e1f81877c998449daad24f6fc62d63ab',
-    business_id: 'biz-demo-guide-jansher',
-    business_name: 'Jan Sher Trekking & Heritage Guide',
-    type_id: 'cc45d8950cb64b1b83b56f92e0939f11',
-    type_code: 'guide',
-    type_label: 'Tour Guides',
-    area_name: 'Mingora',
-    title: 'Jan Sher Trekking & Heritage Guide',
-    description: 'Licensed KP Tourism trekking guide and Buddhist archaeology specialist with 12 years experience in Swat Valley trails.',
-    address_text: 'Swat Museum Road, Saidu Sharif, Mingora',
-    latitude: 34.75,
-    longitude: 72.355,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-guide-jansher-1',
-        name: 'Daily Private Trek & Heritage Guiding Service',
-        price: 3500,
-        unit: 'per_day',
-        capacity: 8,
-        is_bookable: true,
-      },
-    ],
-    details: { languages: ['English', 'Urdu', 'Pashto'], years_experience: 12 },
-    media: [],
-    rating_count: 31,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: '7553cc510ba6459daa2c326dd8afa787',
-    business_id: 'biz-demo-guide-ali',
-    business_name: 'Ali Khan Alpine Mountain Guide',
-    type_id: 'cc45d8950cb64b1b83b56f92e0939f11',
-    type_code: 'guide',
-    type_label: 'Tour Guides',
-    area_name: 'Kalam',
-    title: 'Ali Khan Alpine Mountain Guide',
-    description: 'Wilderness first-aid certified mountain guide for Mahodand Lake, Kundol Lake, and Spin Khwar alpine treks.',
-    address_text: 'Main Bazar, Kalam',
-    latitude: 35.48,
-    longitude: 72.58,
-    is_verified: true,
-    status: 'published',
-    price_items: [
-      {
-        id: 'pi-guide-ali-1',
-        name: 'Daily Alpine Trek Guiding Service',
-        price: 3500,
-        unit: 'per_day',
-        capacity: 6,
-        is_bookable: true,
-      },
-    ],
-    details: { languages: ['English', 'Urdu', 'Pashto'], years_experience: 8 },
-    media: [],
-    rating_count: 19,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'listing-demo-activity-1',
-    business_id: 'biz-demo-activity-1',
-    business_name: 'Malam Jabba Adventure Club',
-    type_id: 'type-activity',
-    type_code: 'activity',
-    type_label: 'Adventures & Ski',
-    area_name: 'Malam Jabba',
-    title: 'Malam Jabba Aerial Chairlift & Zipline',
-    description: 'Scenic high-altitude 800m dual zipline and two-seater chairlift across the snow-capped pine valley.',
-    address_text: 'Main Ski Resort Ridge, Malam Jabba, Swat',
-    phone: '+92-946-755010',
-    latitude: 34.7997,
-    longitude: 72.5714,
-    is_verified: true,
-    status: 'published',
-    tags: [
-      { id: 't-act-1', tag_group: 'feature', label: 'Zipline' },
-      { id: 't-act-2', tag_group: 'feature', label: 'Chairlift' },
-      { id: 't-act-3', tag_group: 'facility', label: 'Certified Safety' },
-    ],
-    price_items: [
-      {
-        id: 'pi-activity-1',
-        name: 'Combined Chairlift & Zipline Adventure Pass',
-        price: 2500,
-        unit: 'per_person',
-        capacity: 1,
-        is_bookable: true,
-      },
-    ],
-    details: {},
-    media: [],
-    rating_count: 42,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'listing-demo-shop-1',
-    business_id: 'biz-demo-shop-1',
-    business_name: 'Swat Heritage Gems & Woodcrafts',
-    type_id: 'type-shop',
-    type_code: 'shop',
-    type_label: 'Crafts & Souvenirs',
-    area_name: 'Bahrain',
-    title: 'Swat Heritage Gems, Shawls & Woodcrafts',
-    description: 'Authentic hand-carved deodar walnut woodwork, emerald gemstones, and pure Pashmina and Swati woolen shawls.',
-    address_text: 'River Bazaar, Bahrain, Swat',
-    phone: '+92-946-822450',
-    latitude: 35.2075,
-    longitude: 72.5475,
-    is_verified: true,
-    status: 'published',
-    tags: [
-      { id: 't-sh-1', tag_group: 'feature', label: 'Pashmina' },
-      { id: 't-sh-2', tag_group: 'feature', label: 'Handicrafts' },
-      { id: 't-sh-3', tag_group: 'facility', label: 'Local Artisans' },
-    ],
-    price_items: [
-      {
-        id: 'pi-shop-1',
-        name: 'Pure Handwoven Swati Wool Shawl',
-        price: 4500,
-        unit: 'per_item',
-        capacity: 1,
-        is_bookable: false,
-      },
-    ],
-    details: {},
-    media: [],
-    rating_count: 28,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
-const DEFAULT_DESTINATIONS: Destination[] = [
-  {
-    id: 'dest-1',
-    area_id: 'area-kalam',
-    area_name: 'Kalam',
-    name: 'Kalam Valley',
-    description: 'Alpine meadows, pine-clad foothills, and the roaring Swat River with cool summer temperatures.',
-    category: 'valley',
-    best_season: 'May to October',
-    latitude: 35.48,
-    longitude: 72.58,
-    is_approved: true,
-    is_featured: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'dest-2',
-    area_id: 'area-kalam',
-    area_name: 'Kalam',
-    name: 'Mahodand Lake',
-    description: 'Pristine glacial waters, trout fishing, horse riding, and panoramic snow-draped Hindu Kush peaks.',
-    category: 'lake',
-    best_season: 'June to September',
-    latitude: 35.7142,
-    longitude: 72.6486,
-    is_approved: true,
-    is_featured: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'dest-3',
-    area_id: 'area-malam-jabba',
-    area_name: 'Malam Jabba',
-    name: 'Malam Jabba',
-    description: 'Premier high-altitude ski resort with aerial chairlift, 800m zipline, and 360° Karakoram & Hindu Kush vistas.',
-    category: 'ski',
-    best_season: 'Winter & Summer',
-    latitude: 34.7997,
-    longitude: 72.5714,
-    is_approved: true,
-    is_featured: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'dest-4',
-    area_id: 'area-ushu',
-    area_name: 'Ushu',
-    name: 'Ushu Forest',
-    description: 'Magnificent centuries-old deodar cedar forest with tranquil walking trails and views of Mt. Falaksar.',
-    category: 'forest',
-    best_season: 'May to October',
-    latitude: 35.5333,
-    longitude: 72.6333,
-    is_approved: true,
-    is_featured: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'dest-5',
-    area_id: 'area-utror',
-    area_name: 'Utror',
-    name: 'Kundol Lake',
-    description: 'Sparkling turquoise glacial lake surrounded by sheer snow-capped cliffs and wildflowers in northern Utror.',
-    category: 'lake',
-    best_season: 'June to September',
-    latitude: 35.6111,
-    longitude: 72.4833,
-    is_approved: true,
-    is_featured: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'dest-6',
-    area_id: 'area-swat',
-    area_name: 'Swat',
-    name: 'White Palace Marghuzar',
-    description: 'Historic 1940 royal summer residence of the Wali of Swat built from pure white Chiniot marble among royal gardens.',
-    category: 'heritage',
-    best_season: 'Year-round (Mar-Nov)',
-    latitude: 34.6933,
-    longitude: 72.3333,
-    is_approved: true,
-    is_featured: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'dest-7',
-    area_id: 'area-bahrain',
-    area_name: 'Bahrain',
-    name: 'Bahrain Swat',
-    description: 'Picturesque riverside town at the dramatic confluence of the Swat and Daral rivers, famous for handicrafts and wood carving.',
-    category: 'valley',
-    best_season: 'April to November',
-    latitude: 35.2075,
-    longitude: 72.5475,
-    is_approved: true,
-    is_featured: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'dest-8',
-    area_id: 'area-swat',
-    area_name: 'Swat',
-    name: 'Miandam Valley',
-    description: 'Serene hillside retreat amidst terraced emerald cornfields, peach and apple orchards, and cascading mountain streams.',
-    category: 'valley',
-    best_season: 'April to October',
-    latitude: 35.0433,
-    longitude: 72.5536,
-    is_approved: true,
-    is_featured: true,
-    created_at: new Date().toISOString(),
-  },
-];
-
-interface TouristShellProps {
-  activeTab: string;
-  onTabChange?: (tab: string) => void;
-  headerAction?: React.ReactNode;
-  onOpenAuth?: (mode?: 'login' | 'register', role?: UserRole, primaryType?: string) => void;
-}
-
-export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChange, headerAction, onOpenAuth }) => {
-  const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
-  // Master data
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [destinations, setDestinations] = useState<Destination[]>(DEFAULT_DESTINATIONS);
-  const [listings, setListings] = useState<ListingItem[]>(() => isCleanSlate ? [] : DEFAULT_VERIFIED_LISTINGS);
-  const [trip, setTrip] = useState<Trip | null>(null);
-  const [allTrips, setAllTrips] = useState<Trip[]>([]);
-  const [activeTripId, setActiveTripId] = useState<string | null>(
-    () => isCleanSlate ? null : (localStorage.getItem('swat_active_trip_id') || null)
-  );
-  const [currentViewedTrip, setCurrentViewedTrip] = useState<Trip | null>(null);
-  const [showTripSwitchModal, setShowTripSwitchModal] = useState(false);
-  const [, setSavedItems] = useState<SavedItem[]>([]);
-  const [reviewModal, setReviewModal] = useState<{
-    isOpen: boolean;
-    booking: Booking | null;
-  }>({
-    isOpen: false,
-    booking: null,
-  });
-
-  // Tourist Home Screen Travel Dates & Weather Forecast Prompt State
-  const [homeStartDate, setHomeStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
-  const [homeEndDate, setHomeEndDate] = useState<string>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 4);
-    return d.toISOString().split('T')[0];
-  });
-  const [weatherModal, setWeatherModal] = useState<{
-    isOpen: boolean;
-    destination: Destination | null;
-  }>({
-    isOpen: false,
-    destination: null,
-  });
-
-  // Filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedAreaId, setSelectedAreaId] = useState<string>('');
-  const [destCategoryFilter, setDestCategoryFilter] = useState<string>('all');
-  const [activeItineraryPreset, setActiveItineraryPreset] = useState<string | null>(null);
-  const [homeSearchTab, setHomeSearchTab] = useState<'valleys' | 'explore' | 'transport'>('valleys');
-  const [homeExploreFilter, setHomeExploreFilter] = useState<'all' | 'hotel' | 'restaurant' | 'transport' | 'guide' | 'activity' | 'shop'>('all');
-  const [homeOriginCity, setHomeOriginCity] = useState<string>('Islamabad / Rawalpindi');
-  const [transportMode, setTransportMode] = useState<'local' | 'intercity'>('local');
-  const [loading, setLoading] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [showAIAssistantModal, setShowAIAssistantModal] = useState(false);
-  const [showAITripModal, setShowAITripModal] = useState(false);
-  const [aiTripPrompt, setAiTripPrompt] = useState('');
-
-  // Active trip calculation (prompt 3: Explore shows "Adding to: <trip name>" with Change trip button)
-  const activeTrip = useMemo(() => {
-    if (activeTripId) {
-      const found = allTrips.find((t) => t.id === activeTripId);
-      if (found) return found;
-    }
-    return allTrips[0] || trip || null;
-  }, [allTrips, activeTripId, trip]);
-
-  // Guaranteed fallback for Swat's popular destinations
-  const effectiveDestinations = useMemo(() => {
-    return destinations && destinations.length > 0 ? destinations : DEFAULT_DESTINATIONS;
-  }, [destinations]);
-
-  // Auth & Profile state (Group 2 & 3: Tourist Profile management)
-  const { user, logout, refreshUser, updateProfile, demoLogin } = useAuth();
-  const [profileName, setProfileName] = useState(user?.full_name || '');
-  const [profileEmail, setProfileEmail] = useState(user?.email || '');
-  const [profilePhone, setProfilePhone] = useState(user?.phone || '');
-  const [profileWhatsapp, setProfileWhatsapp] = useState(user?.whatsapp_number || '');
-  const [profileAddress, setProfileAddress] = useState(user?.address_text || user?.address || '');
-  const [profileLang, setProfileLang] = useState(user?.language || 'en');
-  const [profileEmergencyName, setProfileEmergencyName] = useState(user?.tourist_profile?.emergency_contact_name || '');
-  const [profileEmergencyPhone, setProfileEmergencyPhone] = useState(user?.tourist_profile?.emergency_contact_phone || '');
-  const [profileBudget, setProfileBudget] = useState((user?.tourist_profile as any)?.budget_level || 'mid_range');
-  const [profileTravelStyle, setProfileTravelStyle] = useState((user?.tourist_profile as any)?.travel_style || 'family');
-  const [profileInterests, setProfileInterests] = useState<string[]>(
-    (user?.tourist_profile as any)?.interests || ['Nature & Valleys', 'Hiking & Trekking']
-  );
-  const [notifySMS, setNotifySMS] = useState(true);
-  const [notifyEmail, setNotifyEmail] = useState(true);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
-  const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      setProfileName(user.full_name || '');
-      setProfileEmail(user.email || '');
-      setProfilePhone(user.phone || '');
-      setProfileWhatsapp(user.whatsapp_number || '');
-      setProfileAddress(user.address_text || user.address || '');
-      setProfileLang(user.language || 'en');
-      if (user.tourist_profile) {
-        setProfileEmergencyName(user.tourist_profile.emergency_contact_name || '');
-        setProfileEmergencyPhone(user.tourist_profile.emergency_contact_phone || '');
-        if ((user.tourist_profile as any).budget_level) {
-          setProfileBudget((user.tourist_profile as any).budget_level);
-        }
-        if ((user.tourist_profile as any).travel_style) {
-          setProfileTravelStyle((user.tourist_profile as any).travel_style);
-        }
-        if ((user.tourist_profile as any).interests) {
-          setProfileInterests((user.tourist_profile as any).interests);
-        }
-      }
-    }
-  }, [user]);
-
-  const handleSaveProfile = async () => {
-    setProfileSuccessMsg(null);
-    setProfileErrorMsg(null);
-
-    let activeUser = user;
-    if (!activeUser) {
-      try {
-        activeUser = await demoLogin('tourist');
-      } catch {
-        setProfileErrorMsg('You are not currently logged in. Please click "Tourist (Sara)" in the DEMO LOGINS bar above or sign in to save profile changes to the database.');
-        return;
-      }
-    }
-
-    if (!profileName.trim()) {
-      setProfileErrorMsg('Full Name is required.');
-      return;
-    }
-
-    setIsSavingProfile(true);
-    try {
-      const payload: Record<string, unknown> = {
-        full_name: profileName.trim(),
-        email: profileEmail.trim() || '',
-        phone: profilePhone.trim() || '',
-        whatsapp_number: profileWhatsapp.trim() || '',
-        address_text: profileAddress.trim() || '',
-        language: profileLang,
-        emergency_contact_name: profileEmergencyName.trim() || '',
-        emergency_contact_phone: profileEmergencyPhone.trim() || '',
-        budget_level: profileBudget,
-        travel_style: profileTravelStyle,
-        interests: profileInterests,
-      };
-
-      let updatedUser: any = null;
-      if (updateProfile) {
-        updatedUser = await updateProfile(payload);
-      } else {
-        updatedUser = await apiRequest('/auth/profile', {
-          method: 'PUT',
-          body: JSON.stringify(payload),
-        });
-      }
-      if (refreshUser) {
-        await refreshUser();
-      }
-
-      if (updatedUser) {
-        setProfileName(updatedUser.full_name || profileName.trim());
-        setProfileEmail(updatedUser.email || '');
-        setProfilePhone(updatedUser.phone || '');
-        setProfileWhatsapp(updatedUser.whatsapp_number || '');
-        setProfileAddress(updatedUser.address_text || '');
-      }
-
-      // Purge any stale legacy cache keys
-      try {
-        localStorage.removeItem('swat_cached_profile');
-        if (activeUser?.id) {
-          localStorage.removeItem(`swat_cached_profile_${activeUser.id}`);
-        }
-      } catch {
-        // ignore
-      }
-
-      setProfileSuccessMsg('Profile and contact details saved successfully in database!');
-      setTimeout(() => setProfileSuccessMsg(null), 5000);
-    } catch (err: any) {
-      setProfileErrorMsg(err?.message || 'Error updating profile. Please check that email/phone are not already taken.');
-      setTimeout(() => setProfileErrorMsg(null), 6000);
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  const toggleInterest = (interest: string) => {
-    setProfileInterests((prev) =>
-      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
-    );
-  };
-
-  const [mapModal, setMapModal] = useState<{
-    open: boolean;
-    title: string;
-    lat: number;
-    lng: number;
-    areaName?: string;
-    categoryOrType?: string;
-    originCity?: string;
-    destinationCity?: string;
-    distanceKm?: number;
-    durationText?: string;
-    viaHighway?: string;
-  }>({
-    open: false,
-    title: '',
-    lat: 35.48,
-    lng: 72.58,
-    originCity: 'Islamabad / Rawalpindi',
-  });
-
-  const [availModal, setAvailModal] = useState<{
-    open: boolean;
-    listingId: string;
-    listingTitle: string;
-    priceItems: PriceItem[];
-  }>({
-    open: false,
-    listingId: '',
-    listingTitle: '',
-    priceItems: [],
-  });
-
-  // Hotel & Restaurant detail modals & selection states
-  const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
-  const [hotelModalListing, setHotelModalListing] = useState<ListingItem | null>(null);
-  const [restaurantModalListing, setRestaurantModalListing] = useState<ListingItem | null>(null);
-  const [serviceModalListing, setServiceModalListing] = useState<ListingItem | null>(null);
-
-  const [myBookings, setMyBookings] = useState<Booking[]>(() => {
-    try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem('swat_local_bookings') : null;
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch {}
-    return [];
-  });
-  const [paymentBooking, setPaymentBooking] = useState<Booking | null>(null);
-  const [swatPayModal, setSwatPayModal] = useState<{
-    isOpen: boolean;
-    trip?: Trip | null;
-    booking?: Booking | null;
-  }>({ isOpen: false });
-
-  // Toggle between classic untouched landing page and modern proof-of-concept landing page
-  const [landingVersion, setLandingVersion] = useState<'classic' | 'modern'>(() => {
-    try {
-      const urlParam = new URLSearchParams(window.location.search).get('landing');
-      if (urlParam === 'modern' || urlParam === 'v2') return 'modern';
-      return (localStorage.getItem('swat_landing_version') as any) || 'classic';
-    } catch {
-      return 'classic';
-    }
-  });
-
-  // Ensure the page background is pure white (#FFFFFF) for the classical original landing page
-  useEffect(() => {
-    if (activeTab === 'home' && landingVersion === 'classic') {
-      const prevBg = document.documentElement.style.getPropertyValue('--bg');
-      const prevPageBg = document.documentElement.style.getPropertyValue('--page-bg');
-      const prevPageBgGradient = document.documentElement.style.getPropertyValue('--page-bg-gradient');
-      const prevBodyBg = document.body.style.backgroundColor;
-
-      document.documentElement.style.setProperty('--bg', '#FFFFFF');
-      document.documentElement.style.setProperty('--page-bg', '#FFFFFF');
-      document.documentElement.style.setProperty('--page-bg-gradient', '#FFFFFF');
-      document.body.style.backgroundColor = '#FFFFFF';
-
-      return () => {
-        if (prevBg) document.documentElement.style.setProperty('--bg', prevBg);
-        else document.documentElement.style.removeProperty('--bg');
-
-        if (prevPageBg) document.documentElement.style.setProperty('--page-bg', prevPageBg);
-        else document.documentElement.style.removeProperty('--page-bg');
-
-        if (prevPageBgGradient) document.documentElement.style.setProperty('--page-bg-gradient', prevPageBgGradient);
-        else document.documentElement.style.removeProperty('--page-bg-gradient');
-
-        document.body.style.backgroundColor = prevBodyBg;
-      };
-    }
-  }, [activeTab, landingVersion]);
-
-  // Safety state
-  const [advisories, setAdvisories] = useState<Advisory[]>([]);
-  const [roadStatuses, setRoadStatuses] = useState<RoadStatus[]>([]);
-  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
-  const [activeSOS, setActiveSOS] = useState<SOSEvent | null>(null);
-  const [sosModalOpen, setSosModalOpen] = useState(false);
-  const [sosMessage, setSosMessage] = useState('');
-  const [sosCoords, setSosCoords] = useState<{ lat: number; lng: number }>({ lat: 35.4851, lng: 72.5852 });
-  const [sosSubmitting, setSosSubmitting] = useState(false);
-  const [safetyAreaFilter, setSafetyAreaFilter] = useState('');
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
-  const loadSafetyData = async () => {
-    try {
-      const [advs, roads, contacts] = await Promise.all([
-        fetchActiveAdvisories(safetyAreaFilter || undefined).catch(() => []),
-        fetchRoadStatuses().catch(() => []),
-        fetchEmergencyContacts(safetyAreaFilter || undefined).catch(() => []),
-      ]);
-      setAdvisories(advs);
-      setRoadStatuses(roads);
-      setEmergencyContacts(contacts);
-
-      const token = localStorage.getItem('swat_token');
-      if (token) {
-        const mySos = await fetchMyActiveSOS().catch(() => null);
-        setActiveSOS(mySos);
-      }
-    } catch (err) {
-      console.error('Error loading safety data:', err);
-    }
-  };
-
-  // Initial load
-  useEffect(() => {
-    const initData = async () => {
-      try {
-        const [areasData, destsData] = await Promise.all([
-          getAreas().catch(() => []),
-          getDestinations().catch(() => []),
-        ]);
-        if (areasData && areasData.length > 0) {
-          setAreas(areasData);
-        }
-        if (destsData && destsData.length > 0) {
-          const map = new Map<string, Destination>();
-          for (const d of DEFAULT_DESTINATIONS) {
-            map.set(d.name.toLowerCase().trim(), d);
-          }
-          for (const d of destsData) {
-            const key = d.name.toLowerCase().trim();
-            const existing = map.get(key);
-            map.set(key, { ...existing, ...d });
-          }
-          setDestinations(Array.from(map.values()));
-        } else {
-          setDestinations(DEFAULT_DESTINATIONS);
-        }
-
-        // Load local/offline trips if available
-        let localTrips: Trip[] = [];
-        try {
-          const raw = localStorage.getItem('swat_local_trips');
-          if (raw) localTrips = JSON.parse(raw);
-        } catch {}
-
-        // Load trips, saved items & bookings
-        const token = localStorage.getItem('swat_token');
-        let mergedBookings: Booking[] = [];
-        if (token) {
-          const [tripsData, savedData, bookingsData] = await Promise.all([
-            getTrips().catch(() => []),
-            getSavedItems().catch(() => []),
-            fetchMyBookings().catch(() => []),
-          ]);
-          let mergedTrips = tripsData && tripsData.length > 0 ? tripsData : [];
-          if (localTrips.length > 0) {
-            for (const lt of localTrips) {
-              if (!mergedTrips.some((t) => t.id === lt.id)) {
-                mergedTrips.push(lt);
-              }
-            }
-          }
-          if (mergedTrips.length > 0) {
-            setAllTrips(mergedTrips);
-            const savedActiveId = localStorage.getItem('swat_active_trip_id');
-            const active = mergedTrips.find((t) => t.id === savedActiveId) || mergedTrips[0];
-            setActiveTripId(active.id);
-            setTrip(active);
-            localStorage.setItem('swat_active_trip_id', active.id);
-          } else {
-            setAllTrips([]);
-            setActiveTripId(null);
-            setTrip(null);
-            localStorage.removeItem('swat_active_trip_id');
-          }
-          setSavedItems(savedData);
-          if (bookingsData && Array.isArray(bookingsData)) {
-            mergedBookings = [...bookingsData];
-          }
-        } else if (localTrips.length > 0) {
-          setAllTrips(localTrips);
-          const savedActiveId = localStorage.getItem('swat_active_trip_id');
-          const active = localTrips.find((t) => t.id === savedActiveId) || localTrips[0];
-          setActiveTripId(active.id);
-          setTrip(active);
-          localStorage.setItem('swat_active_trip_id', active.id);
-        }
-
-        // Merge guest session bookings from local storage (swat_local_bookings and swat_ride_orders)
-        try {
-          const rawLocalBookings = localStorage.getItem('swat_local_bookings');
-          if (rawLocalBookings) {
-            const parsed = JSON.parse(rawLocalBookings);
-            if (Array.isArray(parsed)) {
-              for (const lb of parsed) {
-                if (!mergedBookings.some((b) => (b.id && b.id === lb.id) || (b.reference && b.reference === lb.reference))) {
-                  mergedBookings.push(lb);
-                }
-              }
-            }
-          }
-        } catch {}
-
-        try {
-          const rawRideOrders = localStorage.getItem('swat_ride_orders');
-          if (rawRideOrders) {
-            const parsed = JSON.parse(rawRideOrders);
-            if (Array.isArray(parsed)) {
-              for (const r of parsed) {
-                if (!mergedBookings.some((b) => (b.id && b.id === r.id) || (b.reference && b.reference === r.reference))) {
-                  mergedBookings.push({
-                    id: r.id || `ride-${Date.now()}`,
-                    reference: r.reference || 'SWT-TR-RIDE',
-                    tourist_id: r.touristEmail || 'guest',
-                    business_id: r.business_id || r.providerId || 'biz-transport',
-                    listing_id: r.listing_id || 'list-transport',
-                    status: (r.status as any) || 'requested',
-                    start_date: (r.dates && r.dates.split(' • ')[0]) || new Date().toISOString().slice(0, 10),
-                    end_date: undefined,
-                    travellers: 2,
-                    total_amount: r.rawAmount || Number(String(r.amount || '').replace(/[^0-9]/g, '')) || 8000,
-                    payment_status: 'unpaid',
-                    special_requests: r.notes || r.specialRequests,
-                    driver_name: r.driver_name || 'Assigned upon confirmation',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                    items: [
-                      {
-                        id: `item-${r.id}`,
-                        booking_id: r.id,
-                        price_item_id: 'p-ride',
-                        price_item_name: r.item || '4x4 Transport Ride',
-                        service_date: new Date().toISOString().slice(0, 10),
-                        quantity: 1,
-                        unit_price: r.rawAmount || 8000,
-                        line_total: r.rawAmount || 8000,
-                        created_at: new Date().toISOString(),
-                      },
-                    ],
-                    history: [],
-                    listing: {
-                      id: r.listing_id || 'list-transport',
-                      title: r.item || '4x4 Swat Valley Transport',
-                      type_code: 'transport',
-                      area_name: 'Swat Valley Fleet',
-                    },
-                    business: {
-                      id: r.business_id || r.providerId || 'biz-transport',
-                      business_name: r.providerName || r.business_name || 'Swat 4x4 Express Fleet',
-                      primary_type: 'transport',
-                    },
-                  } as Booking);
-                }
-              }
-            }
-          }
-        } catch {}
-
-        setMyBookings(mergedBookings);
-
-        // Load safety data
-        loadSafetyData();
-      } catch (err) {
-        console.error('Error loading tourist data:', err);
-      }
-    };
-    initData();
-  }, []);
-
-  // Reload safety data when safety tab is opened or area filter changes
-  useEffect(() => {
-    if (activeTab === 'safety') {
-      loadSafetyData();
-    }
-  }, [activeTab, safetyAreaFilter]);
-
-  // Automatically refresh bookings when navigating to bookings tab or when tourist user changes
-  useEffect(() => {
-    if (activeTab === 'bookings' || user) {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('swat_token') : null;
-      if (token) {
-        fetchMyBookings()
-          .then((serverBookings) => {
-            if (serverBookings && Array.isArray(serverBookings)) {
-              setMyBookings((prev) => {
-                const map = new Map<string, Booking>();
-                serverBookings.forEach((b) => {
-                  if (b.id) map.set(b.id, b);
-                  if (b.reference) map.set(b.reference, b);
-                });
-                prev.forEach((b) => {
-                  if (b.id && !map.has(b.id) && (!b.reference || !map.has(b.reference))) {
-                    map.set(b.id, b);
-                  }
-                });
-                const merged = Array.from(new Set(map.values()));
-                try {
-                  localStorage.setItem('swat_local_bookings', JSON.stringify(merged));
-                } catch {}
-                return merged;
-              });
-            }
-          })
-          .catch(() => {});
-      }
-    }
-  }, [activeTab, user?.id]);
-
-  const handleDetectLocation = () => {
-    if (typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setSosCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          showToast('GPS coordinates acquired from device!');
-        },
-        () => {
-          showToast('Could not fetch device GPS; using Swat Valley default.');
-        }
-      );
-    } else {
-      showToast('Geolocation not supported; using default coordinates.');
-    }
-  };
-
-  const handleTriggerSOS = async () => {
-    setSosSubmitting(true);
-    try {
-      const newSos = await createSOSEvent({
-        latitude: sosCoords.lat,
-        longitude: sosCoords.lng,
-        accuracy_m: 10,
-        message: sosMessage || 'Tourist emergency assistance requested.',
-      });
-      setActiveSOS(newSos);
-      setSosModalOpen(false);
-      setSosMessage('');
-      showToast('SOS Alert transmitted to District Control! Dial 1122 immediately for dispatch.');
-    } catch {
-      // If unauthenticated or offline fallback for prototype demo
-      const fallbackSos: SOSEvent = {
-        id: 'sos-' + Date.now(),
-        tourist_id: 'current-tourist',
-        latitude: sosCoords.lat,
-        longitude: sosCoords.lng,
-        message: sosMessage || 'Emergency alert logged',
-        status: 'new',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      setActiveSOS(fallbackSos);
-      setSosModalOpen(false);
-      showToast('SOS Alert logged locally. Please dial Rescue 1122 directly!');
-    } finally {
-      setSosSubmitting(false);
-    }
-  };
-
-  // Listen for live transport fleet updates from business portal
-  const [fleetVersion, setFleetVersion] = useState(0);
-  const [communityServicesVersion, setCommunityServicesVersion] = useState(0);
-
-  useEffect(() => {
-    const handleFleetUpdate = () => {
-      setFleetVersion((v) => v + 1);
-    };
-    const handleCommunityServicesUpdate = () => {
-      setCommunityServicesVersion((v) => v + 1);
-    };
-    const handleBookingsUpdate = () => {
-      try {
-        const raw = localStorage.getItem('swat_local_bookings');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            setMyBookings((prev) => {
-              const map = new Map<string, Booking>();
-              for (const b of parsed) {
-                if (b.reference) map.set(b.reference, b);
-                else if (b.id) map.set(b.id, b);
-              }
-              for (const b of prev) {
-                const key = b.reference || b.id;
-                if (!map.has(key)) map.set(key, b);
-              }
-              return Array.from(map.values());
-            });
-          }
-        }
-      } catch {}
-    };
-    window.addEventListener('swat_transport_fleet_updated', handleFleetUpdate);
-    window.addEventListener('swat_explore_services_updated', handleCommunityServicesUpdate);
-    window.addEventListener(SWAT_COMMUNITY_APPS_EVENT, handleCommunityServicesUpdate);
-    window.addEventListener('swat_bookings_updated', handleBookingsUpdate);
-    window.addEventListener('storage', handleFleetUpdate);
-    window.addEventListener('storage', handleCommunityServicesUpdate);
-    window.addEventListener('storage', handleBookingsUpdate);
-    return () => {
-      window.removeEventListener('swat_transport_fleet_updated', handleFleetUpdate);
-      window.removeEventListener('swat_explore_services_updated', handleCommunityServicesUpdate);
-      window.removeEventListener(SWAT_COMMUNITY_APPS_EVENT, handleCommunityServicesUpdate);
-      window.removeEventListener('swat_bookings_updated', handleBookingsUpdate);
-      window.removeEventListener('storage', handleFleetUpdate);
-      window.removeEventListener('storage', handleCommunityServicesUpdate);
-      window.removeEventListener('storage', handleBookingsUpdate);
-    };
-  }, []);
-
-  // Fetch explore listings whenever filters change
-  useEffect(() => {
-    const fetchListings = async () => {
-      setLoading(true);
-      try {
-        const items = await getExploreListings({
-          type: selectedType !== 'all' ? selectedType : undefined,
-          area_id: selectedAreaId || undefined,
-          search: searchQuery || undefined,
-        });
-        const publishedTransport = getPublishedTransportListingItems();
-
-        let baseListings = items && items.length > 0 ? [...items] : [];
-
-        if (!isCleanSlate && baseListings.length === 0) {
-          let fallbackList = [...DEFAULT_VERIFIED_LISTINGS];
-          if (selectedType !== 'all') {
-            fallbackList = fallbackList.filter((l) => l.type_code === selectedType);
-          }
-          if (selectedAreaId) {
-            const areaObj = areas.find((a) => a.id === selectedAreaId);
-            fallbackList = fallbackList.filter(
-              (l) => l.area_id === selectedAreaId || (areaObj && l.area_name?.toLowerCase() === areaObj.name.toLowerCase())
-            );
-          }
-          baseListings = fallbackList;
-        }
-
-        // Fetch approved community services (4x4 rides, guides, adventure activities, crafts, homestays)
-        let approvedApps = await fetchApprovedHostServices().catch(() => []);
-        if (!approvedApps || approvedApps.length === 0) {
-          approvedApps = getStoredHostApplications().filter((a) => a.status === 'approved');
-        }
-        const communityListings = (approvedApps || []).map(hostApplicationToListing);
-
-        let merged = [...baseListings];
-
-        // Merge published commercial transport vehicles (only user-custom additions if baseListings from API is present)
-        const defaultFleetIds = new Set(['veh-jeep-1', 'veh-hiace-1', 'veh-prado-1', 'veh-coaster-1', 'veh-brv-1']);
-        const transportToMerge = (items && items.length > 0)
-          ? publishedTransport.filter((pv) => !defaultFleetIds.has(pv.id.replace('listing-', '')))
-          : (isCleanSlate ? publishedTransport.filter((pv) => !defaultFleetIds.has(pv.id.replace('listing-', ''))) : publishedTransport);
-
-        for (const pv of transportToMerge) {
-          if (!merged.some((m) => m.id === pv.id || m.title.toLowerCase() === pv.title.toLowerCase())) {
-            merged.push(pv);
-          }
-        }
-
-        // Merge approved community services
-        for (const cl of communityListings) {
-          if (!merged.some((m) => m.id === cl.id || m.title.toLowerCase() === cl.title.toLowerCase())) {
-            merged.push(cl);
-          }
-        }
-
-        // Apply selectedType filter if specific category is active
-        if (selectedType !== 'all') {
-          merged = merged.filter((l) => l.type_code === selectedType);
-        }
-
-        // Apply search query filter
-        if (searchQuery && searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          merged = merged.filter(
-            (l) =>
-              l.title.toLowerCase().includes(q) ||
-              (l.description || '').toLowerCase().includes(q) ||
-              (l.area_name || '').toLowerCase().includes(q) ||
-              (l.business_name || '').toLowerCase().includes(q) ||
-              l.price_items?.some((p) => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
-          );
-        }
-
-        setListings(merged);
-      } catch (err) {
-        console.error('Error fetching explore listings:', err);
-        const publishedTransport = getPublishedTransportListingItems();
-        let fallbackList = isCleanSlate ? [] : [...DEFAULT_VERIFIED_LISTINGS];
-        if (selectedAreaId) {
-          const areaObj = areas.find((a) => a.id === selectedAreaId);
-          fallbackList = fallbackList.filter(
-            (l) => l.area_id === selectedAreaId || (areaObj && l.area_name?.toLowerCase() === areaObj.name.toLowerCase())
-          );
-        }
-        const approvedApps = getStoredHostApplications().filter((a) => a.status === 'approved');
-        const communityListings = (approvedApps || []).map(hostApplicationToListing);
-
-        let merged = [...fallbackList];
-        for (const pv of publishedTransport) {
-          if (!merged.some((m) => m.id === pv.id || m.title.toLowerCase() === pv.title.toLowerCase())) {
-            merged.push(pv);
-          }
-        }
-        for (const cl of communityListings) {
-          if (!merged.some((m) => m.id === cl.id || m.title.toLowerCase() === cl.title.toLowerCase())) {
-            merged.push(cl);
-          }
-        }
-        if (selectedType !== 'all') {
-          merged = merged.filter((l) => l.type_code === selectedType);
-        }
-        if (searchQuery && searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          merged = merged.filter(
-            (l) =>
-              l.title.toLowerCase().includes(q) ||
-              (l.description || '').toLowerCase().includes(q) ||
-              (l.area_name || '').toLowerCase().includes(q) ||
-              (l.business_name || '').toLowerCase().includes(q) ||
-              l.price_items?.some((p) => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
-          );
-        }
-        setListings(merged);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchListings();
-  }, [selectedType, selectedAreaId, searchQuery, fleetVersion, communityServicesVersion]);
-
-  // Handle saving items
-  const handleToggleSave = async (itemType: 'listing' | 'destination', itemId: string, title: string) => {
-    try {
-      const res = await toggleSaveItem(itemType, itemId);
-      showToast(res.saved ? `Saved "${title}" to your trip list!` : `Removed "${title}" from saved list.`);
-      const updatedSaved = await getSavedItems();
-      setSavedItems(updatedSaved);
-    } catch {
-      showToast('Please log in to save items to your trip.');
-    }
-  };
-
-  // Handle adding listing, destination or custom stop directly to trip
-  const handleAddStop = async (
-    stopType: 'listing' | 'destination' | 'custom',
-    id: string | undefined,
-    title: string,
-    notes?: string,
-    extra?: {
-      price_item_id?: string;
-      quantity?: number;
-      day_number?: number;
-      end_day_number?: number;
-      time_slot?: string;
-    }
-  ) => {
-    try {
-      const targetTripId = activeTripId || (trip ? trip.id : undefined);
-      let updatedTrip: Trip | null = null;
-      try {
-        updatedTrip = await addTripStop({
-          trip_id: targetTripId,
-          stop_type: stopType,
-          listing_id: stopType === 'listing' ? id : undefined,
-          destination_id: stopType === 'destination' ? id : undefined,
-          custom_title: title,
-          price_item_id: extra?.price_item_id,
-          quantity: extra?.quantity || 1,
-          day_number: extra?.day_number || 1,
-          end_day_number: extra?.end_day_number,
-          time_slot: extra?.time_slot,
-          notes: notes || `Added from Swat Explore`,
-        });
-      } catch (apiErr) {
-        // If adding listing stop failed because listing is local/mock, retry as custom stop
-        if (stopType === 'listing' && targetTripId) {
-          try {
-            updatedTrip = await addTripStop({
-              trip_id: targetTripId,
-              stop_type: 'custom',
-              custom_title: title,
-              quantity: extra?.quantity || 1,
-              day_number: extra?.day_number || 1,
-              end_day_number: extra?.end_day_number,
-              time_slot: extra?.time_slot,
-              notes: notes || `Added from Swat Explore`,
-            });
-          } catch {
-            // Local fallback below
-          }
-        }
-      }
-
-      // If backend failed or in prototype/offline mode, synthesize local stop
-      if (!updatedTrip) {
-        const baseTrip = currentViewedTrip || trip || allTrips[0];
-        if (baseTrip) {
-          const newStop: TripStop = {
-            id: `stop-${Date.now()}`,
-            trip_id: baseTrip.id,
-            day_number: extra?.day_number || 1,
-            end_day_number: extra?.end_day_number,
-            stop_order: (baseTrip.stops?.length || 0) + 1,
-            stop_type: stopType,
-            time_slot: extra?.time_slot || '09:00 AM',
-            custom_title: title,
-            notes: notes || `Added from Swat Explore`,
-            listing_id: id,
-            created_at: new Date().toISOString(),
-          };
-          updatedTrip = {
-            ...baseTrip,
-            stops: [...(baseTrip.stops || []), newStop],
-          };
-        }
-      }
-
-      if (updatedTrip) {
-        setTrip(updatedTrip);
-        setAllTrips((prev) => {
-          const idx = prev.findIndex((t) => t.id === updatedTrip!.id);
-          if (idx >= 0) {
-            const copy = [...prev];
-            copy[idx] = updatedTrip!;
-            return copy;
-          }
-          return [updatedTrip!, ...prev];
-        });
-        if (currentViewedTrip && currentViewedTrip.id === updatedTrip.id) {
-          setCurrentViewedTrip(updatedTrip);
-        }
-        showToast(`Added "${title}" to "${updatedTrip.title}"!`);
-        const bks = await fetchMyBookings().catch(() => []);
-        if (bks) setMyBookings(bks);
-      } else {
-        showToast('Please create or select an active trip first.');
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('Please log in to add stops to your trip plan.');
-    }
-  };
-
-  // Handle adding custom or service stop from TripManagerView
-  const handleAddCustomStopDetailed = async (stopData: {
-    stop_type: 'listing' | 'destination' | 'custom';
-    day_number: number;
-    end_day_number?: number;
-    time_slot?: string;
-    custom_title?: string;
-    notes?: string;
-    listing_id?: string;
-    destination_id?: string;
-    price_item_id?: string;
-    quantity?: number;
-  }) => {
-    try {
-      const targetTripId = currentViewedTrip?.id || activeTripId || (trip ? trip.id : undefined);
-      let updatedTrip: Trip | null = null;
-      try {
-        updatedTrip = await addTripStop({
-          trip_id: targetTripId,
-          stop_type: stopData.stop_type,
-          day_number: stopData.day_number,
-          end_day_number: stopData.end_day_number,
-          time_slot: stopData.time_slot,
-          custom_title: stopData.custom_title,
-          notes: stopData.notes,
-          listing_id: stopData.listing_id,
-          destination_id: stopData.destination_id,
-          price_item_id: stopData.price_item_id,
-          quantity: stopData.quantity || 1,
-        });
-      } catch (err) {
-        // If adding listing stop failed (e.g. 404 listing not found for local provider fleet), retry as custom stop
-        if (stopData.stop_type === 'listing' && stopData.custom_title && targetTripId) {
-          try {
-            updatedTrip = await addTripStop({
-              trip_id: targetTripId,
-              stop_type: 'custom',
-              day_number: stopData.day_number,
-              end_day_number: stopData.end_day_number,
-              time_slot: stopData.time_slot,
-              custom_title: stopData.custom_title,
-              notes: stopData.notes,
-              quantity: stopData.quantity || 1,
-            });
-          } catch {
-            // Local fallback below
-          }
-        }
-      }
-
-      // If backend was not reached or offline prototype
-      if (!updatedTrip) {
-        const baseTrip = currentViewedTrip || trip || allTrips[0];
-        if (baseTrip) {
-          const newStop: TripStop = {
-            id: `stop-${Date.now()}`,
-            trip_id: baseTrip.id,
-            day_number: stopData.day_number,
-            end_day_number: stopData.end_day_number,
-            stop_order: (baseTrip.stops?.length || 0) + 1,
-            stop_type: stopData.stop_type,
-            time_slot: stopData.time_slot || '09:00 AM',
-            custom_title: stopData.custom_title,
-            notes: stopData.notes,
-            listing_id: stopData.listing_id,
-            created_at: new Date().toISOString(),
-          };
-          updatedTrip = {
-            ...baseTrip,
-            stops: [...(baseTrip.stops || []), newStop],
-          };
-        }
-      }
-
-      if (updatedTrip) {
-        setTrip(updatedTrip);
-        setAllTrips((prev) => {
-          const idx = prev.findIndex((t) => t.id === updatedTrip!.id);
-          if (idx >= 0) {
-            const copy = [...prev];
-            copy[idx] = updatedTrip!;
-            return copy;
-          }
-          return [updatedTrip!, ...prev];
-        });
-        if (currentViewedTrip && currentViewedTrip.id === updatedTrip.id) {
-          setCurrentViewedTrip(updatedTrip);
-        }
-        const bks = await fetchMyBookings().catch(() => []);
-        if (bks) setMyBookings(bks);
-
-        // Sync transport hire stop to transport provider ride order queue
-        if (
-          (stopData.custom_title && (stopData.custom_title.includes('🚗') || stopData.custom_title.includes('SWT-'))) ||
-          (stopData.notes && (stopData.notes.includes('Vehicle Hire') || stopData.notes.includes('Plate:')))
-        ) {
-          try {
-            const plateMatch = (stopData.custom_title || '').match(/SWT-[0-9A-Z]+/i) || (stopData.notes || '').match(/SWT-[0-9A-Z]+/i);
-            const regRef = plateMatch ? plateMatch[0].toUpperCase() : 'SWT-8080';
-            const stored = JSON.parse(localStorage.getItem('swat_ride_orders') || '[]');
-            const publishedTransport = getPublishedTransportListingItems();
-            const matchedListing = publishedTransport.find(
-              (l) => l.id === stopData.listing_id || (l.details?.registration_no && l.details.registration_no.toUpperCase() === regRef)
-            );
-            if (!stored.some((o: any) => o.reference === regRef)) {
-              stored.unshift({
-                id: `ride-${Date.now()}`,
-                reference: regRef,
-                tourist: user?.full_name || 'Tourist Passenger',
-                touristEmail: user?.email || 'tourist@swat.pk',
-                item: stopData.custom_title?.replace('🚗', '').trim() || `Vehicle Hire (${regRef})`,
-                dates: `Day ${stopData.day_number} • ${stopData.time_slot || '09:00 AM'}`,
-                amount: 'Rs 12,000',
-                rawAmount: 12000,
-                status: 'requested',
-                notes: stopData.notes,
-                providerId: matchedListing?.business_id,
-                providerName: matchedListing?.business_name,
-                business_id: matchedListing?.business_id,
-                business_name: matchedListing?.business_name,
-                regNumber: regRef,
-                listing_id: stopData.listing_id || matchedListing?.id,
-              });
-              localStorage.setItem('swat_ride_orders', JSON.stringify(stored));
-              window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: stored }));
-            }
-          } catch {}
-        }
-
-        showToast(`Added to Day ${stopData.day_number}!`);
-      } else {
-        showToast('Please select or create a trip first.');
-      }
-    } catch (err: any) {
-      showToast(err.message || 'Failed to add stop to trip.');
-      throw err;
-    }
-  };
-
-  // Active trip days list for 1-tap fast additions (Less Input, More Output)
-  const activeTripDaysList = useMemo(() => {
-    const maxDay = Math.max(3, ...(activeTrip?.stops || []).map((s) => s.end_day_number || s.day_number));
-    return Array.from({ length: maxDay }, (_, i) => i + 1);
-  }, [activeTrip]);
-
-  const handleQuickAddListingToDay = async (l: ListingItem, dayNumber: number) => {
-    if (l.type_code === 'hotel') {
-      setSelectedHotelId(l.id);
-      setHotelModalListing(l);
-      showToast(`Selected ${l.title} for Day ${dayNumber} • Select room to confirm`);
-      return;
-    }
-    await handleAddCustomStopDetailed({
-      stop_type: 'listing',
-      listing_id: l.id,
-      day_number: dayNumber,
-      time_slot: '10:00 AM',
-      custom_title: l.title,
-      price_item_id: l.price_items?.[0]?.id,
-    });
-  };
-
-  // Handle adding intercity transport to trip
-  const handleAddIntercityTransportToTrip = async (schedule: TransportSchedule) => {
-    try {
-      await handleAddCustomStopDetailed({
-        stop_type: 'custom',
-        day_number: 1,
-        time_slot: schedule.departure_time,
-        custom_title: `🚌 ${schedule.operator_name} (${schedule.vehicle_title}): ${schedule.origin_city} ➔ ${schedule.destination_city}`,
-        notes: `Ticket Fare: PKR ${schedule.ticket_price_pkr.toLocaleString()} | Journey: ${schedule.duration_text} via ${schedule.via_highway}. Departure: ${schedule.departure_time} from ${schedule.departure_terminal}. Helpline: ${schedule.operator_phone}`,
-      });
-      showToast(`Added ${schedule.operator_name} (${schedule.origin_city} ➔ ${schedule.destination_city}) to your trip plan!`);
-    } catch {
-      showToast('Please log in to add stops to your trip plan.');
-    }
-  };
-
-  // Handle removing stop
-  const handleRemoveStop = async (stopId: string) => {
-    try {
-      const updated = await removeTripStop(stopId);
-      setTrip(updated);
-      showToast('Stop removed from itinerary.');
-    } catch {
-      showToast('Could not remove stop.');
-    }
-  };
-
-  // Handle tourist withdrawing a pending booking request
-  const handleWithdrawBooking = async (bookingId: string) => {
-    try {
-      let updated: Booking | null = null;
-      try {
-        updated = await withdrawBooking(bookingId);
-      } catch (apiErr) {
-        console.warn('Backend withdrawBooking skipped or failed (local/guest/mock booking):', apiErr);
-      }
-      setMyBookings((prev) =>
-        prev.map((b) => {
-          const matches =
-            b.id === bookingId ||
-            b.reference === bookingId ||
-            (b as any).booking_reference === bookingId ||
-            (b.reference && String(b.reference).toUpperCase() === String(bookingId).toUpperCase()) ||
-            ((b as any).booking_reference && String((b as any).booking_reference).toUpperCase() === String(bookingId).toUpperCase());
-          return matches
-            ? {
-                ...(updated || b),
-                status: 'cancelled',
-                cancellation_requested: false,
-                cancel_reason: 'Withdrawn by traveler',
-                cancelled_at: new Date().toISOString(),
-              }
-            : b;
-        })
-      );
-
-      // Persist in localStorage swat_local_bookings
-      try {
-        const raw = localStorage.getItem('swat_local_bookings');
-        if (raw) {
-          const list = JSON.parse(raw);
-          const updatedList = list.map((b: any) => {
-            const matches =
-              b.id === bookingId ||
-              b.reference === bookingId ||
-              b.booking_reference === bookingId ||
-              (b.reference && String(b.reference).toUpperCase() === String(bookingId).toUpperCase()) ||
-              (b.booking_reference && String(b.booking_reference).toUpperCase() === String(bookingId).toUpperCase());
-            return matches
-              ? {
-                  ...b,
-                  status: 'cancelled',
-                  cancellation_requested: false,
-                  cancel_reason: 'Withdrawn by traveler',
-                  cancelled_at: new Date().toISOString(),
-                }
-              : b;
-          });
-          localStorage.setItem('swat_local_bookings', JSON.stringify(updatedList));
-          window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedList }));
-        }
-      } catch {}
-
-      try {
-        const refreshedTrip = await getMyTrip().catch(() => null);
-        if (refreshedTrip) setTrip(refreshedTrip);
-      } catch {}
-      showToast('Booking request withdrawn (Free cancellation).');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to withdraw booking');
-    }
-  };
-
-  // Handle tourist cancelling a booking: submits cancellation request to host to accept
-  const handleCancelBooking = async (bookingId: string, reason?: string, note?: string) => {
-    try {
-      let updated: Booking | null = null;
-      try {
-        updated = await requestBookingCancellation(bookingId, reason, note);
-      } catch (apiErr) {
-        console.warn('Backend requestBookingCancellation fallback (local/mock):', apiErr);
-      }
-
-      const cancellationPayload = {
-        status: 'cancellation_requested' as const,
-        cancellation_requested: true,
-        cancelled_by: 'tourist_requested',
-        cancel_reason: reason || 'Cancellation requested by traveler',
-        cancelled_at: new Date().toISOString(),
-      };
-
-      setMyBookings((prev) =>
-        prev.map((b) =>
-          b.id === bookingId || b.reference === bookingId
-            ? { ...(updated || b), ...cancellationPayload }
-            : b
-        )
-      );
-
-      // Persist in localStorage swat_local_bookings
-      try {
-        const raw = localStorage.getItem('swat_local_bookings');
-        if (raw) {
-          const list = JSON.parse(raw);
-          const updatedList = list.map((b: any) =>
-            b.id === bookingId || b.reference === bookingId
-              ? { ...b, ...cancellationPayload }
-              : b
-          );
-          localStorage.setItem('swat_local_bookings', JSON.stringify(updatedList));
-          window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedList }));
-        }
-      } catch {}
-
-      // Persist in localStorage swat_ride_orders (for 4x4 transport)
-      try {
-        const rawRide = localStorage.getItem('swat_ride_orders');
-        if (rawRide) {
-          const orders = JSON.parse(rawRide);
-          const updatedOrders = orders.map((o: any) =>
-            o.id === bookingId || o.reference === bookingId
-              ? { ...o, status: 'cancellation_requested', cancellation_requested: true, cancel_reason: reason }
-              : o
-          );
-          localStorage.setItem('swat_ride_orders', JSON.stringify(updatedOrders));
-          window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: updatedOrders }));
-        }
-      } catch {}
-
-      try {
-        const refreshedTrip = await getMyTrip().catch(() => null);
-        if (refreshedTrip) setTrip(refreshedTrip);
-      } catch {}
-      showToast('Cancellation request submitted. It will appear on the hotel / guide / transport interface to accept.');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to submit cancellation request');
-    }
-  };
-
-  // Handle tourist removing a cancelled/declined booking from trip view
-  const handleRemoveBooking = async (bookingId: string) => {
-    try {
-      await removeBookingFromTrip(bookingId);
-      setMyBookings((prev) => prev.filter((b) => b.id !== bookingId));
-      const refreshedTrip = await getMyTrip();
-      setTrip(refreshedTrip);
-      showToast('Booking removed from trip view.');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to remove booking');
-    }
-  };
-
-  // Handle updating trip details (dates, travellers, title, notes, status)
-  const handleUpdateTrip = async (data: Partial<Trip>) => {
-    try {
-      const targetId = currentViewedTrip ? currentViewedTrip.id : (activeTripId || undefined);
-      let updated: Trip | null = null;
-      try {
-        updated = targetId ? await patchTripById(targetId, data) : await updateMyTrip(data);
-      } catch (apiErr) {
-        // Fallback for local/offline/demo trips
-        console.warn('Backend patchTripById skipped or failed, using local trip update:', apiErr);
-        const baseTrip = currentViewedTrip || trip;
-        if (baseTrip) {
-          updated = {
-            ...baseTrip,
-            ...data,
-            updated_at: new Date().toISOString(),
-          } as Trip;
-        }
-      }
-
-      if (updated) {
-        setTrip(updated);
-        if (currentViewedTrip && currentViewedTrip.id === updated.id) {
-          setCurrentViewedTrip(updated);
-        }
-        setAllTrips((prev) => prev.map((t) => (t.id === updated!.id ? updated! : t)));
-        // Also persist updated trip in swat_local_trips
-        try {
-          const raw = localStorage.getItem('swat_local_trips');
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              const updatedList = parsed.map((t: any) => t.id === updated!.id ? updated : t);
-              localStorage.setItem('swat_local_trips', JSON.stringify(updatedList));
-            }
-          }
-        } catch {}
-      }
-
-      const bks = await fetchMyBookings().catch(() => []);
-      if (bks && bks.length > 0) setMyBookings(bks);
-      showToast(data.status === 'completed' ? 'Trip marked as completed!' : 'Trip itinerary updated.');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to update trip');
-    }
-  };
-
-  // Handle tourist deleting a trip
-  const handleDeleteTrip = async (tripId: string) => {
-    try {
-      // Attempt backend deletion; if offline, mock or local trip, continue gracefully
-      await deleteTrip(tripId).catch((err) => {
-        console.warn('Backend deleteTrip skipped or failed (local/mock trip):', err);
-      });
-      const remainingTrips = allTrips.filter((t) => t.id !== tripId);
-      setAllTrips(remainingTrips);
-
-      // Clean up localStorage 'swat_local_trips' so the deleted trip does not reappear on refresh
-      try {
-        const raw = localStorage.getItem('swat_local_trips');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const filtered = Array.isArray(parsed) ? parsed.filter((t: any) => t.id !== tripId) : [];
-          localStorage.setItem('swat_local_trips', JSON.stringify(filtered));
-        }
-      } catch (e) {
-        console.warn('Could not update swat_local_trips in localStorage:', e);
-      }
-
-      if (activeTripId === tripId) {
-        const nextActive = remainingTrips[0] || null;
-        setActiveTripId(nextActive ? nextActive.id : null);
-        setTrip(nextActive);
-        if (nextActive) {
-          localStorage.setItem('swat_active_trip_id', nextActive.id);
-        } else {
-          localStorage.removeItem('swat_active_trip_id');
-        }
-      } else if (trip && trip.id === tripId) {
-        const nextActive = remainingTrips[0] || null;
-        setTrip(nextActive);
-      }
-
-      if (currentViewedTrip && currentViewedTrip.id === tripId) {
-        setCurrentViewedTrip(null);
-      }
-      const bks = await fetchMyBookings().catch(() => []);
-      setMyBookings(bks);
-      showToast('Trip deleted successfully.');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to delete trip');
-    }
-  };
-
-  // Handle paying a single booking with SwatPay
-  const handlePaySingleBooking = async (bookingId: string) => {
-    const target = myBookings.find((b) => b.id === bookingId);
-    if (target) {
-      setSwatPayModal({ isOpen: true, booking: target });
-    } else {
-      showToast('Booking details not found');
-    }
-  };
-
-  // Handle SwatPay payment for entire trip (Rule 5 & SwatPay modal)
-  const handleOpenTripPayment = async () => {
-    const targetTrip = currentViewedTrip || trip;
-    if (targetTrip) {
-      setSwatPayModal({ isOpen: true, trip: targetTrip });
-    } else {
-      showToast('No active trip to pay for.');
-    }
-  };
-
-  // Backward compatible payment confirmation
-  const handleMockPayment = async () => {
-    await handleOpenTripPayment();
-  };
-
-  const renderAdvisoryFrame = (isSidebar: boolean = false) => {
-    const primaryAdv = (advisories && advisories.length > 0)
-      ? (advisories.find((a) => a.severity === 'danger') || advisories.find((a) => a.severity === 'warning') || advisories[0])
-      : null;
-
-    const isDanger = primaryAdv?.severity === 'danger';
-    const advTitle = primaryAdv?.title
-      ? (primaryAdv.title.toLowerCase().includes('advisory') ? primaryAdv.title : `Weather Advisory: ${primaryAdv.title}`)
-      : 'Weather Advisory: Light snow expected at Malam Jabba & Kalam';
-    const advMessage = primaryAdv?.message || 'Main arterial roads remain fully open. 4x4 vehicles advised for Mahodand Lake track. Rescue 1122 active.';
-
-    if (isSidebar) {
-      return (
-        <div
-          id="active-advisory-banner"
-          data-testid="active-advisory-banner"
-          style={{
-            backgroundColor: 'var(--card)',
-            background: isDanger
-              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(220, 38, 38, 0.08) 100%)'
-              : 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.08) 100%)',
-            border: isDanger ? '1.5px solid rgba(239, 68, 68, 0.6)' : '1.5px solid rgba(245, 158, 11, 0.65)',
-            borderLeft: isDanger ? '5px solid #DC2626' : '5px solid #D97706',
-            borderRadius: '16px',
-            padding: '14px 16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            boxShadow: isDanger
-              ? '0 6px 20px -2px rgba(220, 38, 38, 0.20), 0 2px 8px rgba(0, 0, 0, 0.04)'
-              : '0 6px 20px -2px rgba(217, 119, 6, 0.18), 0 2px 8px rgba(0, 0, 0, 0.04)',
-            backdropFilter: 'blur(8px)',
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Header pill & badge */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '3px 8px',
-                borderRadius: '9999px',
-                backgroundColor: isDanger ? '#DC2626' : '#D97706',
-                color: '#FFFFFF',
-                fontSize: '10px',
-                fontWeight: 800,
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
-              }}
-            >
-              <span
-                style={{
-                  width: '5px',
-                  height: '5px',
-                  borderRadius: '50%',
-                  backgroundColor: '#FFFFFF',
-                  boxShadow: '0 0 5px #FFFFFF',
-                }}
-              />
-              Live Advisory
-            </span>
-            <Tag variant={isDanger ? 'bad' : 'accent'}>Rescue 1122</Tag>
-          </div>
-
-          {/* Title & emblem */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <div
-              style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '9px',
-                background: isDanger
-                  ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
-                  : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-                color: '#FFFFFF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: isDanger
-                  ? '0 3px 8px rgba(220, 38, 38, 0.3)'
-                  : '0 3px 8px rgba(217, 119, 6, 0.3)',
-              }}
-            >
-              <AlertTriangle color="#FFFFFF" size={18} strokeWidth={2.4} />
-            </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div
-                style={{
-                  fontWeight: 800,
-                  fontSize: '13px',
-                  color: 'var(--ink)',
-                  letterSpacing: '-0.01em',
-                  lineHeight: 1.35,
-                }}
-              >
-                {advTitle}
-              </div>
-            </div>
-          </div>
-
-          {/* Message */}
-          <div
-            style={{
-              fontSize: '11.5px',
-              color: 'var(--ink)',
-              opacity: 0.88,
-              lineHeight: 1.45,
-              fontWeight: 500,
-            }}
-          >
-            {advMessage}
-          </div>
-
-          {/* Action button */}
-          <button
-            type="button"
-            onClick={() => onTabChange?.('safety')}
-            id="btn-advisory-view-safety"
-            data-testid="btn-advisory-view-safety"
-            style={{
-              width: '100%',
-              padding: '8px 14px',
-              borderRadius: '9px',
-              backgroundColor: isDanger ? '#DC2626' : '#D97706',
-              color: '#FFFFFF',
-              fontSize: '11.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              border: 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>Safety & Roads Details</span>
-            <ChevronRight size={13} />
-          </button>
-        </div>
-      );
-    }
-
-    // Full-width banner for non-home tabs
-    return (
-      <div
-        id="active-advisory-banner"
-        data-testid="active-advisory-banner"
-        style={{
-          backgroundColor: 'var(--card)',
-          background: isDanger
-            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(220, 38, 38, 0.12) 100%)'
-            : 'linear-gradient(135deg, rgba(245, 158, 11, 0.20) 0%, rgba(217, 119, 6, 0.13) 100%)',
-          border: isDanger ? '2px solid rgba(239, 68, 68, 0.7)' : '2px solid rgba(245, 158, 11, 0.75)',
-          borderLeft: isDanger ? '6px solid #DC2626' : '6px solid #D97706',
-          borderRadius: '14px',
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-          marginBottom: '16px',
-          boxShadow: isDanger
-            ? '0 6px 20px -2px rgba(220, 38, 38, 0.25), 0 2px 8px rgba(0, 0, 0, 0.05)'
-            : '0 6px 20px -2px rgba(217, 119, 6, 0.24), 0 2px 8px rgba(0, 0, 0, 0.05)',
-          backdropFilter: 'blur(8px)',
-          position: 'relative',
-          overflow: 'hidden',
-          flexWrap: 'wrap',
-        }}
-      >
-        {/* Left Content with Alert Emblem */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '260px' }}>
-          <div
-            style={{
-              width: '46px',
-              height: '46px',
-              borderRadius: '12px',
-              background: isDanger
-                ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
-                : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: isDanger
-                ? '0 4px 12px rgba(220, 38, 38, 0.35)'
-                : '0 4px 12px rgba(217, 119, 6, 0.35)',
-            }}
-          >
-            <AlertTriangle color="#FFFFFF" size={24} strokeWidth={2.4} />
-          </div>
-
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '2.5px 9px',
-                  borderRadius: '9999px',
-                  backgroundColor: isDanger ? '#DC2626' : '#D97706',
-                  color: '#FFFFFF',
-                  fontSize: '10.5px',
-                  fontWeight: 800,
-                  letterSpacing: '0.05em',
-                  textTransform: 'uppercase',
-                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
-                }}
-              >
-                <span
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: '#FFFFFF',
-                    boxShadow: '0 0 6px #FFFFFF',
-                  }}
-                />
-                Live Alert • KP Tourism Authority
-              </span>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--mute)' }}>
-                Active Bulletin • Rescue 1122
-              </span>
-            </div>
-
-            <div
-              style={{
-                fontWeight: 800,
-                fontSize: '1.02rem',
-                color: 'var(--ink)',
-                letterSpacing: '-0.015em',
-                lineHeight: 1.3,
-              }}
-            >
-              {advTitle}
-            </div>
-            <div
-              style={{
-                fontSize: '12.5px',
-                color: 'var(--ink)',
-                opacity: 0.88,
-                marginTop: '3px',
-                lineHeight: 1.45,
-                fontWeight: 500,
-              }}
-            >
-              {advMessage}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Action & Tag */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, flexWrap: 'wrap' }}>
-          <Tag variant={isDanger ? 'bad' : 'accent'}>Advisory</Tag>
-          <button
-            type="button"
-            onClick={() => onTabChange?.('safety')}
-            id="btn-advisory-view-safety"
-            data-testid="btn-advisory-view-safety"
-            style={{
-              padding: '7px 14px',
-              borderRadius: '9px',
-              backgroundColor: isDanger ? '#DC2626' : '#D97706',
-              color: '#FFFFFF',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              border: 'none',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span>Safety & Roads</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderRoadStatusFrame = () => {
-    return (
-      <div
-        id="roads-highway-live-frame"
-        data-testid="roads-highway-live-frame"
-        style={{
-          backgroundColor: 'var(--card)',
-          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.07) 100%)',
-          border: '1.5px solid rgba(16, 185, 129, 0.55)',
-          borderLeft: '5px solid #059669',
-          borderRadius: '16px',
-          padding: '14px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '11px',
-          boxShadow: '0 6px 20px -2px rgba(5, 150, 105, 0.16), 0 2px 8px rgba(0, 0, 0, 0.04)',
-          backdropFilter: 'blur(8px)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Header pill & badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-              padding: '3px 8px',
-              borderRadius: '9999px',
-              backgroundColor: '#059669',
-              color: '#FFFFFF',
-              fontSize: '10px',
-              fontWeight: 800,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase',
-              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
-            }}
-          >
-            <span
-              style={{
-                width: '5px',
-                height: '5px',
-                borderRadius: '50%',
-                backgroundColor: '#FFFFFF',
-                boxShadow: '0 0 5px #FFFFFF',
-              }}
-            />
-            Live Road Status
-          </span>
-          <Tag variant="ok">All Clear</Tag>
-        </div>
-
-        {/* Title & emblem */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-          <div
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 3px 8px rgba(5, 150, 105, 0.3)',
-            }}
-          >
-            <Navigation color="#FFFFFF" size={18} strokeWidth={2.4} />
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div
-              style={{
-                fontWeight: 800,
-                fontSize: '13px',
-                color: 'var(--ink)',
-                letterSpacing: '-0.01em',
-                lineHeight: 1.35,
-              }}
-            >
-              Roads & Highway Live Status
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 500, marginTop: '1px' }}>
-              Swat Expressway M-16 & N-95 Corridor
-            </div>
-          </div>
-        </div>
-
-        {/* Compact Key Arteries */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          {[
-            { road: 'M-16 Swat Expressway', status: 'Clear & Open', badge: 'All Traffic', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
-            { road: 'N-95 Mingora ↔ Bahrain', status: 'Clear & Open', badge: 'Normal Speed', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
-            { road: 'Bahrain ↔ Kalam Highway', status: 'Open', badge: 'Drive Safe', color: '#D97706', bg: 'rgba(245, 158, 11, 0.09)' },
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '4px 8px',
-                borderRadius: '7px',
-                backgroundColor: item.bg,
-                border: `1px solid ${item.color}25`,
-                fontSize: '11px',
-                gap: '4px',
-              }}
-            >
-              <span style={{ fontWeight: 650, color: 'var(--ink)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.road}
-              </span>
-              <span style={{ fontWeight: 700, color: item.color, fontSize: '10.5px', flexShrink: 0 }}>
-                {item.status}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Action button matching Advisory button */}
-        <button
-          type="button"
-          onClick={() => onTabChange?.('safety')}
-          id="btn-roads-view-details"
-          data-testid="btn-roads-view-details"
-          style={{
-            width: '100%',
-            padding: '8px 14px',
-            borderRadius: '9px',
-            backgroundColor: '#059669',
-            color: '#FFFFFF',
-            fontSize: '11.5px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            border: 'none',
-            transition: 'all 0.15s ease',
-          }}
-        >
-          <span>Safety & Highway Updates</span>
-          <ChevronRight size={13} />
-        </button>
-      </div>
-    );
-  };
-
-  const renderWeekendWeatherCard = () => {
-    const valleyWeatherReports = [
-      {
-        valley: 'Kalam Alpine',
-        temp: '12°C',
-        icon: '⛅',
-        condition: 'Partly Sunny',
-        road: 'Main Road Clear',
-        roadOk: true,
-        query: 'Kalam',
-      },
-      {
-        valley: 'Malam Jabba',
-        temp: '7°C',
-        icon: '❄️',
-        condition: 'Snow Season & Skiing',
-        road: 'Chains required at peak',
-        roadOk: true,
-        query: 'Malam Jabba',
-      },
-      {
-        valley: 'Bahrain & Trout',
-        temp: '16°C',
-        icon: '☀️',
-        condition: 'Clear & Mild',
-        road: 'Direct Riverway Open',
-        roadOk: true,
-        query: 'Bahrain',
-      },
-      {
-        valley: 'Mahodand & Lakes',
-        temp: '6°C',
-        icon: '🏔️',
-        condition: 'Glacial Breeze',
-        road: '4x4 Jeeps Operating',
-        roadOk: true,
-        query: 'Mahodand',
-      },
-    ];
-
-    return (
-      <div
-        id="live-swat-weather-road-pulse"
-        data-testid="live-swat-weather-road-pulse"
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '16px',
-          border: '1px solid rgba(27, 79, 114, 0.12)',
-          boxShadow: '0 4px 20px rgba(18, 50, 74, 0.06)',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            padding: '12px 14px',
-            background: 'linear-gradient(135deg, rgba(27, 79, 114, 0.05) 0%, rgba(16, 185, 129, 0.08) 100%)',
-            borderBottom: '1px solid rgba(27, 79, 114, 0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <div
-                style={{
-                  width: '26px',
-                  height: '26px',
-                  borderRadius: '7px',
-                  background: 'var(--pri)',
-                  color: '#ffffff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '13px',
-                }}
-              >
-                🌤️
-              </div>
-              <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--ink)' }}>
-                This Weekend in Swat
-              </h4>
-            </div>
-
-            <span
-              style={{
-                fontSize: '10px',
-                fontWeight: 700,
-                color: '#059669',
-                backgroundColor: '#ECFDF5',
-                padding: '2.5px 7px',
-                borderRadius: '5px',
-                border: '1px solid #A7F3D0',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
-              M-16 Open
-            </span>
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--mute)' }}>
-            Real-time mountain weather, snow & road clearance
-          </div>
-        </div>
-
-        {/* Micro Weather Cards Stack */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            padding: '12px 14px',
-          }}
-        >
-          {valleyWeatherReports.map((c) => (
-            <button
-              key={c.valley}
-              type="button"
-              onClick={() => setSearchQuery(c.query)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                padding: '9px 11px',
-                borderRadius: '10px',
-                border: '1px solid rgba(27, 79, 114, 0.1)',
-                backgroundColor: '#F8FAFD',
-                cursor: 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.15s ease',
-                width: '100%',
-              }}
-              title={`Click to filter ${c.valley} offerings`}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                <span style={{ fontSize: '11.5px', fontWeight: 750, color: 'var(--ink)' }}>
-                  {c.valley}
-                </span>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--pri)' }}>
-                  {c.icon} {c.temp}
-                </span>
-              </div>
-              <div style={{ fontSize: '10.5px', color: 'var(--mute)', marginTop: '2px' }}>
-                {c.condition}
-              </div>
-              <div
-                style={{
-                  marginTop: '4px',
-                  fontSize: '10px',
-                  fontWeight: 650,
-                  color: c.roadOk ? '#047857' : '#D97706',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                <span>🚗 {c.road}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderModernTravelIntelligence = () => (
-    <div
-      className="modern-travel-intelligence-column"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '14px',
-        minWidth: 0,
-        width: '100%',
-      }}
-    >
-      <h2
-        style={{
-          fontSize: '1.25rem',
-          fontWeight: 800,
-          color: 'var(--ink)',
-          margin: '0 0 2px 0',
-          letterSpacing: '-0.02em',
-        }}
-      >
-        Live Travel Intelligence
-      </h2>
-
-      {/* CARD 1: Real-time Road Conditions */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          padding: '14px 16px',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '8px',
-              backgroundColor: '#F1F5F9',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#475569',
-              flexShrink: 0,
-            }}
-          >
-            <CompassIcon size={20} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-              Real-time Road Conditions
-            </h3>
-            <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
-              Live verified road status &amp; travel advisories across Swat.
-            </p>
-          </div>
-        </div>
-
-        {/* Dynamic Artery Status Indicators */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
-          {(roadStatuses && roadStatuses.length > 0 ? roadStatuses : [
-            { id: 'def-1', road_name: 'M-16 Swat Expressway', status: 'open', vehicle_note: 'Clear & Open' } as RoadStatus,
-            { id: 'def-2', road_name: 'N-95 Mingora ↔ Kalam Highway', status: 'open', vehicle_note: 'All Vehicles Permitted' } as RoadStatus,
-            { id: 'def-3', road_name: 'Malam Jabba Hill Road', status: 'open', vehicle_note: 'All Standard Vehicles' } as RoadStatus,
-            { id: 'def-4', road_name: 'Kalam ↔ Mahodand Lake Track', status: 'limited', vehicle_note: 'High-Clearance 4x4' } as RoadStatus,
-          ]).map((road) => {
-            const isClosed = road.status === 'closed';
-            const isLimited = road.status === 'limited';
-            const badgeBg = isClosed ? '#FEF2F2' : isLimited ? '#EFF6FF' : '#ECFDF5';
-            const badgeColor = isClosed ? '#DC2626' : isLimited ? '#028AC8' : '#007A55';
-            const note = road.vehicle_note || (isClosed ? 'Closed' : isLimited ? '4x4 Required' : 'Clear & Open');
-
-            return (
-              <div
-                key={road.id || road.road_name}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '11px',
-                  gap: '8px',
-                }}
-              >
-                <span
-                  style={{
-                    color: '#475569',
-                    fontWeight: 600,
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={road.road_name}
-                >
-                  {road.road_name}:
-                </span>
-                <span
-                  style={{
-                    color: badgeColor,
-                    fontWeight: 800,
-                    backgroundColor: badgeBg,
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                    fontSize: '10.5px',
-                  }}
-                >
-                  {note}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* CARD 2: Official Weather Advisory Alerts */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          padding: '14px 16px',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '8px',
-              backgroundColor: '#FEF3C7',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#D97706',
-              flexShrink: 0,
-            }}
-          >
-            <AlertTriangle size={20} />
-          </div>
-          <div>
-            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-              Official Weather Advisory Alerts
-            </h3>
-            <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
-              Official weather advisory and alerts.
-            </p>
-          </div>
-        </div>
-
-        {/* Official Advisory Detail from Proof of Concept */}
-        <div style={{ paddingTop: '6px', borderTop: '1px solid #F1F5F9', fontSize: '11px', color: '#475569', lineHeight: 1.45 }}>
-          <span style={{ fontWeight: 800, color: '#D97706' }}>District Notice #24: </span>
-          Clear conditions across Mingora. Fresh snowfall at Malam Jabba peak (2,800m). SCOM 4G active in Kalam valley.
-        </div>
-        <div style={{ fontSize: '10px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <PhoneCall size={10} color="#059669" />
-          <span>Swat Emergency Control: <strong>0946-9240400</strong></span>
-        </div>
-      </div>
-
-      {/* CARD 3: Upcoming Weekend Forecasts */}
-      <div
-        style={{
-          backgroundColor: '#FFFFFF',
-          borderRadius: '12px',
-          border: '1px solid #E2E8F0',
-          padding: '14px 16px',
-          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
-            Upcoming Weekend Forecasts
-          </h3>
-          <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#007A55', backgroundColor: '#ECFDF5', padding: '2px 7px', borderRadius: '4px' }}>
-            Live Feeds
-          </span>
-        </div>
-
-        {/* 5-Day Strip (Mon, Tue, Wed, Sat, Sun matching concept) with temperatures */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(5, 1fr)',
-            gap: '6px',
-            textAlign: 'center',
-            paddingTop: '4px',
-          }}
-        >
-          {[
-            { day: 'Mon', temp: '18°C', icon: <Sun size={17} color="#F59E0B" /> },
-            { day: 'Tue', temp: '15°C', icon: <CloudSun size={17} color="#028AC8" /> },
-            { day: 'Wed', temp: '14°C', icon: <CloudSun size={17} color="#028AC8" /> },
-            { day: 'Sat', temp: '7°C', icon: <CloudRain size={17} color="#64748B" /> },
-            { day: 'Sun', temp: '3°C', icon: <CloudRain size={17} color="#64748B" /> },
-          ].map((w, idx) => (
-            <div
-              key={idx}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '3px',
-                padding: '5px 2px',
-                borderRadius: '6px',
-                backgroundColor: '#F8FAFD',
-              }}
-            >
-              <span style={{ fontSize: '11px', fontWeight: 650, color: '#64748B' }}>
-                {w.day}
-              </span>
-              <div>{w.icon}</div>
-              <span style={{ fontSize: '11px', fontWeight: 750, color: '#0F172A' }}>
-                {w.temp}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        {/* Quick valley highlights */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748B', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
-          <span>Kalam: <strong>12°C</strong></span>
-          <span>Malam Jabba: <strong>7°C</strong></span>
-          <span>Bahrain: <strong>16°C</strong></span>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      {/* Toast Feedback */}
-      {toastMessage && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            backgroundColor: 'var(--ink)',
-            color: '#ffffff',
-            padding: '12px 20px',
-            borderRadius: '10px',
-            boxShadow: '0 8px 24px rgba(18, 50, 74, 0.25)',
-            fontSize: 'var(--font-sm)',
-            fontWeight: 500,
-            zIndex: 2000,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <Sparkles size={16} color="var(--acc)" />
-          {toastMessage}
-        </div>
-      )}
-
-      {/* Active Advisory Banner on non-home, non-trips, non-bookings tabs */}
-      {activeTab !== 'home' && activeTab !== 'trips' && activeTab !== 'bookings' && renderAdvisoryFrame(false)}
-
-      {/* ========================================================================= */}
-      {/* TAB 1: HOME */}
-      {/* ========================================================================= */}
-      {activeTab === 'home' && (
-        <>
-          {/* Interactive Landing Page View Switcher: Classic View vs Modern Portal V2 */}
-          <div
-            className="landing-version-switcher-bar"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: '#FFFFFF',
-              borderRadius: '12px',
-              border: '1px solid #E2E8F0',
-              padding: '6px 14px',
-              marginBottom: '10px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              flexWrap: 'wrap',
-              gap: '8px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 750, color: '#0F172A', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <Sparkles size={13} color="#028AC8" />
-                <span>Landing Page Experience:</span>
-              </span>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  backgroundColor: '#F1F5F9',
-                  borderRadius: '8px',
-                  padding: '3px',
-                  gap: '4px',
-                }}
-              >
-                <button
-                  type="button"
-                  data-testid="btn-landing-classic"
-                  onClick={() => {
-                    setLandingVersion('classic');
-                    try { localStorage.setItem('swat_landing_version', 'classic'); } catch {}
-                  }}
-                  style={{
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '4px 12px',
-                    fontSize: '11.5px',
-                    fontWeight: landingVersion === 'classic' ? 800 : 600,
-                    backgroundColor: landingVersion === 'classic' ? '#FFFFFF' : 'transparent',
-                    color: landingVersion === 'classic' ? '#028AC8' : '#64748B',
-                    boxShadow: landingVersion === 'classic' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  Classic View (Original)
-                </button>
-                <button
-                  type="button"
-                  data-testid="btn-landing-modern"
-                  onClick={() => {
-                    setLandingVersion('modern');
-                    try { localStorage.setItem('swat_landing_version', 'modern'); } catch {}
-                  }}
-                  style={{
-                    border: 'none',
-                    borderRadius: '6px',
-                    padding: '4px 12px',
-                    fontSize: '11.5px',
-                    fontWeight: landingVersion === 'modern' ? 800 : 600,
-                    backgroundColor: landingVersion === 'modern' ? '#028AC8' : 'transparent',
-                    color: landingVersion === 'modern' ? '#FFFFFF' : '#64748B',
-                    boxShadow: landingVersion === 'modern' ? '0 1px 3px rgba(2, 138, 200, 0.3)' : 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  ✨ Modern Portal V2
-                </button>
-              </div>
-            </div>
-
-            <span style={{ fontSize: '11px', color: '#64748B' }}>
-              {landingVersion === 'classic'
-                ? 'Original intact classic landing page'
-                : 'New proof-of-concept modern portal layout'}
-            </span>
-          </div>
-
-          {landingVersion === 'modern' ? (
-            <TouristHomeModern
-              listings={listings}
-              destinations={effectiveDestinations}
-              onOpenHotelDetails={(hotel) => setHotelModalListing(hotel)}
-              onOpenRestaurantModal={(restaurant) => setRestaurantModalListing(restaurant)}
-              onOpenServiceModal={(srv) => setServiceModalListing(srv)}
-              onOpenMapModal={(item) => setMapModal({ open: true, ...item })}
-              onOpenWeatherModal={(dest) => setWeatherModal({ isOpen: true, destination: dest })}
-              onOpenAvailModal={(lid, title, items) => setAvailModal({ open: true, listingId: lid, listingTitle: title, priceItems: items })}
-              onOpenAuth={onOpenAuth}
-              onNavigateTab={onTabChange}
-              user={user}
-              roadStatuses={roadStatuses}
-              renderRoadStatusFrame={renderRoadStatusFrame}
-              renderAdvisoryFrame={renderAdvisoryFrame}
-              renderWeekendWeatherCard={renderWeekendWeatherCard}
-            />
-          ) : (
-            <div
-              className="classic-landing-page-root"
-              style={{
-                backgroundColor: '#FFFFFF',
-                width: '100%',
-                minHeight: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
-              }}
-            >
-              {/* Top Blue Banner on Tourist Home Screen with 3 Functional Buttons */}
-              <TourismAnimatedBanner
-            title="Swat Tourism Platform"
-            subtitle="Discover valleys, book stays, and explore safely"
-            headerAction={headerAction}
-            homeSearchTab={homeSearchTab}
-            onHomeSearchTabChange={setHomeSearchTab}
-          />
-
-          {/* Top Hero Split Layout: 80% Search Hub & Results / 20% Advisory & Weather Intelligence */}
-          <div className="tourist-home-hero-split">
-            {/* Left 80% Column: Search Frame + Direct Search Result Lists */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, maxWidth: '100%', width: '100%' }}>
-              {/* Hero Search & Transport Hub Frame */}
-              <div
-                className="hero-search-hub-frame"
-                style={{
-                  backgroundColor: 'var(--card)',
-                  border: '1px solid rgba(47, 127, 193, 0.16)',
-                  borderRadius: '10px',
-                  padding: '7px 12px',
-                  boxShadow: '0 2px 10px -3px rgba(18, 50, 74, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '5px',
-                  minWidth: 0,
-                }}
-              >
-            {/* Visually hidden heading for screen readers & semantic outline */}
-            <h2
-              style={{
-                position: 'absolute',
-                width: '1px',
-                height: '1px',
-                padding: 0,
-                margin: '-1px',
-                overflow: 'hidden',
-                clip: 'rect(0, 0, 0, 0)',
-                whiteSpace: 'nowrap',
-                border: 0,
-              }}
-            >
-              Explore the Beauty of Swat Valley
-            </h2>
-
-            {/* TAB CONTENT 1: VALLEYS & PLACES SEARCH */}
-            {homeSearchTab === 'valleys' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                {/* Unified Search Input Container */}
-                <div
-                  className="hero-search-input-box"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    backgroundColor: 'var(--bg)',
-                    border: '1.5px solid var(--line)',
-                    borderRadius: '8px',
-                    padding: '2px 5px 2px 10px',
-                    transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
-                    gap: '6px',
-                    minHeight: '32px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 180px', minWidth: 0 }}>
-                    <Search size={14} color="var(--pri)" style={{ flexShrink: 0 }} />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search Kalam, Mahodand, Malam Jabba, stays, or guides..."
-                      style={{
-                        flex: 1,
-                        border: 'none',
-                        outline: 'none',
-                        backgroundColor: 'transparent',
-                        color: 'var(--ink)',
-                        fontSize: '12px',
-                        padding: '3px 4px',
-                        minWidth: 0,
-                      }}
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--mute)',
-                          cursor: 'pointer',
-                          padding: '2px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                        title="Clear search"
-                      >
-                        <X size={13} />
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexShrink: 0 }}>
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        /* search query filters view directly */
-                      }}
-                      style={{
-                        borderRadius: '6px',
-                        padding: '3px 12px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        height: '26px',
-                      }}
-                    >
-                      Search
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setShowAITripModal(true)}
-                      data-testid="btn-home-ai-trip"
-                      style={{
-                        display: 'none',
-                        borderRadius: '6px',
-                        padding: '3px 8px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        backgroundColor: '#F0FDF4',
-                        color: '#065F46',
-                        border: '1.5px solid #86EFAC',
-                        flexShrink: 0,
-                        alignItems: 'center',
-                        gap: '3px',
-                        height: '26px',
-                      }}
-                    >
-                      <Sparkles size={12} color="#059669" />
-                      <span>AI Trip</span>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Popular Valleys Quick-Pills Filter Bar */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '10.5px', fontWeight: 650, color: 'var(--mute)', flexShrink: 0 }}>
-                    Quick Valleys:
-                  </span>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '5px',
-                      overflowX: 'auto',
-                      padding: '1px 0',
-                      scrollbarWidth: 'none',
-                      flex: 1,
-                      minWidth: 0,
-                    }}
-                  >
-                    {[
-                      { id: '', label: 'All Valleys', icon: '🌲' },
-                      { id: 'Kalam', label: 'Kalam', icon: '🏔️' },
-                      { id: 'Malam Jabba', label: 'Malam Jabba', icon: '⛷️' },
-                      { id: 'Bahrain', label: 'Bahrain', icon: '🌊' },
-                      { id: 'Mahodand', label: 'Mahodand', icon: '💎' },
-                      { id: 'Ushu', label: 'Ushu', icon: '🌲' },
-                      { id: 'Marghuzar', label: 'White Palace', icon: '🏰' },
-                      { id: 'Miandam', label: 'Miandam', icon: '🍎' },
-                    ].map((valley) => {
-                      const isSelected = valley.id === '' ? !searchQuery : searchQuery.toLowerCase().includes(valley.id.toLowerCase());
-                      return (
-                        <button
-                          key={valley.id}
-                          type="button"
-                          onClick={() => setSearchQuery(valley.id)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3.5px',
-                            padding: '2px 8px',
-                            borderRadius: '9999px',
-                            fontSize: '10.5px',
-                            fontWeight: isSelected ? 700 : 500,
-                            backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
-                            color: isSelected ? '#FFFFFF' : 'var(--ink)',
-                            border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
-                            boxShadow: isSelected ? '0 1px 4px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            transition: 'all 0.15s ease',
-                            height: '23px',
-                          }}
-                        >
-                          <span style={{ fontSize: '10.5px' }}>{valley.icon}</span>
-                          <span>{valley.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--pri)',
-                        fontSize: '10.5px',
-                        fontWeight: 650,
-                        cursor: 'pointer',
-                        padding: '0 4px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      Reset ✕
-                    </button>
-                  )}
-                </div>
-
-                {/* Quick Itinerary Presets: Curated 1-Tap Journeys */}
-                <div className="itinerary-presets-container" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10.5px', fontWeight: 650, color: 'var(--ink)', flexShrink: 0 }}>
-                    <Sparkles size={11} color="var(--pri)" />
-                    <span>Presets:</span>
-                  </span>
-
-                  <div
-                    className="itinerary-presets-row"
-                    style={{
-                      display: 'flex',
-                      gap: '5px',
-                      overflowX: 'auto',
-                      padding: '1px 0',
-                      scrollbarWidth: 'none',
-                      flex: 1,
-                      minWidth: 0,
-                    }}
-                  >
-                    {[
-                      {
-                        id: 'family-3d',
-                        label: 'Family Friendly',
-                        duration: '3 Days',
-                        icon: '👨‍👩‍👧',
-                        tag: 'Mingora • Miandam • Kalam',
-                        query: 'Kalam, Miandam, Marghuzar',
-                        category: 'all',
-                      },
-                      {
-                        id: 'ski-snow',
-                        label: 'Ski & Adventure',
-                        duration: '2 Days',
-                        icon: '⛷️',
-                        tag: 'Malam Jabba Slopes',
-                        query: 'Malam Jabba',
-                        category: 'all',
-                      },
-                      {
-                        id: 'honeymoon',
-                        label: 'Honeymoon & Luxury',
-                        duration: '4 Days',
-                        icon: '💍',
-                        tag: 'White Palace • Kalam',
-                        query: 'Marghuzar, Kalam',
-                        category: 'all',
-                      },
-                      {
-                        id: 'backpacker-trek',
-                        label: 'Backpacker & Trek',
-                        duration: '4 Days',
-                        icon: '🎒',
-                        tag: 'Ushu • Mahodand Lake',
-                        query: 'Mahodand, Ushu',
-                        category: 'lake',
-                      },
-                    ].map((preset) => {
-                      const isActive = activeItineraryPreset === preset.id;
-                      return (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => {
-                            if (isActive) {
-                              setActiveItineraryPreset(null);
-                              setSearchQuery('');
-                              setDestCategoryFilter('all');
-                            } else {
-                              setActiveItineraryPreset(preset.id);
-                              setSearchQuery(preset.query);
-                              setDestCategoryFilter(preset.category);
-                            }
-                          }}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            backgroundColor: isActive ? 'var(--pri)' : '#FFFFFF',
-                            color: isActive ? '#FFFFFF' : 'var(--ink)',
-                            border: isActive ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
-                            boxShadow: isActive ? '0 1px 4px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            transition: 'all 0.15s ease',
-                            flexShrink: 0,
-                            height: '24px',
-                          }}
-                          title={preset.tag}
-                        >
-                          <span style={{ fontSize: '11px' }}>{preset.icon}</span>
-                          <span style={{ fontSize: '10.5px', fontWeight: 650 }}>{preset.label}</span>
-                          <span
-                            style={{
-                              fontSize: '9px',
-                              fontWeight: 700,
-                              padding: '1px 4px',
-                              borderRadius: '4px',
-                              backgroundColor: isActive ? 'rgba(255,255,255,0.22)' : 'rgba(47, 127, 193, 0.1)',
-                              color: isActive ? '#FFFFFF' : 'var(--pri)',
-                            }}
-                          >
-                            {preset.duration}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {activeItineraryPreset && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveItineraryPreset(null);
-                        setSearchQuery('');
-                        setDestCategoryFilter('all');
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--pri)',
-                        fontSize: '10.5px',
-                        fontWeight: 650,
-                        cursor: 'pointer',
-                        padding: '0 4px',
-                        flexShrink: 0,
-                      }}
-                    >
-                      Reset ✕
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* TAB CONTENT 2: EXPLORE (STAY, DINING, GUIDE) SEARCH */}
-            {homeSearchTab === 'explore' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} data-testid="home-explore-content">
-                {/* Unified Search Input Container */}
-                <div
-                  className="hero-search-input-box"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    backgroundColor: 'var(--bg)',
-                    border: '1.5px solid var(--line)',
-                    borderRadius: '10px',
-                    padding: '3px 6px 3px 12px',
-                    transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
-                    gap: '8px',
-                    minHeight: '38px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }}>
-                    <Search size={16} color="var(--pri)" style={{ flexShrink: 0 }} />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search verified stays, riverside dining, trout cafes, guides..."
-                      data-testid="input-home-explore-search"
-                      style={{
-                        flex: 1,
-                        border: 'none',
-                        outline: 'none',
-                        backgroundColor: 'transparent',
-                        color: 'var(--ink)',
-                        fontSize: '13px',
-                        padding: '6px 4px',
-                        minWidth: 0,
-                      }}
-                    />
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--mute)',
-                          cursor: 'pointer',
-                          padding: '3px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                        title="Clear search"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexShrink: 0 }}>
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        /* filters active view directly */
-                      }}
-                      style={{
-                        borderRadius: '8px',
-                        padding: '5px 14px',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        height: '30px',
-                      }}
-                    >
-                      Search
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setShowAITripModal(true)}
-                      style={{
-                        display: 'none',
-                        borderRadius: '8px',
-                        padding: '5px 10px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        backgroundColor: '#F0FDF4',
-                        color: '#065F46',
-                        border: '1.5px solid #86EFAC',
-                        flexShrink: 0,
-                        alignItems: 'center',
-                        gap: '4px',
-                        height: '30px',
-                      }}
-                    >
-                      <Sparkles size={13} color="#059669" />
-                      <span>AI Trip</span>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Explore Category Filter Bar */}
-                <div
-                  className="explore-category-filter-bar"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    flexWrap: 'wrap',
-                    width: '100%',
-                  }}
-                >
-                  <span
-                    className="explore-filter-label"
-                    style={{ fontSize: '11px', fontWeight: 650, color: 'var(--mute)', flexShrink: 0 }}
-                  >
-                    Filter Offerings:
-                  </span>
-                  <div
-                    className="explore-filter-pills-row"
-                    style={{
-                      display: 'flex',
-                      gap: '5px',
-                      flexWrap: 'wrap',
-                      padding: '2px 0',
-                      flex: 1,
-                      minWidth: 0,
-                      alignItems: 'center',
-                    }}
-                  >
-                    {[
-                      { id: 'all', label: 'All', icon: '✨' },
-                      { id: 'hotel', label: 'Stays', icon: '🏨' },
-                      { id: 'restaurant', label: 'Dining', icon: '🍽️' },
-                      { id: 'transport', label: '4x4 Jeeps', icon: '🚙' },
-                      { id: 'guide', label: 'Guides', icon: '🧭' },
-                      { id: 'activity', label: 'Adventures', icon: '⛷️' },
-                      { id: 'shop', label: 'Crafts', icon: '🛍️' },
-                    ].map((cat) => {
-                      const isSelected = homeExploreFilter === cat.id;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => {
-                            setHomeExploreFilter(cat.id as any);
-                            setSelectedType(cat.id === 'all' ? 'all' : cat.id);
-                          }}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '3.5px',
-                            padding: '0 8px',
-                            borderRadius: '9999px',
-                            fontSize: '10.5px',
-                            fontWeight: isSelected ? 700 : 550,
-                            backgroundColor: isSelected ? 'var(--pri)' : 'var(--card)',
-                            color: isSelected ? 'var(--cta-text)' : 'var(--ink)',
-                            border: isSelected ? '1px solid var(--pri)' : '1px solid var(--line)',
-                            boxShadow: isSelected ? '0 2px 6px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            transition: 'all 0.15s ease',
-                            height: '24px',
-                            boxSizing: 'border-box',
-                            lineHeight: 1,
-                            flexShrink: 0,
-                          }}
-                        >
-                          <span style={{ fontSize: '11px', lineHeight: 1 }}>{cat.icon}</span>
-                          <span style={{ lineHeight: 1 }}>{cat.label}</span>
-                        </button>
-                      );
-                    })}
-                    {homeExploreFilter !== 'all' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setHomeExploreFilter('all');
-                          setSelectedType('all');
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--pri)',
-                          fontSize: '11px',
-                          fontWeight: 650,
-                          cursor: 'pointer',
-                          padding: '0 4px',
-                          flexShrink: 0,
-                          height: '24px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        Reset ✕
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB CONTENT 3: TRANSPORT & BUSES PLANNER (Local 4x4 Mountain Jeeps & Intercity Coaches) */}
-            {homeSearchTab === 'transport' && (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '14px',
-                  backgroundColor: '#F8FAFD',
-                  borderRadius: '12px',
-                  padding: '14px 16px',
-                  border: '1px solid rgba(27, 79, 114, 0.1)',
-                }}
-                data-testid="home-intercity-transport-banner"
-              >
-                {/* 2-Option Mutually Exclusive Selector: Local Transport vs Intercity Bus Transport */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '4px',
-                    backgroundColor: 'rgba(27, 79, 114, 0.08)',
-                    borderRadius: '12px',
-                    width: 'fit-content',
-                    maxWidth: '100%',
-                  }}
-                  data-testid="home-transport-mode-selector"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setTransportMode('local')}
-                    id="btn-home-mode-local"
-                    data-testid="btn-home-mode-local"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '7px',
-                      padding: '8px 18px',
-                      borderRadius: '9px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: transportMode === 'local' ? 750 : 600,
-                      backgroundColor: transportMode === 'local' ? 'var(--pri)' : 'transparent',
-                      color: transportMode === 'local' ? '#FFFFFF' : 'var(--ink)',
-                      boxShadow: transportMode === 'local' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <Car size={16} />
-                    <span>Local Transport</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTransportMode('intercity')}
-                    id="btn-home-mode-intercity"
-                    data-testid="btn-home-mode-intercity"
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '7px',
-                      padding: '8px 18px',
-                      borderRadius: '9px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: transportMode === 'intercity' ? 750 : 600,
-                      backgroundColor: transportMode === 'intercity' ? 'var(--pri)' : 'transparent',
-                      color: transportMode === 'intercity' ? '#FFFFFF' : 'var(--ink)',
-                      boxShadow: transportMode === 'intercity' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <Bus size={16} />
-                    <span>Intercity Bus Transport</span>
-                  </button>
-                </div>
-
-                {/* OPTION 1: Local Transport Header, Search Input & Quick Filter Pills */}
-                {transportMode === 'local' && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Car size={18} color="var(--pri)" />
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 750, color: 'var(--ink)' }}>
-                            Local 4x4 Mountain Jeeps, Toyota Prado &amp; Adventure Rentals
-                          </h4>
-                          <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--mute)' }}>
-                            Verified local mountain cruisers with snow chains &amp; expert drivers for Kalam, Mahodand &amp; Malam Jabba
-                          </p>
-                        </div>
-                      </div>
-                      <Tag variant="ok" style={{ fontWeight: 700, fontSize: '11px' }}>
-                        🌲 High-Altitude Certified
-                      </Tag>
-                    </div>
-
-                    {/* Local Transport Search Input Box */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        backgroundColor: '#FFFFFF',
-                        border: '1.5px solid var(--line)',
-                        borderRadius: '12px',
-                        padding: '4px 6px 4px 14px',
-                        gap: '10px',
-                        minHeight: '46px',
-                      }}
-                    >
-                      <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search 4x4 jeeps, Toyota Prado, Land Cruiser, Kalam, Malam Jabba, drivers..."
-                        data-testid="input-home-local-transport-search"
-                        style={{
-                          flex: 1,
-                          border: 'none',
-                          outline: 'none',
-                          backgroundColor: 'transparent',
-                          color: 'var(--ink)',
-                          fontSize: '14px',
-                          padding: '8px 4px',
-                        }}
-                      />
-                      {searchQuery && (
-                        <button
-                          type="button"
-                          onClick={() => setSearchQuery('')}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: 'var(--mute)',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                          title="Clear search"
-                        >
-                          <X size={15} />
-                        </button>
-                      )}
-                      <Button
-                        variant="primary"
-                        onClick={() => {
-                          const el = document.getElementById('home-local-transport-section');
-                          if (el) {
-                            el.scrollIntoView({ behavior: 'smooth' });
-                          }
-                        }}
-                        style={{
-                          borderRadius: '9px',
-                          padding: '8px 20px',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          flexShrink: 0,
-                        }}
-                      >
-                        Search Jeeps
-                      </Button>
-                    </div>
-
-                    {/* Quick Vehicle & Valley Filter Bar */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--mute)' }}>
-                        <span style={{ fontWeight: 600 }}>Quick Vehicle &amp; Valley Filter:</span>
-                        {searchQuery && (
-                          <button
-                            type="button"
-                            onClick={() => setSearchQuery('')}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--pri)',
-                              fontSize: '11px',
-                              fontWeight: 650,
-                              cursor: 'pointer',
-                              padding: 0,
-                            }}
-                          >
-                            Reset to All 4x4 Rides
-                          </button>
-                        )}
-                      </div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: '7px',
-                          overflowX: 'auto',
-                          padding: '2px 2px 4px 2px',
-                          scrollbarWidth: 'none',
-                        }}
-                      >
-                        {[
-                          { id: '', label: 'All 4x4 Rides', icon: '🚙' },
-                          { id: 'Prado', label: 'Toyota Prado TX', icon: '🚙' },
-                          { id: 'Cruiser', label: 'Land Cruiser Snow 4x4', icon: '❄️' },
-                          { id: 'Kalam', label: 'Kalam & Mahodand', icon: '🏔️' },
-                          { id: 'Malam Jabba', label: 'Malam Jabba Ski Pass', icon: '⛷️' },
-                          { id: 'Mingora', label: 'Mingora Hub', icon: '🏙️' },
-                        ].map((f) => {
-                          const isSelected = f.id === '' ? !searchQuery : searchQuery.toLowerCase().includes(f.id.toLowerCase());
-                          return (
-                            <button
-                              key={f.id}
-                              type="button"
-                              onClick={() => setSearchQuery(f.id)}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                padding: '6px 12px',
-                                borderRadius: '9999px',
-                                fontSize: '11.5px',
-                                fontWeight: isSelected ? 700 : 550,
-                                backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
-                                color: isSelected ? '#FFFFFF' : 'var(--ink)',
-                                border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap',
-                                transition: 'all 0.15s ease',
-                              }}
-                            >
-                              <span>{f.icon}</span>
-                              <span>{f.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* OPTION 2: Intercity Bus Transport Header, Origin City Selector & Corridor Info */}
-                {transportMode === 'intercity' && (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Bus size={18} color="var(--pri)" />
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 750, color: 'var(--ink)' }}>
-                            Intercity Coaches &amp; Cabs from <strong>Islamabad, Lahore, Peshawar &amp; Karachi</strong> via M-16 Expressway
-                          </h4>
-                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--mute)' }}>
-                            Daily scheduled VIP departures via Swat Motorway tunnel corridor
-                          </p>
-                        </div>
-                      </div>
-                      <Tag variant="accent" style={{ fontWeight: 700, fontSize: '11px' }}>
-                        M-16 Direct Expressway
-                      </Tag>
-                    </div>
-
-                    {/* Origin City Picker */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <span style={{ fontSize: '11.5px', fontWeight: 650, color: 'var(--ink)' }}>
-                        Select Your Origin Departure City:
-                      </span>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '8px' }}>
-                        {[
-                          { city: 'Islamabad / Rawalpindi', badge: '3.5 hrs (245 km)', icon: '🏛️' },
-                          { city: 'Lahore', badge: '6.5 hrs (510 km)', icon: '🏰' },
-                          { city: 'Peshawar', badge: '2.5 hrs (180 km)', icon: '🕌' },
-                        ].map((opt) => {
-                          const isSelected = homeOriginCity === opt.city;
-                          return (
-                            <button
-                              key={opt.city}
-                              type="button"
-                              onClick={() => setHomeOriginCity(opt.city as any)}
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'flex-start',
-                                padding: '8px 10px',
-                                borderRadius: '9px',
-                                border: isSelected ? '1.5px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.14)',
-                                backgroundColor: isSelected ? '#FFFFFF' : '#F1F5F9',
-                                boxShadow: isSelected ? '0 2px 8px rgba(47, 127, 193, 0.15)' : 'none',
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                transition: 'all 0.15s ease',
-                              }}
-                            >
-                              <span style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? 'var(--pri)' : 'var(--ink)' }}>
-                                {opt.icon} {opt.city.split(' / ')[0]}
-                              </span>
-                              <span style={{ fontSize: '10.5px', color: 'var(--mute)', marginTop: '2px' }}>
-                                {opt.badge}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Destination & Fleet Overview */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        backgroundColor: '#FFFFFF',
-                        padding: '8px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(27, 79, 114, 0.08)',
-                        fontSize: '11.5px',
-                        color: 'var(--ink)',
-                        flexWrap: 'wrap',
-                        gap: '6px',
-                      }}
-                    >
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                        <MapPin size={13} color="var(--pri)" />
-                        Destination: <strong>Mingora / Swat Motorway Bypass Terminal</strong>
-                      </span>
-                      <span style={{ color: 'var(--ok)', fontWeight: 650 }}>
-                        Daewoo, Faisal Movers &amp; VIP Fleets Active
-                      </span>
-                    </div>
-
-
-                  </>
-                )}
-              </div>
-            )}
-            </div>
-
-            {/* Transport Spotlight (Local 4x4 Jeeps + Intercity Bus Timings) when Transport tab is active on Home */}
-            {homeSearchTab === 'transport' && (
-              <div
-                id="home-transport-schedules-section"
-                style={{ display: 'flex', flexDirection: 'column', gap: '26px', marginTop: '0px' }}
-                data-testid="home-transport-showcase"
-              >
-                {/* 1. Local Valley 4x4 Mountain Jeeps & Rentals Showcase Grid (when transportMode === 'local') */}
-                {transportMode === 'local' && (
-                  <div id="home-local-transport-section">
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '16px',
-                        flexWrap: 'wrap',
-                        gap: '10px',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div
-                          style={{
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '10px',
-                            background: 'linear-gradient(135deg, #134B73, #028AC8)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#ffffff',
-                            boxShadow: '0 4px 12px rgba(19, 75, 115, 0.25)',
-                          }}
-                        >
-                          <Car size={20} />
-                        </div>
-                        <div>
-                          <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
-                            Local Valley 4x4 Mountain Jeeps &amp; Rentals
-                          </h3>
-                          <p style={{ fontSize: '13px', color: 'var(--mute)', margin: '2px 0 0 0' }}>
-                            Verified local 4x4 mountain cruisers, safari jeeps, and drivers for Kalam, Mahodand &amp; Malam Jabba
-                          </p>
-                        </div>
-                      </div>
-
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '5px 12px',
-                          borderRadius: '20px',
-                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                          border: '1px solid rgba(52, 211, 153, 0.3)',
-                          fontSize: '11.5px',
-                          fontWeight: 700,
-                          color: '#059669',
-                        }}
-                      >
-                        <ShieldCheck size={14} color="#059669" />
-                        <span>Snow Chain &amp; Alpine Certified</span>
-                      </span>
-                    </div>
-
-                    {/* Grid of Local Transport Listings */}
-                    <div className="grid-cards" data-testid="grid-local-transport-home">
-                      {(() => {
-                        const localVehicles = listings.filter((l) => {
-                          const matchesType = l.type_code === 'transport';
-                          const q = searchQuery.toLowerCase().trim();
-                          const matchesSearch =
-                            !q ||
-                            l.title.toLowerCase().includes(q) ||
-                            (l.description || '').toLowerCase().includes(q) ||
-                            (l.area_name || '').toLowerCase().includes(q) ||
-                            (l.business_name || '').toLowerCase().includes(q) ||
-                            (l.details?.vehicle_model || '').toLowerCase().includes(q) ||
-                            l.price_items?.some((p) => p.name.toLowerCase().includes(q));
-                          return matchesType && matchesSearch;
-                        });
-
-                        if (localVehicles.length === 0) {
-                          return (
-                            <div
-                              style={{
-                                gridColumn: '1 / -1',
-                                padding: '36px 20px',
-                                textAlign: 'center',
-                                backgroundColor: 'var(--card)',
-                                borderRadius: '16px',
-                                border: '1px dashed var(--line)',
-                              }}
-                            >
-                              <Car size={32} color="var(--pri)" style={{ margin: '0 auto 10px auto', opacity: 0.8 }} />
-                              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
-                                No 4x4 mountain jeeps found for "{searchQuery}"
-                              </h4>
-                              <p style={{ margin: '6px 0 14px 0', fontSize: '13px', color: 'var(--mute)' }}>
-                                Try searching for "Kalam", "Prado", or "Cruiser" to view available mountain fleets.
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setSearchQuery('')}
-                                style={{
-                                  padding: '6px 14px',
-                                  borderRadius: '8px',
-                                  backgroundColor: 'var(--pri)',
-                                  color: '#FFFFFF',
-                                  border: 'none',
-                                  fontSize: '12px',
-                                  fontWeight: 650,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                View All 4x4 Jeeps
-                              </button>
-                            </div>
-                          );
-                        }
-
-                        return localVehicles.map((l) => {
-                          const priceItem = l.price_items?.[0];
-                          const priceLine = priceItem ? `Rs ${priceItem.price.toLocaleString()} / day` : 'Custom fare';
-                          const availabilityText = l.details?.vehicle_model || '4x4 Mountain Jeep';
-
-                          let listingCover = l.media?.[0]?.url || '/images/places/kalam.jpg';
-                          if (!l.media?.[0]?.url) {
-                            if (l.title.toLowerCase().includes('cruiser') || l.title.toLowerCase().includes('snow')) {
-                              listingCover = '/images/places/malam_jabba.jpg';
-                            } else if (l.title.toLowerCase().includes('prado')) {
-                              listingCover = '/images/places/kalam.jpg';
-                            }
-                          }
-
-                          return (
-                            <ListingCard
-                              key={`home-transport-${l.id}`}
-                              id={l.id}
-                              title={l.title}
-                              type="transport"
-                              areaName={l.area_name || 'Swat Valley'}
-                              isVerified={l.is_verified || l.status === 'published'}
-                              coverImage={listingCover}
-                              tags={[
-                                l.details?.vehicle_model || '4x4 Jeep',
-                                l.details?.seating_capacity ? `${l.details.seating_capacity} Seats` : '4-5 Seats',
-                                'With Driver',
-                              ]}
-                              priceLine={priceLine}
-                              availabilityText={availabilityText}
-                              phone={l.phone || '+92 946 711640'}
-                              addressText={l.address_text || `${l.area_name || 'Mingora'}, Swat`}
-                              isCommunityService={Boolean(l.details?.is_community_service)}
-                              onInstantReserve={() => setServiceModalListing(l)}
-                              onViewMap={() => {
-                                setMapModal({
-                                  open: true,
-                                  title: l.title,
-                                  lat: l.latitude || 34.77,
-                                  lng: l.longitude || 72.36,
-                                  areaName: l.area_name || 'Mingora, Swat',
-                                  categoryOrType: 'Transport & 4x4',
-                                  originCity: 'Islamabad / Rawalpindi',
-                                  destinationCity: l.area_name || 'Swat',
-                                });
-                              }}
-                              onCheckDates={() =>
-                                setAvailModal({
-                                  open: true,
-                                  listingId: l.id,
-                                  listingTitle: l.title,
-                                  priceItems: l.price_items || [],
-                                })
-                              }
-                              onAddToTrip={() => {
-                                handleToggleSave('listing', l.id, l.title);
-                                handleAddStop('listing', l.id, l.title, `Local 4x4 Transport: ${l.title}`, {
-                                  price_item_id: priceItem?.id,
-                                  quantity: 1,
-                                });
-                              }}
-                            />
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. Intercity Coaches Bus Schedules & Timings (when transportMode === 'intercity') */}
-                {transportMode === 'intercity' && (
-                  <div id="home-intercity-schedules-section">
-                    <IntercityTransportExplorer
-                      key={`home-intercity-${homeOriginCity}`}
-                      initialOrigin={homeOriginCity}
-                      onAddToTrip={handleAddIntercityTransportToTrip}
-                      onViewRouteMap={(origin, dest, sch) =>
-                        setMapModal({
-                          open: true,
-                          title: `${origin.split(' / ')[0]} ➔ ${dest}`,
-                          lat: 34.7717,
-                          lng: 72.3602,
-                          originCity: origin,
-                          destinationCity: dest,
-                          durationText: sch?.duration_text,
-                          viaHighway: sch?.via_highway,
-                        })
-                      }
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Explore Spotlight (Stays, Dining, Guides) when Explore tab is active in Home Frame */}
-            {homeSearchTab === 'explore' && (
-              <div style={{ marginTop: '0px' }} data-testid="home-explore-showcase">
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '10px',
-                    flexWrap: 'wrap',
-                    gap: '10px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div
-                      style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '7px',
-                        background: 'linear-gradient(135deg, #174C72, #047857)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#ffffff',
-                        boxShadow: '0 2px 8px rgba(23, 76, 114, 0.2)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <CompassIcon size={16} />
-                    </div>
-                    <div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
-                        {homeExploreFilter === 'hotel'
-                          ? 'Verified Stays & Mountain Resorts'
-                          : homeExploreFilter === 'restaurant'
-                          ? 'Riverside Dining & Fresh Trout Cafes'
-                          : homeExploreFilter === 'transport'
-                          ? 'Local 4x4 Mountain Jeeps & Rentals'
-                          : homeExploreFilter === 'guide'
-                          ? 'Certified Local Guides & Trackers'
-                          : homeExploreFilter === 'activity'
-                          ? 'Adventure Sports & Activities'
-                          : homeExploreFilter === 'shop'
-                          ? 'Swat Handicrafts, Shawls & Souvenirs'
-                          : 'Explore Swat: Stays, Dining & Guides'}
-                      </h3>
-                      <p style={{ fontSize: '11.5px', color: 'var(--mute)', margin: '1px 0 0 0' }}>
-                        Certified hospitality, family dining, and authorized local tour operators
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Swat Valley / Area Filter placed neatly alongside the title */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <select
-                      value={selectedAreaId}
-                      onChange={(e) => setSelectedAreaId(e.target.value)}
-                      className="home-explore-area-select"
-                      data-testid="select-explore-stays-area"
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: '8px',
-                        border: '1px solid var(--line)',
-                        backgroundColor: 'var(--card)',
-                        color: 'var(--ink)',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        boxShadow: '0 1px 3px rgba(18, 50, 74, 0.04)',
-                        height: '32px',
-                        minWidth: '160px',
-                        maxWidth: '220px',
-                        outline: 'none',
-                      }}
-                    >
-                      <option value="">All Valleys &amp; Areas</option>
-                      {areas.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name} ({a.area_type})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-              {/* Grid of Verified Listings (Arranged in 2 Columns on Web, Single Column on Phone) */}
-              <div
-                className="grid-cards home-explore-grid-2col"
-                data-testid="grid-home-explore-2col"
-                style={{
-                  width: '100%',
-                  maxWidth: '100%',
-                  minWidth: 0,
-                  boxSizing: 'border-box',
-                }}
-              >
-                {(() => {
-                  const filtered = listings.filter((l) => {
-                    const matchesCategory =
-                      homeExploreFilter === 'all'
-                        ? (l.type_code === 'hotel' || l.type_code === 'restaurant' || l.type_code === 'guide' || l.type_code === 'activity' || l.type_code === 'transport' || l.type_code === 'shop')
-                        : l.type_code === homeExploreFilter;
-                    const matchesSearch =
-                      !searchQuery ||
-                      l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      (l.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      (l.area_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      l.price_items?.some((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-                    const matchesArea = !selectedAreaId || l.area_id === selectedAreaId;
-                    return matchesCategory && matchesSearch && matchesArea;
-                  });
-
-                  if (filtered.length === 0) {
-                    return (
-                      <div
-                        style={{
-                          gridColumn: '1 / -1',
-                          padding: '36px 20px',
-                          textAlign: 'center',
-                          backgroundColor: 'var(--card)',
-                          borderRadius: '16px',
-                          border: '1px dashed var(--line)',
-                        }}
-                      >
-                        <CompassIcon size={32} color="var(--pri)" style={{ margin: '0 auto 10px auto', opacity: 0.8 }} />
-                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
-                          No verified listings found
-                        </h4>
-                        <p style={{ margin: '4px 0 14px 0', fontSize: '12.5px', color: 'var(--mute)' }}>
-                          Try clearing the search query or exploring all categories.
-                        </p>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => {
-                            setSearchQuery('');
-                            setSelectedAreaId('');
-                            setHomeExploreFilter('all');
-                          }}
-                        >
-                          Show All Stays &amp; Dining
-                        </Button>
-                      </div>
-                    );
-                  }
-
-                  const displayed = searchQuery || selectedAreaId || homeExploreFilter !== 'all'
-                    ? filtered
-                    : filtered.slice(0, 6);
-                  return displayed.map((l) => {
-                    const primaryPriceItem = l.price_items?.[0];
-                    const priceLine = primaryPriceItem
-                      ? `PKR ${primaryPriceItem.price.toLocaleString()} / ${primaryPriceItem.unit.replace('per_', '')}`
-                      : 'Contact for rates';
-                    const availabilityText = primaryPriceItem?.is_bookable
-                      ? `${primaryPriceItem.default_units || 5} units free`
-                      : 'Open daily';
-
-                    let listingCover = (l as any).cover_image_url || l.media?.[0]?.url || '';
-                    if (!listingCover) {
-                      const titleLower = (l.title || '').toLowerCase();
-                      if (l.type_code === 'hotel') {
-                        if (titleLower.includes('rock city')) {
-                          listingCover = '/images/rock_city_resort.jpg';
-                        } else if (titleLower.includes('hotel one')) {
-                          listingCover = '/images/hotel_one_swat.jpg';
-                        } else if (titleLower.includes('greens')) {
-                          listingCover = '/images/greens_hotel_kalam.jpg';
-                        } else if (titleLower.includes('zen luxus')) {
-                          listingCover = '/images/zen_luxus_kalam.jpg';
-                        } else if (titleLower.includes('kuwait') || titleLower.includes('bahrain')) {
-                          listingCover = '/images/kuwait_continental_bahrain.jpg';
-                        } else if (titleLower.includes('white palace') || titleLower.includes('marghazar')) {
-                          listingCover = '/images/white_palace_marghuzar.jpg';
-                        } else if (titleLower.includes('malam jabba') || titleLower.includes('pc ')) {
-                          listingCover = '/images/malam_jabba.jpg';
-                        } else if (titleLower.includes('miandam')) {
-                          listingCover = '/images/miandam_valley.jpg';
-                        } else if (titleLower.includes('apartment') || titleLower.includes('flat')) {
-                          listingCover = '/images/deluxe_room.jpg';
-                        } else if (titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('guest') || titleLower.includes('walnut')) {
-                          listingCover = '/images/kalam_lodge.jpg';
-                        } else {
-                          listingCover = '/images/swat_serena.jpg';
-                        }
-                      } else if (l.type_code === 'restaurant') {
-                        listingCover = '/images/trout_restaurant.jpg';
-                      } else if (l.type_code === 'guide') {
-                        listingCover = '/images/ushu_forest.jpg';
-                      } else if (l.type_code === 'shop') {
-                        listingCover = '/images/places/bahrain.jpg';
-                      } else if (l.type_code === 'transport') {
-                        listingCover = '/images/places/kalam.jpg';
-                      } else {
-                        listingCover = '/images/malam_jabba.jpg';
-                      }
-                    }
-
-                    const accType = l.details?.accommodation_type || (
-                      l.title.toLowerCase().includes('resort')
-                        ? 'Resort'
-                        : (l.title.toLowerCase().includes('apartment') || l.title.toLowerCase().includes('flat'))
-                        ? 'Apartment'
-                        : (l.title.toLowerCase().includes('guest') || l.title.toLowerCase().includes('inn') || l.title.toLowerCase().includes('lodge'))
-                        ? 'Guesthouse'
-                        : 'Hotel'
-                    );
-
-                    return (
-                      <ListingCard
-                        key={`home-explore-${l.id}`}
-                        id={l.id}
-                        title={l.title}
-                        type={l.type_code}
-                        accommodationType={l.type_code === 'hotel' ? accType : undefined}
-                        areaName={l.area_name || 'Swat Valley'}
-                        isVerified={l.is_verified || l.status === 'published'}
-                        coverImage={listingCover}
-                        tags={l.tags?.map((t) => t.label) || l.price_items?.slice(0, 3).map((p) => p.name) || []}
-                        priceLine={priceLine}
-                        availabilityText={availabilityText}
-                        phone={l.phone || '+92 946 711640'}
-                        addressText={l.address_text || `${l.area_name || 'Saidu Sharif'}, Swat`}
-                        isCommunityService={Boolean(l.details?.is_community_service)}
-                        onInstantReserve={
-                          (l.type_code === 'transport' || l.type_code === 'guide' || l.type_code === 'activity' || l.details?.is_community_service)
-                            ? () => setServiceModalListing(l)
-                            : undefined
-                        }
-                        onViewHotelDetails={l.type_code === 'hotel' ? () => setHotelModalListing(l) : undefined}
-                        onViewMenu={l.type_code === 'restaurant' ? () => setRestaurantModalListing(l) : undefined}
-                        onViewMap={() => {
-                          const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
-                          const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
-                          setMapModal({
-                            open: true,
-                            title: l.title,
-                            lat,
-                            lng,
-                            areaName: l.area_name || 'Swat',
-                            categoryOrType: l.type_label || (l.type_code === 'hotel' ? 'Hotel & Stay' : l.type_code === 'restaurant' ? 'Dining & Restaurant' : l.type_code === 'activity' ? 'Adventure & Ski' : 'Explore Listing'),
-                            originCity: 'Islamabad / Rawalpindi',
-                            destinationCity: l.area_name || l.title,
-                          });
-                        }}
-                        onViewWeather={
-                          l.type_code === 'hotel'
-                            ? () => {
-                                const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
-                                const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
-                                setWeatherModal({
-                                  isOpen: true,
-                                  destination: {
-                                    id: l.id,
-                                    name: l.title,
-                                    area_name: l.area_name || 'Swat Valley',
-                                    latitude: lat,
-                                    longitude: lng,
-                                    category: 'Hotel',
-                                    area_id: l.area_id || '',
-                                    is_approved: true,
-                                    is_featured: false,
-                                    created_at: new Date().toISOString(),
-                                  },
-                                });
-                              }
-                            : undefined
-                        }
-                        onCheckDates={
-                          l.type_code === 'hotel'
-                            ? () =>
-                                setAvailModal({
-                                  open: true,
-                                  listingId: l.id,
-                                  listingTitle: l.title,
-                                  priceItems: l.price_items || [],
-                                })
-                            : undefined
-                        }
-                        onAddToTrip={() => {
-                          if (!user && onOpenAuth) {
-                            showToast('Please sign in or register to save to your trip itinerary.');
-                            onOpenAuth('login', 'tourist');
-                            return;
-                          }
-                          handleToggleSave('listing', l.id, l.title);
-                          handleAddStop('listing', l.id, l.title);
-                        }}
-                      />
-                    );
-                  });
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* Popular Destinations Cards - Only display when on Valleys & Places tab */}
-          {homeSearchTab === 'valleys' && (
-            <div className="dest-section-container" style={{ marginTop: '0px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
-            {/* Properly Framed White Header Box for Popular Destinations */}
-            <div
-              className="dest-header-frame"
-              style={{
-                backgroundColor: 'var(--card)',
-                border: '1px solid rgba(47, 127, 193, 0.16)',
-                borderRadius: '10px',
-                padding: '6px 12px',
-                boxShadow: '0 2px 10px -3px rgba(18, 50, 74, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '5px',
-                marginBottom: '8px',
-                width: '100%',
-                maxWidth: '100%',
-                minWidth: 0,
-                boxSizing: 'border-box',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
-                  <div
-                    style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '5px',
-                      background: 'linear-gradient(135deg, var(--pri), #047857)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#ffffff',
-                      boxShadow: '0 1px 4px rgba(16, 185, 129, 0.2)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Mountain size={13} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
-                    <h3 className="dest-header-title" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                      Popular Destinations
-                    </h3>
-                    <p className="dest-header-subtitle" style={{ fontSize: '10.5px', color: 'var(--mute)', margin: 0, lineHeight: 1.2 }}>
-                      Alpine valleys, turquoise glacial lakes &amp; peaks
-                    </p>
-                  </div>
-                </div>
-
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    padding: '2px 7px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(47, 127, 193, 0.08)',
-                    color: 'var(--pri)',
-                    fontSize: '10.5px',
-                    fontWeight: 650,
-                    border: '1px solid rgba(47, 127, 193, 0.22)',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Sparkles size={10} />
-                  {effectiveDestinations.length} Approved Swat Spots
-                </span>
-              </div>
-
-              {/* Scenic Category Filter Chips */}
-              <div
-                className="scenic-category-chips-row"
-                style={{
-                  display: 'flex',
-                  gap: '5px',
-                  overflowX: 'auto',
-                  padding: '1px 0',
-                  scrollbarWidth: 'none',
-                  width: '100%',
-                  maxWidth: '100%',
-                  minWidth: 0,
-                }}
-              >
-                {[
-                  { id: 'all', label: 'All Sceneries', count: effectiveDestinations.length, icon: <Sparkles size={11} /> },
-                  { id: 'valley', label: 'Alpine Valleys', count: effectiveDestinations.filter((d) => d.category === 'valley').length || 3, icon: <Mountain size={11} /> },
-                  { id: 'lake', label: 'Glacial Lakes', count: effectiveDestinations.filter((d) => d.category === 'lake').length || 2, icon: <Waves size={11} /> },
-                  { id: 'ski', label: 'Ski & Adventure', count: effectiveDestinations.filter((d) => d.category === 'ski').length || 1, icon: <Sparkles size={11} /> },
-                  { id: 'forest', label: 'Cedar Forests', count: effectiveDestinations.filter((d) => d.category === 'forest').length || 1, icon: <Trees size={11} /> },
-                  { id: 'heritage', label: 'Royal Heritage', count: effectiveDestinations.filter((d) => d.category === 'heritage').length || 1, icon: <Landmark size={11} /> },
-                ].map((cat) => {
-                  const isActive = destCategoryFilter === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => setDestCategoryFilter(cat.id)}
-                      data-testid={`dest-cat-btn-${cat.id}`}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '2px 8px 2px 7px',
-                        borderRadius: '9999px',
-                        fontSize: '10.5px',
-                        fontWeight: isActive ? 650 : 500,
-                        background: isActive
-                          ? 'linear-gradient(135deg, var(--pri) 0%, #1e6296 100%)'
-                          : 'var(--card)',
-                        color: isActive ? 'var(--cta-text)' : 'var(--ink)',
-                        border: isActive
-                          ? '1px solid var(--pri)'
-                          : '1px solid var(--line)',
-                        boxShadow: isActive
-                          ? '0 2px 6px rgba(47, 127, 193, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
-                          : '0 1px 2px rgba(18, 50, 74, 0.04)',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-                        flexShrink: 0,
-                        height: '24px',
-                        boxSizing: 'border-box',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.borderColor = 'rgba(47, 127, 193, 0.45)';
-                          e.currentTarget.style.backgroundColor = 'var(--soft)';
-                          e.currentTarget.style.color = 'var(--pri)';
-                          e.currentTarget.style.transform = 'translateY(-1px)';
-                          e.currentTarget.style.boxShadow = '0 2px 6px rgba(47, 127, 193, 0.1)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.borderColor = 'var(--line)';
-                          e.currentTarget.style.backgroundColor = 'var(--card)';
-                          e.currentTarget.style.color = 'var(--ink)';
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(18, 50, 74, 0.04)';
-                        }
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          color: isActive ? 'var(--cta-text)' : 'var(--pri)',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {cat.icon}
-                      </span>
-                      <span>{cat.label}</span>
-                      <span
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          minWidth: '15px',
-                          height: '14px',
-                          padding: '0 4px',
-                          borderRadius: '8px',
-                          fontSize: '9.5px',
-                          fontWeight: 700,
-                          backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : 'var(--bg)',
-                          color: isActive ? 'var(--cta-text)' : 'var(--mute)',
-                          border: isActive ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid var(--line)',
-                          lineHeight: 1,
-                          letterSpacing: '-0.02em',
-                        }}
-                      >
-                        {cat.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Destinations Scenery Grid */}
-            <div
-              className="destinations-scenery-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(285px, 1fr))',
-                gap: '16px',
-                width: '100%',
-                maxWidth: '100%',
-                minWidth: 0,
-                boxSizing: 'border-box',
-              }}
-            >
-              {(() => {
-                const filteredDestinations = effectiveDestinations.filter((d) => {
-                  const queryTokens = searchQuery ? searchQuery.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean) : [];
-                  const matchesSearch =
-                    queryTokens.length === 0 ||
-                    queryTokens.some((token) =>
-                      d.name.toLowerCase().includes(token) ||
-                      d.description?.toLowerCase().includes(token) ||
-                      (d.area_name && d.area_name.toLowerCase().includes(token))
-                    );
-                  const matchesCategory =
-                    destCategoryFilter === 'all' || d.category === destCategoryFilter;
-                  return matchesSearch && matchesCategory;
-                });
-
-                if (filteredDestinations.length === 0) {
-                  return (
-                    <div
-                      style={{
-                        gridColumn: '1 / -1',
-                        padding: '40px 20px',
-                        textAlign: 'center',
-                        backgroundColor: 'var(--surface)',
-                        borderRadius: '16px',
-                        border: '1px dashed var(--border)',
-                      }}
-                    >
-                      <Mountain size={36} color="var(--pri)" style={{ margin: '0 auto 12px auto', opacity: 0.8 }} />
-                      <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
-                        No destinations match "{searchQuery}"
-                      </h4>
-                      <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: 'var(--mute)' }}>
-                        Try searching for Kalam, Mahodand, Malam Jabba, or clear your filters to view all Swat spots.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setDestCategoryFilter('all');
-                        }}
-                        style={{
-                          padding: '8px 18px',
-                          borderRadius: '8px',
-                          backgroundColor: 'var(--pri)',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          fontWeight: 700,
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Reset All Filters
-                      </button>
-                    </div>
-                  );
-                }
-
-                return filteredDestinations.map((dest, idx) => {
-                  // Metadata enrichment per destination
-                  const n = (dest.name || '').toLowerCase();
-                  let destImg = '/images/kalam_valley.jpg';
-                  let elevation = '2,000m / 6,560 ft';
-                  let highlight = 'Alpine Meadows & River Confluence';
-                  let categoryLabel = 'Alpine Valley';
-                  let CategoryIcon = Mountain;
-
-                  if (n.includes('mahodand')) {
-                    destImg = '/images/mahodand_lake.jpg';
-                    elevation = '2,865m / 9,400 ft';
-                    highlight = 'Glacial Waters & Trout Boating';
-                    categoryLabel = 'Glacial Lake';
-                    CategoryIcon = Waves;
-                  } else if (n.includes('kundol')) {
-                    destImg = '/images/kundol_lake.jpg';
-                    elevation = '2,950m / 9,680 ft';
-                    highlight = 'Turquoise Cirque & Wildflowers';
-                    categoryLabel = 'Glacial Lake';
-                    CategoryIcon = Waves;
-                  } else if (n.includes('malam jabba')) {
-                    destImg = '/images/malam_jabba.jpg';
-                    elevation = '2,804m / 9,200 ft';
-                    highlight = 'Chairlift, Ski Slopes & Zipline';
-                    categoryLabel = 'Ski & Adventure Resort';
-                    CategoryIcon = Sparkles;
-                  } else if (n.includes('ushu')) {
-                    destImg = '/images/ushu_forest.jpg';
-                    elevation = '2,300m / 7,550 ft';
-                    highlight = 'Ancient Cedars & Mt Falaksar';
-                    categoryLabel = 'Cedar Forest';
-                    CategoryIcon = Trees;
-                  } else if (n.includes('white palace') || n.includes('marghuzar')) {
-                    destImg = '/images/white_palace_marghuzar.jpg';
-                    elevation = '1,120m / 3,674 ft';
-                    highlight = '1940 Royal White Chiniot Palace';
-                    categoryLabel = 'Royal Heritage';
-                    CategoryIcon = Landmark;
-                  } else if (n.includes('bahrain')) {
-                    destImg = '/images/bahrain_swat.jpg';
-                    elevation = '1,400m / 4,593 ft';
-                    highlight = 'Roaring River Confluence & Bazaars';
-                    categoryLabel = 'Riverside Valley';
-                    CategoryIcon = Mountain;
-                  } else if (n.includes('miandam')) {
-                    destImg = '/images/miandam_valley.jpg';
-                    elevation = '1,800m / 5,900 ft';
-                    highlight = 'Terraced Slopes & Fruit Orchards';
-                    categoryLabel = 'Hill Retreat';
-                    CategoryIcon = Mountain;
-                  }
-
-                  return (
-                    <div
-                      key={`dest-card-${dest.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${idx}`}
-                      className="dest-scenery-card"
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        borderRadius: '16px',
-                        border: '1px solid var(--line)',
-                        backgroundColor: 'var(--card)',
-                        overflow: 'hidden',
-                        boxShadow: '0 4px 18px -2px rgba(18, 50, 74, 0.05)',
-                        transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
-                        width: '100%',
-                        maxWidth: '100%',
-                        minWidth: 0,
-                        boxSizing: 'border-box',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-3px)';
-                        e.currentTarget.style.borderColor = 'rgba(47, 127, 193, 0.45)';
-                        e.currentTarget.style.boxShadow = '0 8px 24px -2px rgba(47, 127, 193, 0.14)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.borderColor = 'var(--line)';
-                        e.currentTarget.style.boxShadow = '0 4px 18px -2px rgba(18, 50, 74, 0.05)';
-                      }}
-                    >
-                      {/* Photo Header */}
-                      <div
-                        className="dest-card-photo"
-                        style={{
-                          height: '210px',
-                          backgroundImage: `url(${destImg})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          position: 'relative',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {/* Gradient Backdrop for contrast */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            inset: 0,
-                            background:
-                              'linear-gradient(to top, rgba(15, 23, 42, 0.88) 0%, rgba(15, 23, 42, 0.25) 50%, rgba(0,0,0,0.1) 100%)',
-                          }}
-                        />
-
-                        {/* Top Pills Row */}
-                        <div
-                          className="dest-card-top-pills-row"
-                          style={{
-                            position: 'absolute',
-                            top: '12px',
-                            left: '12px',
-                            right: '12px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            zIndex: 2,
-                            flexWrap: 'wrap',
-                            gap: '6px',
-                          }}
-                        >
-                          <span
-                            className="dest-card-top-pill"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '5px',
-                              padding: '5px 11px',
-                              borderRadius: '20px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.94)',
-                              backdropFilter: 'blur(8px)',
-                              color: '#0f172a',
-                              fontWeight: 650,
-                              fontSize: '11px',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                            }}
-                          >
-                            <CategoryIcon size={12} color="var(--pri)" />
-                            {categoryLabel}
-                          </span>
-
-                          <span
-                            className="dest-card-top-pill"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '5px 11px',
-                              borderRadius: '20px',
-                              backgroundColor: 'rgba(15, 23, 42, 0.75)',
-                              backdropFilter: 'blur(8px)',
-                              color: '#f8fafc',
-                              fontWeight: 600,
-                              fontSize: '11px',
-                              border: '1px solid rgba(255, 255, 255, 0.2)',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                            }}
-                          >
-                            <CompassIcon size={12} color="#38bdf8" />
-                            {elevation}
-                          </span>
-                        </div>
-
-                        {/* Bottom Highlight Banner over Image */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            bottom: '12px',
-                            left: '12px',
-                            right: '12px',
-                            zIndex: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '4px 10px',
-                              borderRadius: '8px',
-                              backgroundColor: 'rgba(16, 185, 129, 0.9)',
-                              backdropFilter: 'blur(6px)',
-                              color: '#ffffff',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              letterSpacing: '0.01em',
-                              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
-                            }}
-                          >
-                            <Sparkles size={11} />
-                            {highlight}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Card Body */}
-                      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                          <div>
-                            <h4
-                              style={{
-                                fontWeight: 700,
-                                fontSize: '1.15rem',
-                                color: 'var(--ink)',
-                                margin: 0,
-                                letterSpacing: '-0.01em',
-                              }}
-                            >
-                              {dest.name}
-                            </h4>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
-                              <div
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  fontSize: '12px',
-                                  color: 'var(--pri)',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                <MapPin size={13} />
-                                <span>{dest.area_name || 'Swat Valley'}</span>
-                              </div>
-                              <span
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '3px',
-                                  fontSize: '11px',
-                                  fontWeight: 700,
-                                  color: '#D97706',
-                                  backgroundColor: 'rgba(245, 158, 11, 0.09)',
-                                  padding: '1px 6px',
-                                  borderRadius: '10px',
-                                }}
-                              >
-                                <Star size={11} fill="#F59E0B" color="#F59E0B" />
-                                <span>{(4.7 + ((dest.name.charCodeAt(0) % 3) * 0.1)).toFixed(1)}</span>
-                                <span style={{ color: 'var(--mute)', fontWeight: 500 }}>
-                                  ({85 + (dest.name.charCodeAt(dest.name.length - 1) % 90)}+ reviews)
-                                </span>
-                              </span>
-                            </div>
-                          </div>
-
-                          <Tag variant="ok" style={{ textTransform: 'capitalize', fontSize: '11px' }}>
-                            {dest.category}
-                          </Tag>
-                        </div>
-
-                        <p
-                          style={{
-                            fontSize: '13px',
-                            color: 'var(--mute)',
-                            marginTop: '10px',
-                            lineHeight: 1.5,
-                            flex: 1,
-                            minHeight: '38px',
-                          }}
-                        >
-                          {dest.description || 'Pristine destination in Swat Valley.'}
-                        </p>
-
-                        {/* Season & Accessibility Metadata */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            marginTop: '12px',
-                            padding: '8px 10px',
-                            borderRadius: '8px',
-                            backgroundColor: 'var(--soft)',
-                            fontSize: '11px',
-                            color: 'var(--ink)',
-                          }}
-                        >
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 550 }}>
-                            <Clock size={12} color="var(--pri)" />
-                            {dest.best_season || 'Ideal in Summer'}
-                          </span>
-                          <span style={{ color: 'var(--mute)', fontWeight: 500 }}>
-                            Approved Tourist Route
-                          </span>
-                        </div>
-
-                        {/* Action Buttons: 2-Column Responsive Row to Prevent Mobile Cutting */}
-                        <div
-                          className="dest-card-action-row"
-                          style={{
-                            marginTop: '10px',
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '6px',
-                            width: '100%',
-                            maxWidth: '100%',
-                            minWidth: 0,
-                            boxSizing: 'border-box',
-                          }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => setWeatherModal({ isOpen: true, destination: dest })}
-                            data-testid={`btn-weather-forecast-${dest.id}`}
-                            className="btn-card-weather"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              padding: '5px 6px',
-                              borderRadius: '8px',
-                              border: '1.5px solid var(--pri)',
-                              backgroundColor: 'var(--soft)',
-                              color: 'var(--ink)',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              minHeight: '32px',
-                              width: '100%',
-                              maxWidth: '100%',
-                              minWidth: 0,
-                              boxSizing: 'border-box',
-                              transition: 'all 0.15s ease',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
-                            <CloudSun size={13} color="var(--pri)" style={{ flexShrink: 0 }} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Weather</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setMapModal({
-                                open: true,
-                                title: dest.name,
-                                lat: dest.latitude || 35.48,
-                                lng: dest.longitude || 72.58,
-                                areaName: dest.area_name,
-                                categoryOrType: dest.category,
-                                originCity: 'Islamabad / Rawalpindi',
-                                destinationCity: dest.name,
-                              })
-                            }
-                            data-testid={`btn-view-map-${dest.id}`}
-                            className="btn-card-view-map"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '4px',
-                              padding: '5px 6px',
-                              borderRadius: '8px',
-                              border: '1.5px solid var(--line)',
-                              backgroundColor: 'var(--card)',
-                              color: 'var(--ink)',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              minHeight: '32px',
-                              width: '100%',
-                              maxWidth: '100%',
-                              minWidth: 0,
-                              boxSizing: 'border-box',
-                              transition: 'all 0.15s ease',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
-                            <MapPin size={13} color="var(--pri)" style={{ flexShrink: 0 }} />
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>View Map</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-              </div>
-            </div>
-          )}
-          </div>
-
-            {/* Right 20% Column: Live Road Status Frame (over Advisory), Active Advisory Frame & This Weekend Weather Frame */}
-            <div
-              className="tourist-home-hero-sidebar"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-                minWidth: 0,
-                position: 'sticky',
-                top: '16px',
-              }}
-            >
-              {renderModernTravelIntelligence()}
-            </div>
-          </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 2: EXPLORE */}
-      {/* ========================================================================= */}
-      {activeTab === 'explore' && (
-        <>
-          {/* Active Trip Banner in Explore (Prompt 3: Explore shows "Adding to: <trip name>" with a Change trip button) */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '12px 18px',
-              backgroundColor: 'var(--card)',
-              border: '1px solid var(--line)',
-              borderRadius: 'var(--radius-card)',
-              boxShadow: '0 2px 8px rgba(18, 50, 74, 0.05)',
-              gap: '12px',
-              marginBottom: '10px',
-              flexWrap: 'wrap',
-            }}
-            data-testid="explore-active-trip-banner"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Plane size={20} color="var(--pri)" />
-              <div>
-                <span style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', display: 'block' }}>
-                  Target Trip (Stops & Bookings):
-                </span>
-                <span style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--ink)' }}>
-                  Adding to: <span style={{ color: 'var(--pri)' }}>{activeTrip?.title || trip?.title || 'My Swat Trip'}</span>
-                </span>
-              </div>
-            </div>
-
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowTripSwitchModal(true)}
-              id="btn-change-trip"
-            >
-              Change trip
-            </Button>
-          </div>
-
-          {/* Filter Bar: 6 Types Chips + Area Dropdown */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-              <Chip active={selectedType === 'all'} onClick={() => setSelectedType('all')}>
-                All Offerings
-              </Chip>
-              {(['hotel', 'restaurant', 'transport', 'guide', 'activity', 'shop'] as ListingTypeCode[]).map((t) => (
-                <Chip key={t} active={selectedType === t} onClick={() => setSelectedType(t)}>
-                  {t === 'hotel'
-                    ? 'Hotels'
-                    : t === 'restaurant'
-                    ? 'Restaurants'
-                    : t === 'transport'
-                    ? 'Transport'
-                    : t === 'guide'
-                    ? 'Guides'
-                    : t === 'activity'
-                    ? 'Activities'
-                    : 'Shops'}
-                </Chip>
-              ))}
-            </div>
-
-            {/* Mutually Exclusive 2-Option Selector for Transport Screen in Explore Tab */}
-            {selectedType === 'transport' && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '4px',
-                  backgroundColor: 'rgba(27, 79, 114, 0.08)',
-                  borderRadius: '12px',
-                  width: 'fit-content',
-                  maxWidth: '100%',
-                  margin: '2px 0 6px 0',
-                }}
-                data-testid="explore-transport-mode-selector"
-              >
-                <button
-                  type="button"
-                  onClick={() => setTransportMode('local')}
-                  id="btn-explore-mode-local"
-                  data-testid="btn-explore-mode-local"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    padding: '7px 16px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '12.5px',
-                    fontWeight: transportMode === 'local' ? 750 : 600,
-                    backgroundColor: transportMode === 'local' ? 'var(--pri)' : 'transparent',
-                    color: transportMode === 'local' ? '#FFFFFF' : 'var(--ink)',
-                    boxShadow: transportMode === 'local' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
-                    transition: 'all 0.15s ease',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <Car size={15} />
-                  <span>Local Transport</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTransportMode('intercity')}
-                  id="btn-explore-mode-intercity"
-                  data-testid="btn-explore-mode-intercity"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '7px',
-                    padding: '7px 16px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontSize: '12.5px',
-                    fontWeight: transportMode === 'intercity' ? 750 : 600,
-                    backgroundColor: transportMode === 'intercity' ? 'var(--pri)' : 'transparent',
-                    color: transportMode === 'intercity' ? '#FFFFFF' : 'var(--ink)',
-                    boxShadow: transportMode === 'intercity' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
-                    transition: 'all 0.15s ease',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <Bus size={15} />
-                  <span>Intercity Bus Transport</span>
-                </button>
-              </div>
-            )}
-
-            {/* Sub-bar: Area Selector & Search */}
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <select
-                value={selectedAreaId}
-                onChange={(e) => setSelectedAreaId(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius-button)',
-                  border: '1px solid var(--line)',
-                  backgroundColor: 'var(--card)',
-                  color: 'var(--ink)',
-                  fontSize: 'var(--font-xs)',
-                  minWidth: '160px',
-                }}
-              >
-                <option value="">All Swat Areas</option>
-                {areas.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({a.area_type})
-                  </option>
-                ))}
-              </select>
-
-              <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
-                <input
-                  type="text"
-                  placeholder="Filter listings by name, menu item, or tag..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 34px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--card)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-xs)',
-                  }}
-                />
-                <Search size={14} style={{ position: 'absolute', left: '12px', top: '11px', color: 'var(--mute)' }} />
-              </div>
-            </div>
-          </div>
-          {/* Listings Count & Visibility Gate Indicator */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
-                <span>
-                  Showing {listings.length} verified listings
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <CheckCircle size={13} color="var(--ok)" /> Authority Verified Only (Rule 2)
-                </span>
-              </div>
-
-              {/* Listings Grid or Intercity Transport */}
-          {selectedType === 'transport' && transportMode === 'intercity' ? (
-            <div style={{ marginTop: '12px' }}>
-              <IntercityTransportExplorer
-                key={`explore-intercity-${homeOriginCity}`}
-                initialOrigin={homeOriginCity}
-                onAddToTrip={handleAddIntercityTransportToTrip}
-                onViewRouteMap={(origin, dest, sch) =>
-                  setMapModal({
-                    open: true,
-                    title: `${origin.split(' / ')[0]} ➔ ${dest}`,
-                    lat: 34.7717,
-                    lng: 72.3602,
-                    originCity: origin,
-                    destinationCity: dest,
-                    durationText: sch?.duration_text,
-                    viaHighway: sch?.via_highway,
-                  })
-                }
-              />
-            </div>
-          ) : loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--mute)' }}>
-              Loading verified listings...
-            </div>
-          ) : listings.length === 0 ? (
-            <Card padding="lg" style={{ textAlign: 'center', backgroundColor: 'var(--card)' }}>
-              <h3 style={{ fontSize: 'var(--font-lg)', color: 'var(--ink)', marginBottom: '8px' }}>
-                No published listings found
-              </h3>
-              <p style={{ fontSize: 'var(--font-sm)', color: 'var(--mute)', maxWidth: '440px', margin: '0 auto 16px auto' }}>
-                Only listings with status = 'published' from authority-verified businesses appear here. Switch to Business role to publish listings, and Authority role to approve them!
-              </p>
-              <Button variant="secondary" onClick={() => { setSelectedType('all'); setSelectedAreaId(''); setSearchQuery(''); }}>
-                Clear Filters
-              </Button>
-            </Card>
-          ) : (
-            <>
-              {/* Selected Hotel Quick Banner */}
-              {selectedHotelId && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px 18px',
-                    backgroundColor: 'rgba(23, 76, 114, 0.08)',
-                    border: '1px solid var(--pri)',
-                    borderRadius: 'var(--radius-button)',
-                    gap: '12px',
-                    flexWrap: 'wrap',
-                    marginBottom: '10px',
-                  }}
-                  data-testid="selected-hotel-banner"
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={16} color="var(--pri)" />
-                    <span style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)' }}>
-                      Selected Hotel: <strong>{listings.find((h) => h.id === selectedHotelId)?.title || 'Selected Hotel'}</strong>
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => {
-                        const h = listings.find((item) => item.id === selectedHotelId);
-                        if (h) setHotelModalListing(h);
-                      }}
-                      id="btn-banner-view-hotel"
-                    >
-                      View All Rooms, Facilities & Activities
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setSelectedHotelId(null)}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              <div className="split-layout-container">
-                <div className="split-layout-main">
-                  <div className="grid-cards">
-                    {listings.map((l) => {
-                      const primaryPriceItem = l.price_items?.[0];
-                      const priceLine = primaryPriceItem
-                        ? `PKR ${primaryPriceItem.price.toLocaleString()} / ${primaryPriceItem.unit.replace('per_', '')}`
-                        : 'Contact for rates';
-
-                      const availabilityText = primaryPriceItem?.is_bookable
-                        ? `${primaryPriceItem.default_units || 5} units free`
-                        : 'Open daily';
-
-                      // Format extra info based on type
-                      let extraInfo = '';
-                      if (l.type_code === 'restaurant') {
-                        const hours = l.opening_time && l.closing_time ? `${l.opening_time} - ${l.closing_time}` : 'Open 08:00 AM – 11:00 PM';
-                        extraInfo = `Hours: ${hours} • Menu: ${l.price_items?.map((p) => p.name).slice(0, 3).join(', ')}`;
-                      } else if (l.type_code === 'hotel') {
-                        const facCount = Array.isArray(l.details?.facilities) ? l.details.facilities.length : 8;
-                        const actCount = Array.isArray(l.details?.activities) ? l.details.activities.length : 4;
-                        extraInfo = `Check-in: ${l.details?.check_in_time || '14:00'} • ${l.price_items?.length || 2} Room Types • ${facCount} Facilities • ${actCount} Activities`;
-                      } else if (l.type_code === 'activity') {
-                        extraInfo = `Duration: ${l.details?.duration_hours || 2}h • Min Age: ${l.details?.min_age || 10}+`;
-                      } else if (l.type_code === 'shop') {
-                        extraInfo = `Products: ${l.price_items?.map((p) => p.name).slice(0, 3).join(', ')}`;
-                      } else if (l.type_code === 'guide') {
-                        const langs = Array.isArray(l.details?.languages)
-                          ? l.details.languages.join(', ')
-                          : (typeof l.details?.languages === 'string' ? l.details.languages : 'Urdu, English');
-                        extraInfo = `Experience: ${l.details?.years_experience || 5} yrs • Languages: ${langs}`;
-                      } else if (l.type_code === 'transport') {
-                        extraInfo = `Vehicle: ${l.details?.vehicle_type || '4x4 Jeep'} • Seats: ${l.details?.seats || 6}`;
-                      }
-
-                      let listingCover = (l as any).cover_image_url || l.media?.[0]?.url || '';
-                      if (!listingCover) {
-                        const titleLower = (l.title || '').toLowerCase();
-                        if (l.type_code === 'hotel') {
-                          if (titleLower.includes('rock city')) {
-                            listingCover = '/images/rock_city_resort.jpg';
-                          } else if (titleLower.includes('hotel one')) {
-                            listingCover = '/images/hotel_one_swat.jpg';
-                          } else if (titleLower.includes('greens')) {
-                            listingCover = '/images/greens_hotel_kalam.jpg';
-                          } else if (titleLower.includes('zen luxus')) {
-                            listingCover = '/images/zen_luxus_kalam.jpg';
-                          } else if (titleLower.includes('kuwait') || titleLower.includes('bahrain')) {
-                            listingCover = '/images/kuwait_continental_bahrain.jpg';
-                          } else if (titleLower.includes('white palace') || titleLower.includes('marghazar')) {
-                            listingCover = '/images/white_palace_marghuzar.jpg';
-                          } else if (titleLower.includes('malam jabba') || titleLower.includes('pc ')) {
-                            listingCover = '/images/malam_jabba.jpg';
-                          } else if (titleLower.includes('miandam')) {
-                            listingCover = '/images/miandam_valley.jpg';
-                          } else if (titleLower.includes('apartment') || titleLower.includes('flat')) {
-                            listingCover = '/images/deluxe_room.jpg';
-                          } else if (titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('heights') || titleLower.includes('guest') || titleLower.includes('walnut')) {
-                            listingCover = '/images/kalam_lodge.jpg';
-                          } else {
-                            listingCover = '/images/swat_serena.jpg';
-                          }
-                        } else if (l.type_code === 'restaurant') {
-                          listingCover = '/images/trout_restaurant.jpg';
-                        } else if (l.type_code === 'activity') {
-                          listingCover = '/images/malam_jabba.jpg';
-                        } else if (l.type_code === 'guide') {
-                          listingCover = '/images/ushu_forest.jpg';
-                        } else if (l.type_code === 'transport') {
-                          listingCover = '/images/kalam_valley.jpg';
-                        } else {
-                          listingCover = '/images/swat_serena.jpg';
-                        }
-                      }
-
-                      const accType = l.details?.accommodation_type || (
-                        l.title.toLowerCase().includes('resort')
-                          ? 'Resort'
-                          : (l.title.toLowerCase().includes('apartment') || l.title.toLowerCase().includes('flat'))
-                          ? 'Apartment'
-                          : (l.title.toLowerCase().includes('guest') || l.title.toLowerCase().includes('inn') || l.title.toLowerCase().includes('lodge'))
-                          ? 'Guesthouse'
-                          : 'Hotel'
-                      );
-
-                      return (
-                        <ListingCard
-                          key={l.id}
-                          id={l.id}
-                          title={l.title}
-                          type={l.type_code}
-                          accommodationType={l.type_code === 'hotel' ? accType : undefined}
-                          coverImage={listingCover}
-                          areaName={l.area_name || 'Swat'}
-                          isVerified={l.is_verified}
-                          tags={l.tags?.map((t) => t.label) || []}
-                          priceLine={priceLine}
-                          availabilityText={availabilityText}
-                          extraInfo={extraInfo}
-                          phone={l.phone}
-                          whatsappNumber={l.whatsapp_number}
-                          addressText={l.address_text}
-                          isSelected={selectedHotelId === l.id}
-                          isCommunityService={Boolean(l.details?.is_community_service)}
-                          onInstantReserve={
-                            (l.type_code === 'transport' || l.type_code === 'guide' || l.details?.is_community_service)
-                              ? () => setServiceModalListing(l)
-                              : undefined
-                          }
-                          onSelect={() => {
-                            if (l.type_code === 'hotel') {
-                              setSelectedHotelId(l.id);
-                            }
-                          }}
-                          onViewHotelDetails={
-                            l.type_code === 'hotel' && !l.details?.is_community_service
-                              ? () => {
-                                  setSelectedHotelId(l.id);
-                                  setHotelModalListing(l);
-                                }
-                              : undefined
-                          }
-                          onViewMenu={
-                            l.type_code === 'restaurant' && !l.details?.is_community_service
-                              ? () => {
-                                  setRestaurantModalListing(l);
-                                }
-                              : undefined
-                          }
-                          onViewMap={() =>
-                            setMapModal({
-                              open: true,
-                              title: l.title,
-                              lat: l.latitude || 35.48,
-                              lng: l.longitude || 72.58,
-                              areaName: l.area_name,
-                              categoryOrType: l.type_label,
-                              originCity: 'Islamabad / Rawalpindi',
-                              destinationCity: l.area_name || l.title,
-                            })
-                          }
-                          onViewWeather={
-                            l.type_code === 'hotel'
-                              ? () => {
-                                  const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
-                                  const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
-                                  setWeatherModal({
-                                    isOpen: true,
-                                    destination: {
-                                      id: l.id,
-                                      name: l.title,
-                                      area_name: l.area_name || 'Swat Valley',
-                                      latitude: lat,
-                                      longitude: lng,
-                                      category: 'Hotel',
-                                      area_id: l.area_id || '',
-                                      is_approved: true,
-                                      is_featured: false,
-                                      created_at: new Date().toISOString(),
-                                    },
-                                  });
-                                }
-                              : undefined
-                          }
-                          onCheckDates={() =>
-                            setAvailModal({
-                              open: true,
-                              listingId: l.id,
-                              listingTitle: l.title,
-                              priceItems: l.price_items || [],
-                            })
-                          }
-                          onAddToTrip={() => {
-                            if (l.type_code === 'hotel') {
-                              setSelectedHotelId(l.id);
-                              setHotelModalListing(l);
-                            } else {
-                              handleAddStop('listing', l.id, l.title);
-                            }
-                          }}
-                          availableDays={activeTripDaysList}
-                          onQuickAddToDay={(day) => handleQuickAddListingToDay(l, day)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Desktop Split-Screen Live Itinerary Preview Tray (Phase 3) */}
-                <aside className="split-layout-side" data-testid="explore-split-itinerary-tray">
-                  <div
-                    style={{
-                      backgroundColor: '#FFFFFF',
-                      borderRadius: '14px',
-                      border: '1.5px solid rgba(27, 79, 114, 0.12)',
-                      boxShadow: '0 4px 18px rgba(18, 50, 74, 0.08)',
-                      padding: '16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(27, 79, 114, 0.08)', paddingBottom: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CompassIcon size={18} color="var(--pri)" />
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: 'var(--ink)' }}>
-                            Active Itinerary
-                          </h4>
-                          <span style={{ fontSize: '11px', color: 'var(--mute)' }}>
-                            {activeTrip?.title || 'My Swat Trip'}
-                          </span>
-                        </div>
-                      </div>
-                      <Tag variant={activeTrip?.status === 'confirmed' ? 'ok' : 'accent'} style={{ fontSize: '10px', textTransform: 'capitalize' }}>
-                        {activeTrip?.status || 'Draft'}
-                      </Tag>
-                    </div>
-
-                    {/* Live Day Breakdowns */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto', paddingRight: '2px' }}>
-                      {activeTripDaysList.map((d) => {
-                        const dayStops = (activeTrip?.stops || []).filter(
-                          (s) => (s.day_number <= d && (s.end_day_number || s.day_number) >= d)
-                        );
-                        return (
-                          <div
-                            key={d}
-                            style={{
-                              padding: '8px 10px',
-                              borderRadius: '8px',
-                              backgroundColor: '#F8FAFD',
-                              border: '1px solid rgba(27, 79, 114, 0.07)',
-                            }}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                              <span style={{ fontSize: '11.5px', fontWeight: 750, color: 'var(--pri)' }}>
-                                Day {d}
-                              </span>
-                              <span style={{ fontSize: '10.5px', color: 'var(--mute)' }}>
-                                {dayStops.length} {dayStops.length === 1 ? 'Stop' : 'Stops'}
-                              </span>
-                            </div>
-                            {dayStops.length === 0 ? (
-                              <div style={{ fontSize: '11px', color: 'var(--mute)', fontStyle: 'italic' }}>
-                                Empty • Tap "+ Day {d}" on any card to add
-                              </div>
-                            ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                {dayStops.map((s, idx) => (
-                                  <div
-                                    key={s.id || idx}
-                                    style={{
-                                      fontSize: '11.5px',
-                                      color: 'var(--ink)',
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                    }}
-                                  >
-                                    • {s.listing?.title || s.destination?.name || s.custom_title || 'Stop'}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Total & Quick Manage Button */}
-                    <div style={{ borderTop: '1px solid rgba(27, 79, 114, 0.08)', paddingTop: '10px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 650 }}>Estimated Total</span>
-                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#047857' }}>
-                          PKR {Number(activeTrip?.estimated_total || 0).toLocaleString()}
-                        </span>
-                      </div>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => {
-                          if (currentViewedTrip && currentViewedTrip.id === activeTrip?.id) {
-                            onTabChange?.('trips');
-                          } else if (activeTrip) {
-                            setCurrentViewedTrip(activeTrip);
-                            setTrip(activeTrip);
-                            onTabChange?.('trips');
-                          } else {
-                            onTabChange?.('trips');
-                          }
-                        }}
-                        style={{ width: '100%', justifyContent: 'center', fontWeight: 700, fontSize: '12px' }}
-                      >
-                        Open Full Itinerary ➔
-                      </Button>
-                    </div>
-                  </div>
-                </aside>
-              </div>
-            </>
-          )}
-        </>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 2B: BOOKINGS (Dedicated My Bookings Dashboard & Reservations)        */}
-      {/* ========================================================================= */}
-      {activeTab === 'bookings' && (
-        <>
-          {/* Top Blue Banner on Tourist Screen with matching landing page styling */}
-          <TourismAnimatedBanner
-            title="My Bookings & Reservations"
-            subtitle="Centralized dashboard for all your stays, 4x4 transport, guides, and alpine adventure passes"
-            headerAction={headerAction}
-            activeTab="bookings"
-          />
-
-          <MyBookingsView
-            bookings={myBookings}
-            onCancelBooking={handleCancelBooking}
-            onWithdrawBooking={handleWithdrawBooking}
-            onPayBooking={handlePaySingleBooking}
-            onRateBooking={(b) => setReviewModal({ isOpen: true, booking: b })}
-            onCompleteBooking={async (bookingId) => {
-              try {
-                await completeBooking(bookingId);
-                const allB = await fetchMyBookings().catch(() => []);
-                if (allB && allB.length > 0) setMyBookings(allB);
-                showToast('Stay marked as completed! You can now write your verified review.');
-                const target = (allB || myBookings).find((x) => x.id === bookingId);
-                if (target) {
-                  setReviewModal({ isOpen: true, booking: target });
-                }
-              } catch (err) {
-                setMyBookings((prev) =>
-                  prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b))
-                );
-                const target = myBookings.find((x) => x.id === bookingId);
-                if (target) {
-                  setReviewModal({ isOpen: true, booking: { ...target, status: 'completed' } });
-                }
-              }
-            }}
-            onExploreServices={() => onTabChange ? onTabChange('home') : null}
-            onOpenAuth={onOpenAuth}
-            isGuest={!user || !localStorage.getItem('swat_token')}
-          />
-        </>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 3: TRIPS (My Trips Overview & 3-View Manager via TripManagerView)    */}
-      {/* ========================================================================= */}
-      {activeTab === 'trips' && (
-        <>
-          {/* Top Blue Banner on Tourist Screen with matching landing page styling */}
-          <TourismAnimatedBanner
-            title="Swat Tourism Platform"
-            subtitle="Discover valleys, book stays, and explore safely"
-            headerAction={headerAction}
-            homeSearchTab={homeSearchTab}
-            onHomeSearchTabChange={setHomeSearchTab}
-          />
-
-          {/* Top Hero Split Layout: 80% Trip Planner / 20% Advisory, Road & Weather Intelligence */}
-          <div className="tourist-home-hero-split">
-            {/* Left 80% Column: Trip Manager & Saved Trips Views */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0, maxWidth: '100%', width: '100%' }}>
-              {currentViewedTrip ? (
-            <TripManagerView
-              trip={currentViewedTrip}
-              bookings={myBookings.filter(
-                (b) => b.trip_id === currentViewedTrip.id || !b.trip_id
-              )}
-              availableListings={listings}
-              onUpdateTrip={handleUpdateTrip}
-              onRemoveStop={handleRemoveStop}
-              onAddCustomStop={handleAddCustomStopDetailed}
-              onWithdrawBooking={handleWithdrawBooking}
-              onCancelBooking={handleCancelBooking}
-              onRemoveBooking={handleRemoveBooking}
-              onPayBooking={handlePaySingleBooking}
-              onPayEntireTrip={handleMockPayment}
-              onGetCancellationPreview={getCancellationPreview}
-              onCompleteBooking={async (bookingId) => {
-                try {
-                  await completeBooking(bookingId);
-                } catch (err: any) {
-                  console.warn('Backend completeBooking skipped or failed (demo/offline booking):', err);
-                }
-                // Always mark booking as completed locally so tourist is never blocked
-                setMyBookings((prev) =>
-                  prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b))
-                );
-                showToast('Stay concluded! Rate and review your experience.');
-                try {
-                  const allB = await fetchMyBookings();
-                  if (allB && allB.length > 0) setMyBookings(allB);
-                } catch {}
-              }}
-              onRateBooking={(b) => {
-                setReviewModal({ isOpen: true, booking: b });
-              }}
-              onReplaceBooking={(b) => {
-                if (b.listing?.type_code) {
-                  setSelectedType(b.listing.type_code);
-                }
-                showToast(`Explore alternative options for ${b.listing?.title || 'listing'}`);
-              }}
-              onOpenMapModal={(item) => setMapModal({ open: true, ...item })}
-              onOpenHotelDetailsModal={(hotel) => setHotelModalListing(hotel)}
-              onBackToTrips={() => setCurrentViewedTrip(null)}
-              onDeleteTrip={() => handleDeleteTrip(currentViewedTrip.id)}
-              isActiveTrip={currentViewedTrip.id === activeTripId}
-              onSetAsActiveTrip={() => {
-                setActiveTripId(currentViewedTrip.id);
-                localStorage.setItem('swat_active_trip_id', currentViewedTrip.id);
-                showToast(`Set "${currentViewedTrip.title}" as active trip.`);
-              }}
-            />
-          ) : (
-            <MyTripsListView
-              trips={allTrips.length > 0 ? allTrips : (trip ? [trip] : [])}
-              activeTripId={activeTripId || (trip ? trip.id : null)}
-              onSelectActiveTrip={(tripId) => {
-                setActiveTripId(tripId);
-                localStorage.setItem('swat_active_trip_id', tripId);
-                const chosen = allTrips.find((t) => t.id === tripId);
-                if (chosen) setTrip(chosen);
-                showToast(`Active trip set to "${chosen?.title || 'Trip'}"`);
-              }}
-              onOpenTrip={(t) => {
-                setCurrentViewedTrip(t);
-                setTrip(t);
-              }}
-              onCreateTrip={async (tripData) => {
-                try {
-                  let created: Trip;
-                  try {
-                    created = await createTrip(tripData);
-                  } catch {
-                    created = {
-                      id: 'trip-local-' + Date.now(),
-                      tourist_id: user?.id || 'tourist-local',
-                      title: tripData.title || 'My Swat Trip',
-                      start_date: tripData.start_date,
-                      end_date: tripData.end_date,
-                      travellers: tripData.travellers || 2,
-                      status: 'planned',
-                      estimated_total: (tripData as any).estimated_total || 0,
-                      notes: tripData.notes,
-                      created_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString(),
-                      stops: [],
-                    };
-                  }
-
-                  if (!created.stops || created.stops.length === 0) {
-                    if ((tripData as any).stops && (tripData as any).stops.length > 0) {
-                      created = {
-                        ...created,
-                        stops: (tripData as any).stops.map((s: any, idx: number) => ({
-                          id: s.id || `stop-ai-${Date.now()}-${idx}`,
-                          trip_id: created.id,
-                          day_number: s.day_number || 1,
-                          end_day_number: s.end_day_number,
-                          stop_order: s.stop_order || idx + 1,
-                          time_slot: s.time_slot || '09:00 AM',
-                          stop_type: s.stop_type || 'custom',
-                          custom_title: s.custom_title || 'Stop',
-                          notes: s.notes,
-                          created_at: new Date().toISOString(),
-                        })),
-                      };
-                    }
-                  }
-
-                  setAllTrips((prev) => {
-                    const updated = [created, ...prev.filter((t) => t.id !== created.id)];
-                    try {
-                      localStorage.setItem('swat_local_trips', JSON.stringify(updated));
-                    } catch {}
-                    return updated;
-                  });
-                  setActiveTripId(created.id);
-                  localStorage.setItem('swat_active_trip_id', created.id);
-                  setTrip(created);
-                  setCurrentViewedTrip(created);
-                  showToast(`Trip "${created.title}" created with ${created.stops?.length || 0} stops!`);
-                  return created;
-                } catch (err: any) {
-                  const msg = err.message || 'Failed to create trip';
-                  showToast(msg);
-                  throw err;
-                }
-              }}
-              onWriteReview={async (t) => {
-                setCurrentViewedTrip(t);
-                setTrip(t);
-                try {
-                  const allB = await fetchMyBookings().catch(() => myBookings);
-                  const targetBooking =
-                    allB.find(
-                      (b) =>
-                        (b.trip_id === t.id || (!b.trip_id && allB.length === 1)) &&
-                        (b.status === 'completed' || b.status === 'confirmed' || b.status === 'accepted')
-                    ) ||
-                    allB[0] ||
-                    (t.stops && t.stops.find((s) => s.listing_id || s.listing)
-                      ? {
-                          id: `b-trip-${t.id}`,
-                          reference: `SWT-TRIP-${t.id.slice(0, 6).toUpperCase()}`,
-                          trip_id: t.id,
-                          listing_id: t.stops.find((s) => s.listing_id || s.listing)?.listing_id || 'serena-hotel-swat',
-                          listing: t.stops.find((s) => s.listing_id || s.listing)?.listing || { title: t.title, type_code: 'hotel' },
-                          status: 'completed',
-                          total_amount: t.estimated_total || 24000,
-                        }
-                      : {
-                          id: `b-trip-${t.id}`,
-                          reference: `SWT-TRIP-${t.id.slice(0, 6).toUpperCase()}`,
-                          trip_id: t.id,
-                          listing_id: 'serena-hotel-swat',
-                          listing: { title: t.title, type_code: 'hotel' },
-                          status: 'completed',
-                          total_amount: t.estimated_total || 24000,
-                        });
-
-                  if (targetBooking) {
-                    setReviewModal({ isOpen: true, booking: { ...(targetBooking as any), status: 'completed' } });
-                  } else {
-                    showToast('Viewing trip details.');
-                  }
-                } catch {
-                  // Fallback
-                }
-              }}
-              onDeleteTrip={handleDeleteTrip}
-            />
-          )}
-            </div>
-
-            {/* Right 20% Column: Live Road Status Frame (over Advisory), Active Advisory Frame & This Weekend Weather Frame */}
-            <div
-              className="tourist-home-hero-sidebar"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-                minWidth: 0,
-                position: 'sticky',
-                top: '16px',
-              }}
-            >
-              {renderModernTravelIntelligence()}
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 4: SAFETY */}
-      {/* ========================================================================= */}
-      {activeTab === 'safety' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} data-testid="safety-tab-content">
-          {/* Active SOS Banner if Tourist has triggered one that is not yet resolved */}
-          {activeSOS && activeSOS.status !== 'resolved' && (
-            <Card
-              padding="md"
-              style={{
-                backgroundColor: 'rgba(214, 86, 74, 0.08)',
-                border: '2px solid var(--bad)',
-                animation: 'pulse 2s infinite',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ShieldAlert size={22} color="var(--bad)" />
-                    <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 700, color: 'var(--bad)', margin: 0 }}>
-                      EMERGENCY SOS ACTIVE
-                    </h3>
-                    <Tag variant="bad">Status: {activeSOS.status.toUpperCase()}</Tag>
-                  </div>
-                  <p style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)', marginTop: '8px', marginBottom: '4px' }}>
-                    <strong>Coordinates logged:</strong> {activeSOS.latitude.toFixed(4)}, {activeSOS.longitude.toFixed(4)}
-                  </p>
-                  {activeSOS.message && (
-                    <p style={{ fontSize: 'var(--font-sm)', color: 'var(--mute)', margin: '4px 0' }}>
-                      <strong>Reported:</strong> {activeSOS.message}
-                    </p>
-                  )}
-                  {activeSOS.status === 'acknowledged' && (
-                    <p style={{ fontSize: 'var(--font-sm)', color: 'var(--acc)', fontWeight: 600, marginTop: '6px' }}>
-                      Rescue team acknowledged your alert.{activeSOS.resolution_note ? ` Note: ${activeSOS.resolution_note}` : ''}
-                    </p>
-                  )}
-                </div>
-
-                <a
-                  href="tel:1122"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 16px',
-                    backgroundColor: 'var(--bad)',
-                    color: '#fff',
-                    borderRadius: 'var(--radius-button)',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    fontSize: 'var(--font-sm)',
-                  }}
-                >
-                  <PhoneCall size={16} /> Direct Call 1122
-                </a>
-              </div>
-            </Card>
-          )}
-
-          {/* Emergency SOS Trigger Card */}
-          <Card padding="md" style={{ border: '1px solid rgba(214, 86, 74, 0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <h3
-                  style={{
-                    fontSize: 'var(--font-lg)',
-                    fontWeight: 700,
-                    color: 'var(--bad)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    margin: 0,
-                  }}
-                >
-                  <ShieldAlert size={22} /> Emergency SOS & Tourist Dispatch
-                </h3>
-                <p style={{ fontSize: 'var(--font-sm)', color: 'var(--mute)', marginTop: '4px', maxWidth: '640px' }}>
-                  If you are stranded, facing harsh weather, or in immediate distress, trigger an SOS.
-                  This immediately logs your GPS coordinates with Swat District Authorities.
-                  <strong style={{ color: 'var(--ink)' }}> Always dial Rescue 1122 directly for fastest medical/rescue response.</strong>
-                </p>
-              </div>
-
-              <Button
-                variant="danger"
-                size="lg"
-                onClick={() => setSosModalOpen(true)}
-                data-testid="btn-trigger-sos-modal"
-              >
-                Raise SOS Alert
-              </Button>
-            </div>
-          </Card>
-
-          {/* Area Filter for Advisories & Contacts */}
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center' }}>
-            <span style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase' }}>
-              Filter by Valley:
-            </span>
-            <Chip active={safetyAreaFilter === ''} onClick={() => setSafetyAreaFilter('')}>
-              All Swat
-            </Chip>
-            {areas.map((a) => (
-              <Chip
-                key={a.id}
-                active={safetyAreaFilter === a.id}
-                onClick={() => setSafetyAreaFilter(a.id)}
-              >
-                {a.name}
-              </Chip>
-            ))}
-          </div>
-
-          {/* Active Public Advisories */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertTriangle size={18} color="var(--acc)" /> Active Safety & Weather Advisories
-              </h4>
-              <span style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
-                {advisories.length} active notice{advisories.length === 1 ? '' : 's'}
-              </span>
-            </div>
-
-            {advisories.length === 0 ? (
-              <Card padding="md">
-                <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--mute)' }}>
-                  <CheckCircle size={32} color="var(--ok)" style={{ margin: '0 auto 8px' }} />
-                  <div style={{ fontWeight: 600, color: 'var(--ink)' }}>All Clear in Selected Valley</div>
-                  <div style={{ fontSize: 'var(--font-xs)', marginTop: '4px' }}>
-                    No active weather warnings, road closures, or danger notices currently in effect.
-                  </div>
-                </div>
-              </Card>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {advisories.map((adv) => {
-                  const isDanger = adv.severity === 'danger';
-                  const isWarning = adv.severity === 'warning';
-                  const borderColor = isDanger ? 'var(--bad)' : isWarning ? 'var(--acc)' : 'var(--pri)';
-                  const bgColor = isDanger
-                    ? 'rgba(214, 86, 74, 0.06)'
-                    : isWarning
-                    ? 'rgba(230, 149, 0, 0.06)'
-                    : 'rgba(38, 70, 83, 0.05)';
-
-                  return (
-                    <Card
-                      key={adv.id}
-                      padding="md"
-                      style={{
-                        borderLeft: `4px solid ${borderColor}`,
-                        backgroundColor: bgColor,
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 700, fontSize: 'var(--font-base)', color: 'var(--ink)' }}>
-                              {adv.title}
-                            </span>
-                            <Tag variant={isDanger ? 'bad' : isWarning ? 'accent' : 'pri'}>
-                              {adv.severity.toUpperCase()}
-                            </Tag>
-                            <span style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', textTransform: 'capitalize' }}>
-                              Category: {adv.category}
-                            </span>
-                            {adv.area_name && (
-                              <Tag variant="soft">Valley: {adv.area_name}</Tag>
-                            )}
-                          </div>
-                          <p style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)', marginTop: '8px', lineHeight: 1.5 }}>
-                            {adv.message}
-                          </p>
-                          <div style={{ fontSize: '11px', color: 'var(--mute)', marginTop: '6px' }}>
-                            Published: {new Date(adv.starts_at || adv.created_at).toLocaleDateString()}
-                            {adv.expires_at && ` • Valid until: ${new Date(adv.expires_at).toLocaleDateString()}`}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Live Road Status Updates */}
-          <Card padding="md">
-            <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <MapPin size={18} color="var(--pri)" /> Road Status Updates & Mountain Passes
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {(roadStatuses.length > 0 ? roadStatuses : [
-                {
-                  id: 'r-1',
-                  road_name: 'Mingora to Kalam Highway (N-95)',
-                  status: 'open',
-                  vehicle_note: 'All vehicle types permitted',
-                  reason: 'Road clear and operational',
-                },
-                {
-                  id: 'r-2',
-                  road_name: 'Kalam to Mahodand Lake Track',
-                  status: 'limited',
-                  vehicle_note: '4x4 Only, tire chains required in snow',
-                  reason: 'Rough terrain and slush near glacial crossings',
-                },
-                {
-                  id: 'r-3',
-                  road_name: 'Malam Jabba Hill Expressway',
-                  status: 'open',
-                  vehicle_note: 'Snow chains advised during night frost',
-                  reason: 'Normal traffic flow',
-                },
-                {
-                  id: 'r-4',
-                  road_name: 'Bahrain to Madyan Bypass',
-                  status: 'open',
-                  vehicle_note: 'All vehicles',
-                  reason: 'Operational',
-                },
-              ]).map((road) => {
-                const isOpen = road.status === 'open';
-                const isLimited = road.status === 'limited';
-
-                return (
-                  <div
-                    key={road.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '10px 0',
-                      borderBottom: '1px solid var(--line)',
-                      flexWrap: 'wrap',
-                      gap: '8px',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{road.road_name}</div>
-                      <div style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', marginTop: '2px' }}>
-                        {road.vehicle_note && <span>Requirement: {road.vehicle_note}</span>}
-                        {road.reason && road.reason !== road.vehicle_note && (
-                          <span> • Condition: {road.reason}</span>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <Tag variant={isOpen ? 'ok' : isLimited ? 'accent' : 'bad'}>
-                        {isOpen ? 'Open' : isLimited ? 'Limited (4x4)' : 'Closed'}
-                      </Tag>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          {/* 24/7 Emergency Contacts Directory */}
-          <Card padding="md">
-            <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PhoneCall size={18} color="var(--pri)" /> 24/7 District Emergency Directory
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px' }}>
-              {(emergencyContacts.length > 0 ? emergencyContacts : [
-                {
-                  id: 'c-1',
-                  name: 'Rescue 1122 Swat Control',
-                  phone: '1122',
-                  service_type: 'rescue',
-                  address_text: 'District HQ Saidu Sharif',
-                  is_24h: true,
-                },
-                {
-                  id: 'c-2',
-                  name: 'Police Emergency Helpline',
-                  phone: '15',
-                  service_type: 'police',
-                  address_text: 'Central Police Office Swat',
-                  is_24h: true,
-                },
-                {
-                  id: 'c-3',
-                  name: 'Swat Tourist Police Squad',
-                  phone: '09469240440',
-                  service_type: 'tourism_police',
-                  address_text: 'Mingora Tourist Facilitation Post',
-                  is_24h: true,
-                },
-                {
-                  id: 'c-4',
-                  name: 'Saidu Teaching Hospital Emergency',
-                  phone: '09469240112',
-                  service_type: 'hospital',
-                  address_text: 'Saidu Sharif Main Campus',
-                  is_24h: true,
-                },
-              ]).map((c) => (
-                <a
-                  key={c.id}
-                  href={`tel:${c.phone}`}
-                  style={{
-                    padding: '12px',
-                    backgroundColor: 'var(--bg)',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--line)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    textDecoration: 'none',
-                    transition: 'border-color 0.2s',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '50%',
-                      backgroundColor: c.service_type === 'rescue' ? 'rgba(214, 86, 74, 0.12)' : 'rgba(38, 70, 83, 0.12)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <PhoneCall
-                      size={18}
-                      color={c.service_type === 'rescue' ? 'var(--bad)' : 'var(--pri)'}
-                    />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 'var(--font-sm)' }}>
-                      {c.name}
-                    </div>
-                    <div style={{ fontSize: 'var(--font-xs)', color: 'var(--pri)', fontWeight: 600 }}>
-                      Tel: {c.phone} {c.is_24h && '• 24/7'}
-                    </div>
-                    {c.address_text && (
-                      <div style={{ fontSize: '11px', color: 'var(--mute)' }}>{c.address_text}</div>
-                    )}
-                  </div>
-                </a>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 5: PROFILE */}
-      {/* ========================================================================= */}
-      {activeTab === 'profile' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} data-testid="profile-tab-content">
-          <div>
-            <h3 style={{ fontSize: 'var(--font-xl)', fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
-              Tourist Profile & Lifeline
-            </h3>
-            <p style={{ margin: '4px 0 0', fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
-              Manage your personal info, emergency contacts for mountain safety, and travel preferences.
-            </p>
-          </div>
-
-          {profileSuccessMsg && (
-            <div
-              style={{
-                backgroundColor: 'rgba(56, 161, 105, 0.12)',
-                border: '1px solid var(--ok)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '12px 16px',
-                fontSize: 'var(--font-sm)',
-                color: 'var(--ok)',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              data-testid="profile-status-message"
-            >
-              <CheckCircle2 size={18} />
-              {profileSuccessMsg}
-            </div>
-          )}
-
-          {profileErrorMsg && (
-            <div
-              style={{
-                backgroundColor: 'rgba(214, 86, 74, 0.12)',
-                border: '1px solid var(--bad)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '12px 16px',
-                fontSize: 'var(--font-sm)',
-                color: 'var(--bad)',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              data-testid="profile-error-message"
-            >
-              <AlertCircle size={18} />
-              {profileErrorMsg}
-            </div>
-          )}
-
-          {/* Personal Info & Language */}
-          <Card padding="md">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <User size={20} color="var(--pri)" />
-              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0 }}>Personal Details & Language</h4>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  value={profileName}
-                  onChange={(e) => setProfileName(e.target.value)}
-                  placeholder="e.g. Sara Ahmed"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="input-profile-name"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={profileEmail}
-                  onChange={(e) => setProfileEmail(e.target.value)}
-                  placeholder="e.g. sara.ahmed@example.com"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="input-profile-email"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Mobile Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={profilePhone}
-                  onChange={(e) => setProfilePhone(e.target.value)}
-                  placeholder="e.g. +92 300 1234567"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="input-profile-phone"
-                />
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)' }}>
-                    WhatsApp Number
-                  </label>
-                  {profilePhone && profilePhone !== profileWhatsapp && (
-                    <button
-                      type="button"
-                      onClick={() => setProfileWhatsapp(profilePhone)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: 'var(--pri)',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        padding: 0,
-                        fontWeight: 600,
-                      }}
-                      title="Use mobile phone number for WhatsApp"
-                    >
-                      Same as mobile
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="tel"
-                  value={profileWhatsapp}
-                  onChange={(e) => setProfileWhatsapp(e.target.value)}
-                  placeholder="e.g. +92 300 1234567"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="input-profile-whatsapp"
-                />
-              </div>
-
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Physical / Residential Address
-                </label>
-                <textarea
-                  rows={2}
-                  value={profileAddress}
-                  onChange={(e) => setProfileAddress(e.target.value)}
-                  placeholder="e.g. House 42, Street 18, F-7/2, Islamabad"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                    fontFamily: 'inherit',
-                    resize: 'vertical',
-                  }}
-                  data-testid="input-profile-address"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Preferred Language
-                </label>
-                <select
-                  value={profileLang}
-                  onChange={(e) => setProfileLang(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="select-profile-language"
-                >
-                  <option value="en">English</option>
-                  <option value="ur">Urdu (اردو)</option>
-                  <option value="ps">Pashto (پښتو)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', marginBottom: '6px' }}>
-                  Account Status & Role
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '8px' }}>
-                  <Tag variant="ok">Active Verified Tourist</Tag>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          {/* Emergency Lifeline Contact */}
-          <Card padding="md" style={{ border: '1px solid rgba(214, 86, 74, 0.25)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <Shield size={20} color="var(--bad)" />
-              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0, color: 'var(--bad)' }}>
-                Emergency SOS Contact Lifeline
-              </h4>
-            </div>
-            <p style={{ margin: '0 0 16px', fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
-              In the event that you trigger an Emergency SOS alert in high-altitude valleys, Swat Tourist Police and Rescue 1122 will attempt to contact this emergency contact alongside your GPS location.
-            </p>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Emergency Contact Name
-                </label>
-                <input
-                  type="text"
-                  value={profileEmergencyName}
-                  onChange={(e) => setProfileEmergencyName(e.target.value)}
-                  placeholder="e.g. Tariq Khan (Brother/Parent)"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="input-emergency-name"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Emergency Contact Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={profileEmergencyPhone}
-                  onChange={(e) => setProfileEmergencyPhone(e.target.value)}
-                  placeholder="e.g. +92 300 9876543"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="input-emergency-phone"
-                />
-              </div>
-            </div>
-          </Card>
-
-          {/* Travel Preferences */}
-          <Card padding="md">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <CompassIcon size={20} color="var(--pri)" />
-              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0 }}>Travel Style & Preferences</h4>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Budget Tier
-                </label>
-                <select
-                  value={profileBudget}
-                  onChange={(e) => setProfileBudget(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="select-profile-budget"
-                >
-                  <option value="budget">Budget (Economy / Backpacking)</option>
-                  <option value="mid_range">Mid-Range (Standard Hotels & Jeep)</option>
-                  <option value="premium">Premium (Luxury Suites & Private Chauffeur)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
-                  Travel Companion Group
-                </label>
-                <select
-                  value={profileTravelStyle}
-                  onChange={(e) => setProfileTravelStyle(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                    boxSizing: 'border-box',
-                  }}
-                  data-testid="select-profile-style"
-                >
-                  <option value="solo">Solo Explorer</option>
-                  <option value="couple">Couple / Honeymoon</option>
-                  <option value="family">Family with Children</option>
-                  <option value="friends">Friends Adventure</option>
-                  <option value="group">Large Tour Group</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '8px' }}>
-                Interests & Activities (Click to toggle)
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {[
-                  'Nature & Valleys',
-                  'Hiking & Trekking',
-                  'Historical Heritage',
-                  'Local Food & Trout',
-                  'Adventure & Rafting',
-                  'River Camping',
-                  'Craft Shopping',
-                ].map((item) => {
-                  const active = profileInterests.includes(item);
-                  return (
-                    <Chip
-                      key={item}
-                      active={active}
-                      onClick={() => toggleInterest(item)}
-                    >
-                      {item}
-                    </Chip>
-                  );
-                })}
-              </div>
-            </div>
-          </Card>
-
-          {/* Notification Settings */}
-          <Card padding="md">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <Bell size={20} color="var(--pri)" />
-              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0 }}>Notification Settings</h4>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--font-sm)', color: 'var(--ink)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={notifySMS}
-                  onChange={(e) => setNotifySMS(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--pri)' }}
-                  data-testid="checkbox-notify-sms"
-                />
-                <span>Receive urgent SMS alerts for road blocks, severe weather, and route closures in Swat</span>
-              </label>
-
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--font-sm)', color: 'var(--ink)', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={notifyEmail}
-                  onChange={(e) => setNotifyEmail(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--pri)' }}
-                  data-testid="checkbox-notify-email"
-                />
-                <span>Receive booking acceptance status, booking vouchers, and itinerary updates via email</span>
-              </label>
-            </div>
-          </Card>
-
-          {/* Feedback messages right above action buttons for immediate visibility */}
-          {profileSuccessMsg && (
-            <div
-              style={{
-                backgroundColor: 'rgba(56, 161, 105, 0.12)',
-                border: '1px solid var(--ok)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '12px 16px',
-                fontSize: 'var(--font-sm)',
-                color: 'var(--ok)',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              data-testid="profile-bottom-status-message"
-            >
-              <CheckCircle2 size={18} />
-              {profileSuccessMsg}
-            </div>
-          )}
-
-          {profileErrorMsg && (
-            <div
-              style={{
-                backgroundColor: 'rgba(214, 86, 74, 0.12)',
-                border: '1px solid var(--bad)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '12px 16px',
-                fontSize: 'var(--font-sm)',
-                color: 'var(--bad)',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              data-testid="profile-bottom-error-message"
-            >
-              <AlertCircle size={18} />
-              {profileErrorMsg}
-            </div>
-          )}
-
-          {!user && (
-            <div
-              style={{
-                backgroundColor: 'rgba(234, 179, 8, 0.12)',
-                border: '1px solid #EAB308',
-                borderRadius: 'var(--radius-sm)',
-                padding: '10px 14px',
-                fontSize: 'var(--font-xs)',
-                color: '#CA8A04',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <AlertCircle size={16} />
-              <span>You are viewing as a Guest. Click <strong>Tourist (Sara)</strong> in the top DEMO LOGINS bar or Sign In to save profile data to the database.</span>
-            </div>
-          )}
-
-          {/* Action Buttons: Save & Logout */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '4px' }}>
-            <Button
-              variant="danger"
-              icon={<LogOut size={16} />}
-              onClick={logout}
-              data-testid="btn-logout"
-            >
-              Log out
-            </Button>
-
-            <Button
-              variant="primary"
-              size="md"
-              icon={<Save size={16} />}
-              onClick={handleSaveProfile}
-              disabled={isSavingProfile}
-              data-testid="btn-save-profile"
-            >
-              {isSavingProfile ? 'Saving Changes...' : 'Save Profile Changes'}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Map Modal */}
-      <MapModal
-        isOpen={mapModal.open}
-        onClose={() => setMapModal((prev) => ({ ...prev, open: false }))}
-        title={mapModal.title}
-        latitude={mapModal.lat}
-        longitude={mapModal.lng}
-        areaName={mapModal.areaName}
-        categoryOrType={mapModal.categoryOrType}
-        originCity={mapModal.originCity}
-        destinationCity={mapModal.destinationCity}
-        distanceKm={mapModal.distanceKm}
-        durationText={mapModal.durationText}
-        viaHighway={mapModal.viaHighway}
-      />
-
-      {/* Availability / Dates Modal */}
-      <AvailabilityModal
-        isOpen={availModal.open}
-        onClose={() => setAvailModal((prev) => ({ ...prev, open: false }))}
-        listingId={availModal.listingId}
-        listingTitle={availModal.listingTitle}
-        priceItems={availModal.priceItems}
-        onSelectAndAdd={(item, date) => {
-          handleAddStop('listing', availModal.listingId, availModal.listingTitle, `Selected ${item.name} for ${date}`);
-        }}
-        onBookingSuccess={(booking) => {
-          setMyBookings((prev) => [booking, ...prev]);
-          showToast(`Instant reservation ${booking.reference || ''} confirmed!`);
-        }}
-      />
-
-      {/* SOS Alert Modal */}
-      {sosModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '16px',
-          }}
-          data-testid="sos-modal-backdrop"
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--card)',
-              borderRadius: 'var(--radius-card)',
-              width: '100%',
-              maxWidth: '520px',
-              padding: '24px',
-              border: '2px solid var(--bad)',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--bad)', marginBottom: '12px' }}>
-              <ShieldAlert size={28} />
-              <h3 style={{ fontSize: 'var(--font-xl)', fontWeight: 800, margin: 0 }}>
-                Confirm Emergency SOS
-              </h3>
-            </div>
-
-            <p style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)', lineHeight: 1.5, margin: 0 }}>
-              This will broadcast an urgent emergency alert to <strong>Swat District Authorities & Tourist Police</strong> with your precise GPS coordinates.
-            </p>
-
-            {/* Rescue 1122 Notice */}
-            <div
-              style={{
-                marginTop: '16px',
-                padding: '12px',
-                backgroundColor: 'rgba(214, 86, 74, 0.08)',
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--bad)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '8px',
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 700, color: 'var(--bad)', fontSize: 'var(--font-sm)' }}>
-                  Rescue 1122 Dispatch Note
-                </div>
-                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
-                  For medical or mountain rescue emergencies, also dial 1122 directly.
-                </div>
-              </div>
-              <a
-                href="tel:1122"
-                style={{
-                  padding: '6px 12px',
-                  backgroundColor: 'var(--bad)',
-                  color: '#fff',
-                  borderRadius: 'var(--radius-button)',
-                  fontWeight: 700,
-                  fontSize: 'var(--font-xs)',
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Call 1122
-              </a>
-            </div>
-
-            {/* Coordinates */}
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase' }}>
-                  GPS Coordinates
-                </label>
-                <button
-                  type="button"
-                  onClick={handleDetectLocation}
-                  style={{
-                    border: 'none',
-                    background: 'none',
-                    color: 'var(--pri)',
-                    fontSize: 'var(--font-xs)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                >
-                  Acquire Current GPS
-                </button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={sosCoords.lat}
-                  onChange={(e) => setSosCoords((prev) => ({ ...prev, lat: parseFloat(e.target.value) || 0 }))}
-                  placeholder="Latitude"
-                  data-testid="input-sos-lat"
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                  }}
-                />
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={sosCoords.lng}
-                  onChange={(e) => setSosCoords((prev) => ({ ...prev, lng: parseFloat(e.target.value) || 0 }))}
-                  placeholder="Longitude"
-                  data-testid="input-sos-lng"
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-button)',
-                    border: '1px solid var(--line)',
-                    backgroundColor: 'var(--bg)',
-                    color: 'var(--ink)',
-                    fontSize: 'var(--font-sm)',
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Message input */}
-            <div style={{ marginTop: '16px' }}>
-              <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', marginBottom: '6px', textTransform: 'uppercase' }}>
-                Emergency Nature / Description (Optional)
-              </label>
-              <textarea
-                rows={3}
-                value={sosMessage}
-                onChange={(e) => setSosMessage(e.target.value)}
-                placeholder="E.g., Car slid off ice near Malam Jabba, two hikers injured, flood water rising..."
-                data-testid="input-sos-message"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  borderRadius: 'var(--radius-button)',
-                  border: '1px solid var(--line)',
-                  backgroundColor: 'var(--bg)',
-                  color: 'var(--ink)',
-                  fontSize: 'var(--font-sm)',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                }}
-              />
-            </div>
-
-            {/* Actions */}
-            <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <Button
-                variant="secondary"
-                onClick={() => setSosModalOpen(false)}
-                disabled={sosSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleTriggerSOS}
-                disabled={sosSubmitting}
-                data-testid="btn-confirm-sos"
-              >
-                {sosSubmitting ? 'Transmitting Alert...' : 'Transmit SOS Alert'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Quick Change Active Trip (Prompt 3: Change trip button in Explore) */}
-      {showTripSwitchModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(18, 50, 74, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: '16px',
-          }}
-          data-testid="trip-switch-modal"
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--card)',
-              borderRadius: 'var(--radius-lg)',
-              maxWidth: '460px',
-              width: '100%',
-              maxHeight: '85vh',
-              overflowY: 'auto',
-              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.25)',
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '22px',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Plane size={20} color="var(--pri)" />
-                <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
-                  Change Active Trip
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowTripSwitchModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mute)' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', margin: '0 0 16px' }}>
-              Choose which trip will receive items when you tap &quot;Add to trip&quot; or &quot;Save to trip&quot; from Explore:
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
-              {(allTrips.length > 0 ? allTrips : (trip ? [trip] : [])).map((t) => {
-                const isSelected = activeTrip?.id === t.id;
-                return (
-                  <div
-                    key={t.id}
-                    onClick={() => {
-                      setActiveTripId(t.id);
-                      localStorage.setItem('swat_active_trip_id', t.id);
-                      setTrip(t);
-                      setShowTripSwitchModal(false);
-                      showToast(`Active trip set to "${t.title}"`);
-                    }}
-                    style={{
-                      padding: '12px 14px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: isSelected ? '2px solid var(--pri)' : '1px solid var(--line)',
-                      backgroundColor: isSelected ? 'var(--soft)' : 'var(--card)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 'var(--font-sm)', color: 'var(--ink)' }}>
-                        {t.title}
-                      </div>
-                      <div style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
-                        {t.start_date || 'Dates flexible'} • {t.travellers} traveller{t.travellers > 1 ? 's' : ''}
-                      </div>
-                    </div>
-                    {isSelected ? (
-                      <Tag variant="ok">Current Active</Tag>
-                    ) : (
-                      <Button variant="secondary" size="sm">Select</Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: '14px' }}>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setShowTripSwitchModal(false);
-                  onTabChange?.('trips');
-                }}
-              >
-                Go to Trips tab
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<Plus size={14} />}
-                onClick={() => {
-                  setShowTripSwitchModal(false);
-                  onTabChange?.('trips');
-                }}
-              >
-                + New trip
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal: Hotel Details (Rooms details, Facilities, Activities) */}
-      {hotelModalListing && (
-        <HotelDetailsModal
-          hotel={hotelModalListing}
-          onClose={() => setHotelModalListing(null)}
-          onViewMap={(lat, lng, title, areaName) => {
-            setHotelModalListing(null);
-            setMapModal({
-              open: true,
-              title,
-              lat,
-              lng,
-              areaName: areaName || 'Swat',
-              categoryOrType: 'Hotel & Stay',
-              originCity: 'Islamabad / Rawalpindi',
-              destinationCity: areaName || title,
-            });
-          }}
-          onAddRoomToTrip={(room, startDate, endDate, travellers, roomsCount) => {
-            let dayNum = 1;
-            let endDayNum = 2;
-            if (startDate && endDate) {
-              const d1 = new Date(startDate).getTime();
-              const d2 = new Date(endDate).getTime();
-              const diffNights = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
-              endDayNum = dayNum + diffNights;
-            }
-            handleAddStop(
-              'listing',
-              hotelModalListing.id,
-              `${hotelModalListing.title} - ${room.name}`,
-              `Room: ${room.name} (${Number(room.price).toLocaleString()} PKR/night) • ${startDate || ''} to ${endDate || ''} (${roomsCount || 1} room, ${travellers || 2} guests)`,
-              {
-                price_item_id: room.id,
-                quantity: roomsCount || 1,
-                day_number: dayNum,
-                end_day_number: endDayNum,
-                time_slot: '02:00 PM',
-              }
-            );
-            setHotelModalListing(null);
-            showToast(`Added ${room.name} at ${hotelModalListing.title} to trip!`);
-          }}
-          onBookingSuccess={(b) => {
-            showToast(`Stay reservation (${b.reference}) registered for ${hotelModalListing.title}!`);
-            setMyBookings((prev) => [b, ...prev.filter((x) => x.id !== b.id && x.reference !== b.reference)]);
-            fetchMyBookings().then(setMyBookings).catch(() => {});
-            getTrips().then(setAllTrips).catch(() => {});
-          }}
-          onOpenAuth={onOpenAuth}
-          onNavigateBookings={() => onTabChange ? onTabChange('bookings') : null}
-          onAddActivityToTrip={(actName) => {
-            handleAddStop('custom', undefined, `${hotelModalListing.title}: ${actName}`);
-            setHotelModalListing(null);
-            showToast(`Added activity "${actName}" to itinerary!`);
-          }}
-          onCheckDates={() => {
-            const h = hotelModalListing;
-            setHotelModalListing(null);
-            setAvailModal({
-              open: true,
-              listingId: h.id,
-              listingTitle: h.title,
-              priceItems: h.price_items || [],
-            });
-          }}
-        />
-      )}
-
-      {/* Modal: Instant Service Reservation (Transport, Guide, Community Services Hiring) */}
-      {serviceModalListing && (
-        <InstantServiceReservationModal
-          listing={serviceModalListing}
-          onClose={() => setServiceModalListing(null)}
-          onBookingSuccess={(booking) => {
-            setMyBookings((prev) => [booking, ...prev]);
-            showToast(`Instant reservation ${booking.reference || ''} confirmed!`);
-          }}
-          onAddToTrip={(priceItem, sDate, eDate) => {
-            handleToggleSave('listing', serviceModalListing.id, serviceModalListing.title);
-            handleAddStop(
-              'listing',
-              serviceModalListing.id,
-              serviceModalListing.title,
-              `${serviceModalListing.title} (${sDate} to ${eDate})`,
-              { price_item_id: priceItem?.id, quantity: 1 }
-            );
-            showToast(`Added ${serviceModalListing.title} to trip itinerary!`);
-          }}
-        />
-      )}
-
-      {/* Modal: Restaurant Details (Contact No, Location, Full Menu) */}
-      {restaurantModalListing && (
-        <RestaurantDetailsModal
-          restaurant={restaurantModalListing}
-          onClose={() => setRestaurantModalListing(null)}
-          onViewMap={(lat, lng, title, areaName) => {
-            setRestaurantModalListing(null);
-            setMapModal({
-              open: true,
-              title,
-              lat,
-              lng,
-              areaName,
-              categoryOrType: 'Restaurant',
-            });
-          }}
-          onAddMenuItemToTrip={(menuItem) => {
-            handleAddStop('listing', restaurantModalListing.id, `${restaurantModalListing.title} - Dining: ${menuItem.name}`);
-            setRestaurantModalListing(null);
-            showToast(`Added dining stop (${menuItem.name}) to trip!`);
-          }}
-        />
-      )}
-
-      {/* Modal: Write Review for Completed Stay */}
-      <ReviewModal
-        isOpen={reviewModal.isOpen}
-        onClose={() => setReviewModal({ isOpen: false, booking: null })}
-        booking={reviewModal.booking}
-        onSuccess={async () => {
-          showToast('Review submitted successfully! Thank you for your feedback.');
-          try {
-            const allB = await fetchMyBookings().catch(() => []);
-            if (allB && allB.length > 0) setMyBookings(allB);
-          } catch {}
-        }}
-      />
-
-      {/* Modal: Live OpenWeatherMap Forecast Prompt */}
-      <WeatherForecastModal
-        isOpen={weatherModal.isOpen}
-        onClose={() => setWeatherModal({ isOpen: false, destination: null })}
-        destination={weatherModal.destination}
-        startDate={homeStartDate}
-        endDate={homeEndDate}
-        onDateRangeChange={(start, end) => {
-          setHomeStartDate(start);
-          setHomeEndDate(end);
-        }}
-      />
-    
-      {/* SwatPay Multi-Provider Checkout Modal */}
-      <SwatPayModal
-        isOpen={swatPayModal.isOpen}
-        onClose={() => setSwatPayModal({ isOpen: false })}
-        trip={swatPayModal.trip}
-        booking={swatPayModal.booking}
-        bookings={myBookings}
-        onPaymentSuccess={async (result) => {
-          if (result.bookingId) {
-            setMyBookings((prev) =>
-              prev.map((b) =>
-                b.id === result.bookingId
-                  ? {
-                      ...b,
-                      payment_status: result.paymentStatus,
-                      deposit_amount: result.depositAmount,
-                      status: 'confirmed',
-                    }
-                  : b
-              )
-            );
-          } else if (result.tripId) {
-            setMyBookings((prev) =>
-              prev.map((b) =>
-                b.trip_id === result.tripId || !b.trip_id
-                  ? {
-                      ...b,
-                      payment_status: result.paymentStatus,
-                      deposit_amount: result.depositAmount ? Math.round(result.depositAmount / (prev.length || 1)) : undefined,
-                      status: 'confirmed',
-                    }
-                  : b
-              )
-            );
-            const updated = await updateMyTrip({ status: 'confirmed' }).catch(() => null);
-            if (updated) {
-              setTrip(updated);
-              if (currentViewedTrip && currentViewedTrip.id === updated.id) {
-                setCurrentViewedTrip(updated);
-              }
-            }
-          }
-          try {
-            const allB = await fetchMyBookings().catch(() => []);
-            if (allB && allB.length > 0) setMyBookings(allB);
-          } catch {}
-          setSwatPayModal({ isOpen: false });
-        }}
-        showToast={showToast}
-      />
-
-      {/* Easypaisa Payment Modal */}
-      <EasypaisaPaymentModal
-        isOpen={!!paymentBooking}
-        booking={paymentBooking}
-        onClose={() => setPaymentBooking(null)}
-        onPaymentSuccess={async (updated) => {
-          setMyBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
-          try {
-            const refreshedTrip = await getMyTrip();
-            setTrip(refreshedTrip);
-          } catch {
-            // trip refresh silent catch
-          }
-          setPaymentBooking(null);
-        }}
-        showToast={showToast}
-      />
-
-      {/* Floating AI Concierge Co-Pilot Button (Phase D) */}
-      <button
-        type="button"
-        onClick={() => setShowAIAssistantModal(true)}
-        data-testid="btn-floating-ai-concierge"
-        id="btn-floating-ai-concierge"
-        title="Open Swat Tourism AI Concierge"
-        style={{
-          position: 'fixed',
-          bottom: '22px',
-          right: '22px',
-          zIndex: 80,
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '7px',
-          padding: '10px 18px',
-          borderRadius: '9999px',
-          background: 'linear-gradient(135deg, #1B4F72 0%, #10B981 100%)',
-          color: '#FFFFFF',
-          fontWeight: 800,
-          fontSize: '12.5px',
-          boxShadow: '0 6px 20px rgba(16, 185, 129, 0.45)',
-          border: '2px solid rgba(255, 255, 255, 0.4)',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-        }}
-      >
-        <Sparkles size={16} />
-        <span>AI Concierge</span>
-      </button>
-
-      {/* AI Assistant Modal (Phase C & D) */}
-      <TouristAIAssistantModal
-        isOpen={showAIAssistantModal}
-        onClose={() => setShowAIAssistantModal(false)}
-        onNavigateTab={(tab) => {
-          if (tab === 'ai-trip-plan') {
-            setShowAITripModal(true);
-          } else {
-            onTabChange?.(tab as any);
-          }
-        }}
-        onOpenTripPlan={(prompt) => {
-          setAiTripPrompt(prompt);
-          setShowAITripModal(true);
-        }}
-        touristName={user?.full_name || 'Tourist Guest'}
-        touristPhone={user?.phone || '+92-300-1234567'}
-      />
-
-      {/* AI 1-Prompt Trip Generator Modal (Phase A) */}
-      <AITripGeneratorModal
-        isOpen={showAITripModal}
-        initialPrompt={aiTripPrompt}
-        onClose={() => {
-          setShowAITripModal(false);
-          setAiTripPrompt('');
-        }}
-        onCreateTrip={async (data: any) => {
-          let created: Trip;
-          try {
-            created = await createTrip({
-              title: data.title || 'AI Swat Trip',
-              start_date: data.start_date,
-              end_date: data.end_date,
-              travellers: data.travellers || 2,
-              notes: data.notes,
-              estimated_total: data.estimated_total,
-              stops: data.stops,
-            });
-          } catch {
-            created = {
-              id: 'trip-ai-' + Date.now(),
-              tourist_id: user?.id || 'tourist-local',
-              title: data.title || 'AI Swat Trip',
-              start_date: data.start_date,
-              end_date: data.end_date,
-              travellers: data.travellers || 2,
-              status: 'planned',
-              estimated_total: data.estimated_total || 0,
-              notes: data.notes,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              stops: [],
-            };
-          }
-
-          if (!created.stops || created.stops.length === 0) {
-            created = {
-              ...created,
-              stops: (data.stops || []).map((s: any, idx: number) => ({
-                id: s.id || `stop-ai-${Date.now()}-${idx}`,
-                trip_id: created.id,
-                day_number: s.day_number || 1,
-                end_day_number: s.end_day_number,
-                stop_order: s.stop_order || idx + 1,
-                time_slot: s.time_slot || '09:00 AM',
-                stop_type: s.stop_type || 'custom',
-                custom_title: s.custom_title || 'Stop',
-                notes: s.notes,
-                created_at: new Date().toISOString(),
-              })),
-            };
-          }
-
-          setAllTrips((prev) => {
-            const updated = [created, ...prev.filter((t) => t.id !== created.id)];
-            try {
-              localStorage.setItem('swat_local_trips', JSON.stringify(updated));
-            } catch {}
-            return updated;
-          });
-          setActiveTripId(created.id);
-          localStorage.setItem('swat_active_trip_id', created.id);
-          setTrip(created);
-          setCurrentViewedTrip(created);
-          onTabChange?.('trips');
-          return created;
-        }}
-        showToast={showToast}
-      />
-
-    </div>
-  );
+import React, { useState, useEffect, useMemo } from 'react';
+import { EasypaisaPaymentModal } from '../../components/EasypaisaPaymentModal';
+import { SwatPayModal } from '../../components/SwatPayModal';
+import { Card } from '../../design/Card';
+import { Button } from '../../design/Button';
+import { Tag } from '../../design/Tag';
+import { Chip } from '../../design/Chip';
+import { ListingCard } from '../../design/ListingCard';
+import {
+  AlertTriangle,
+  Search,
+  ShieldAlert,
+  MapPin,
+  Plus,
+  CheckCircle,
+  PhoneCall,
+  Clock,
+  Sparkles,
+  Plane,
+  X,
+  User,
+  LogOut,
+  Bell,
+  Shield,
+  Save,
+  CheckCircle2,
+  AlertCircle,
+  Compass as CompassIcon,
+  CloudSun,
+  Sun,
+  CloudRain,
+  Bus,
+  Car,
+  ShieldCheck,
+  ChevronRight,
+  Mountain,
+  Trees,
+  Waves,
+  Landmark,
+  Star,
+  Navigation,
+} from 'lucide-react';
+import type { UserRole } from '../../layouts/navItems';
+import { useAuth } from '../../context/AuthContext';
+import { apiRequest } from '../../api/client';
+import { MapModal } from './MapModal';
+import { AvailabilityModal } from './AvailabilityModal';
+import { HotelDetailsModal } from './HotelDetailsModal';
+import { InstantServiceReservationModal } from './InstantServiceReservationModal';
+import { RestaurantDetailsModal } from './RestaurantDetailsModal';
+import { IntercityTransportExplorer } from './IntercityTransportExplorer';
+import { TouristHomeModern } from './TouristHomeModern';
+import type { TransportSchedule } from '../../api/intercityTransport';
+import {
+  getAreas,
+  getDestinations,
+  getExploreListings,
+  getTrips,
+  createTrip,
+  patchTripById,
+  getMyTrip,
+  updateMyTrip,
+  deleteTrip,
+  addTripStop,
+  removeTripStop,
+  toggleSaveItem,
+  getSavedItems,
+  type Area,
+  type Destination,
+  type Trip,
+  type TripStop,
+  type SavedItem,
+} from '../../api/trips';
+import {
+  fetchMyBookings,
+  requestBookingCancellation,
+  withdrawBooking,
+  removeBookingFromTrip,
+  getCancellationPreview,
+  completeBooking,
+  type Booking,
+} from '../../api/bookings';
+import { TripManagerView } from './TripManagerView';
+import { MyTripsListView } from './MyTripsListView';
+import { MyBookingsView } from './MyBookingsView';
+import { ReviewModal } from './ReviewModal';
+import { WeatherForecastModal } from './WeatherForecastModal';
+import { TouristAIAssistantModal } from './TouristAIAssistantModal';
+import { AITripGeneratorModal } from './AITripGeneratorModal';
+import { TourismAnimatedBanner } from '../../components/TourismAnimatedBanner';
+import {
+  fetchActiveAdvisories,
+  fetchRoadStatuses,
+  fetchEmergencyContacts,
+  createSOSEvent,
+  fetchMyActiveSOS,
+  type Advisory,
+  type RoadStatus,
+  type EmergencyContact,
+  type SOSEvent,
+} from '../../api/safety';
+import type { ListingItem, PriceItem, ListingTypeCode, MediaItem } from '../../api/listings';
+import { getPublishedTransportListingItems } from '../business/TransportFleetManager';
+import {
+  fetchApprovedHostServices,
+  hostApplicationToListing,
+  getStoredHostApplications,
+  SWAT_COMMUNITY_APPS_EVENT,
+} from '../../api/community';
+
+const makeMediaItem = (id: string, url: string, caption: string, owner_id: string): MediaItem => ({
+  id,
+  owner_type: 'listing',
+  owner_id,
+  url,
+  media_type: 'image',
+  caption,
+  sort_order: 0,
+  created_at: new Date().toISOString(),
+});
+
+const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
+  {
+    id: 'listing-demo-1',
+    business_id: 'biz-demo-1',
+    business_name: 'Riverside Inn Madyan',
+    type_id: 'type-hotel',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Madyan, Swat',
+    title: 'Riverside Inn, Madyan',
+    description: 'Charming riverside hotel overlooking the Swat river with heating and trout fishing.',
+    address_text: 'Main Trout Valley Road, Madyan, Swat',
+    phone: '+92-946-772100',
+    whatsapp_number: '+92-345-7721001',
+    latitude: 35.1347,
+    longitude: 72.5342,
+    is_verified: true,
+    status: 'published',
+    tags: [
+      { id: 't-1', tag_group: 'facility', label: 'Wi-Fi' },
+      { id: 't-2', tag_group: 'facility', label: 'Heating' },
+      { id: 't-3', tag_group: 'feature', label: 'River View' },
+    ],
+    price_items: [
+      {
+        id: 'pi-demo-1',
+        name: 'Deluxe River View Room',
+        price: 7500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 5,
+        description: 'Cozy room facing the rushing Swat river with heating, private bathroom, and hot water.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-demo-1b',
+        name: 'Deluxe Family Suite',
+        price: 11000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 2,
+        description: 'Large family suite with king bed and two single beds, private riverfront balcony, and sitting area.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      total_rooms: 15,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free High-Speed Wi-Fi',
+        '24/7 Hot Water & Room Heating',
+        'Direct Riverbank Access & Fishing Deck',
+        'Free Secure Parking',
+        'Power Backup Generator (24/7)',
+        'In-House Fresh Trout Restaurant',
+        '24/7 Front Desk & Concierge',
+      ],
+      activities: [
+        {
+          name: 'Swat Riverbank Trout Fly-Fishing',
+          duration: '2-3 hours',
+          desc: 'Private deck fly fishing with gear and guidance from resident angler.',
+        },
+        {
+          name: 'Riverside Evening Bonfire & Fish BBQ',
+          duration: 'Evening',
+          desc: 'Fresh caught trout fried or grilled beside riverside fire pit.',
+        },
+        {
+          name: 'Madyan Trout Hatcheries Cultural Walk',
+          duration: '1.5 hours',
+          desc: 'Visit local freshwater fish breeding ponds and historical bazaar.',
+        },
+        {
+          name: 'Chail Valley Day Hike',
+          duration: 'Half day',
+          desc: 'Guided nature walk through pristine pine forests of Chail valley.',
+        },
+      ],
+    },
+    media: [],
+    rating_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-2',
+    business_id: 'biz-demo-2',
+    business_name: 'Mountain Grill Kalam',
+    type_id: 'type-restaurant',
+    type_code: 'restaurant',
+    type_label: 'Restaurants & Cafes',
+    area_name: 'Kalam',
+    title: 'Mountain Grill, Kalam',
+    description: 'Authentic Swat trout fish, fresh chapli kebabs, and traditional dining with panoramic mountain views.',
+    address_text: 'Main River Road, Upper Bazaar, Kalam Valley, Swat',
+    phone: '+92-946-812888',
+    whatsapp_number: '+92-345-8128880',
+    latitude: 35.48,
+    longitude: 72.58,
+    is_verified: true,
+    status: 'published',
+    tags: [
+      { id: 't-4', tag_group: 'feature', label: 'Trout Fish' },
+      { id: 't-5', tag_group: 'feature', label: 'Chapli Kebab' },
+      { id: 't-6', tag_group: 'feature', label: 'Halal' },
+    ],
+    price_items: [
+      {
+        id: 'pi-demo-2',
+        name: 'Pan-Fried Swat River Trout',
+        category: 'Fresh River Trout',
+        price: 1400,
+        unit: 'per_item',
+        description: 'Fresh caught cold-water river trout seasoned with local wild herbs and served with lemon mint chutney.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-demo-2b',
+        name: 'Trout Fish Karahi (Full)',
+        category: 'Fresh River Trout',
+        price: 1800,
+        unit: 'per_item',
+        description: 'Fresh trout cooked in an authentic iron wok with fresh tomatoes, green chilies, ginger, and black pepper.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-demo-2c',
+        name: 'Traditional Chapli Kebab (2 pcs)',
+        category: 'BBQ & Kebabs',
+        price: 600,
+        unit: 'per_item',
+        description: 'Crispy beef patties pan-fried with pomegranate seeds, crushed coriander, and tomatoes.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-demo-2d',
+        name: 'Special Mutton Karahi (1kg)',
+        category: 'Karahi & Curries',
+        price: 2200,
+        unit: 'per_item',
+        description: 'Slow-cooked mountain mutton in pure butter, green chilies, and ripe tomatoes.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-demo-2e',
+        name: 'Chicken Shinwari Tikka (Half)',
+        category: 'BBQ & Kebabs',
+        price: 850,
+        unit: 'per_item',
+        description: 'Charcoal-grilled tender chicken seasoned with salt and black pepper.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-demo-2f',
+        name: 'Swati Kabuli Pulao',
+        category: 'Rice & Breads',
+        price: 650,
+        unit: 'per_item',
+        description: 'Fragrant Basmati rice with tender braised meat, sweet glazed carrots, and golden sultanas.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-demo-2g',
+        name: 'Kandahari Sesame Tandoor Naan',
+        category: 'Rice & Breads',
+        price: 70,
+        unit: 'per_item',
+        description: 'Hot clay oven baked bread with sesame seeds and butter glaze.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-demo-2h',
+        name: 'Peshawari Cardamom Qahwa',
+        category: 'Beverages',
+        price: 120,
+        unit: 'per_item',
+        description: 'Traditional green tea infused with crushed cardamom pods and saffron.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-demo-2i',
+        name: 'Kalam Walnut & Desi Ghee Halwa',
+        category: 'Desserts',
+        price: 350,
+        unit: 'per_item',
+        description: 'Warm traditional dessert rich with local wild walnuts and pure butter.',
+        is_bookable: false,
+      },
+    ],
+    details: {
+      cuisine: 'Swati BBQ, River Trout & Karahi',
+      seating_capacity: 85,
+      opening_hours: '08:00 AM – 11:00 PM (Daily)',
+      halal: true,
+    },
+    opening_time: '08:00',
+    closing_time: '23:00',
+    media: [],
+    rating_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-adnan-platter',
+    business_id: 'a6245b257b654c05bec9b653bc3a08f9',
+    business_name: 'Adnan Platter house',
+    type_id: 'type-restaurant',
+    type_code: 'restaurant',
+    type_label: 'Restaurants & Cafes',
+    area_name: 'Mingora',
+    title: 'Adnan Platter House & Shinwari BBQ',
+    description: 'Famous for authentic Swati Shinwari platters, mutton dumpukht, succulent seekh kebabs, and family dining in Mingora.',
+    address_text: 'Main GT Road, Opposite Green Chowk, Mingora, Swat',
+    phone: '+92-344-4138685',
+    whatsapp_number: '+92-344-4138685',
+    latitude: 34.7717,
+    longitude: 72.3602,
+    is_verified: true,
+    status: 'published',
+    tags: [
+      { id: 't-adnan-1', tag_group: 'feature', label: 'Shinwari BBQ' },
+      { id: 't-adnan-2', tag_group: 'feature', label: 'Mixed Platters' },
+      { id: 't-adnan-3', tag_group: 'feature', label: 'Halal' },
+      { id: 't-adnan-4', tag_group: 'feature', label: 'Family Seating' },
+    ],
+    price_items: [
+      {
+        id: 'pi-adnan-1',
+        name: 'Adnan Special Mixed BBQ Platter (Family)',
+        category: 'Platters & Combos',
+        price: 2800,
+        unit: 'per_item',
+        description: 'Grand assortment of malai boti, seekh kebab, mutton chops, served with kabuli rice, dips, and naan.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-2',
+        name: 'Shinwari Mutton Karahi (1kg)',
+        category: 'Karahi & Curries',
+        price: 2400,
+        unit: 'per_item',
+        description: 'Fresh mountain mutton cooked purely in animal fat and salt with fresh tomatoes and green chilies.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-3',
+        name: 'Authentic Swati Chapli Kebab (2 pcs)',
+        category: 'BBQ & Kebabs',
+        price: 650,
+        unit: 'per_item',
+        description: 'Crispy spiced beef patties with crushed pomegranate and garden herbs.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-4',
+        name: 'Special Kabuli Pulao with Mutton',
+        category: 'Rice & Breads',
+        price: 750,
+        unit: 'per_item',
+        description: 'Long grain basmati rice infused with tender mutton, caramelised carrots, and golden raisins.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-5',
+        name: 'Crispy Fried Finger Fish',
+        category: 'Seafood',
+        price: 1100,
+        unit: 'per_item',
+        description: 'Crisp battered Swat freshwater fish strips served with tartare dip and lemon.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-6',
+        name: 'Fresh Roghani Sesame Naan',
+        category: 'Rice & Breads',
+        price: 80,
+        unit: 'per_item',
+        description: 'Tandoor baked fluffy flatbread with sesame seeds and butter glaze.',
+        is_bookable: false,
+      },
+      {
+        id: 'pi-adnan-7',
+        name: 'Peshawari Cardamom Qahwa',
+        category: 'Beverages',
+        price: 120,
+        unit: 'per_item',
+        description: 'Digestive green tea brewed with green cardamom, cinnamon, and saffron.',
+        is_bookable: false,
+      },
+    ],
+    details: {
+      cuisine: 'Swati Shinwari BBQ, Dumpukht & Mixed Platters',
+      seating_capacity: 120,
+      opening_hours: '11:00 AM - 11:30 PM (Daily)',
+      halal: true,
+      has_delivery: true,
+      takes_reservations: true,
+    },
+    opening_time: '11:00',
+    closing_time: '23:30',
+    media: [],
+    rating_count: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '1f11f9dee99146b8902933656035f1d2',
+    business_id: 'biz-demo-serena',
+    business_name: 'Swat Serena Hotel Mingora',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'Swat Serena Hotel, Mingora',
+    description: 'Heritage luxury hotel in Mingora with landscaped rose gardens, executive rooms and Swati fine dining.',
+    address_text: 'Saidu Sharif Road, Mingora, Swat',
+    phone: '+92-946-710201',
+    whatsapp_number: '+92-345-7102010',
+    latitude: 34.7717,
+    longitude: 72.3602,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-serena-1',
+        name: 'Executive Deluxe Room',
+        price: 12000,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Spacious heritage room with king bed, garden view balcony, marble bathroom with hot shower, heating, LED TV.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-serena-2',
+        name: 'Royal Swat Suite',
+        price: 22000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 3,
+        description: 'Ultra-luxury suite with separate sitting lounge, colonial fireplace, panoramic mountain terrace, and jacuzzi.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 48,
+      star_rating: 5,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free High-Speed Wi-Fi',
+        '24/7 Room Heating & Hot Water',
+        'Colonial Rose Gardens & Mountain Vistas',
+        'Free Secure Parking & Valet',
+        'Power Backup Generator (24/7)',
+        'In-House Fine Dining & Buffet Breakfast',
+        '24/7 Front Desk & Concierge Service',
+        'Daily Housekeeping & Laundry',
+        'Wheelchair Accessible Grounds',
+        'Airport & Mingora City Transfers',
+      ],
+      activities: [
+        {
+          name: 'Colonial Rose Garden Heritage Walk',
+          duration: '1 hour',
+          desc: 'Stroll through landscaped heritage rose gardens with hotel historian guide.',
+        },
+        {
+          name: 'Swat Heritage Crafts & Gems Evening',
+          duration: '2 hours',
+          desc: 'Interactive display of Swati woodwork, shawls, and authentic emeralds.',
+        },
+        {
+          name: 'Traditional Pashtun Rabab Music Night',
+          duration: 'Evening',
+          desc: 'Live acoustic Rabab melodies and folk poetry beside courtyard fireplace.',
+        },
+        {
+          name: 'Guided Mingora Bazaar & Stupa Excursions',
+          duration: 'Half day',
+          desc: 'Guided private tour of Mingora bazaars and ancient Buddhist heritage ruins.',
+        },
+      ],
+    },
+    media: [],
+    rating_count: 14,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '4e1c284aa59b4f24ad6898f50e89ab53',
+    business_id: 'biz-demo-pc',
+    business_name: 'PC Malam Jabba Resort',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Malam Jabba',
+    title: 'PC Malam Jabba Ski Resort & Hotel',
+    description: '5-star alpine resort offering panoramic snow-capped valley views, heated rooms, ski slope access and chairlift.',
+    address_text: 'Ski Slope Heights, Malam Jabba, Swat',
+    phone: '+92-946-756111',
+    whatsapp_number: '+92-345-7561110',
+    latitude: 34.7997,
+    longitude: 72.5714,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-pc-1',
+        name: 'Panoramic Valley View Room',
+        price: 18500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 6,
+        description: 'Cozy alpine room with floor-to-ceiling windows looking over snow-covered pine slopes.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-pc-2',
+        name: 'Alpine Ski Chalet Suite',
+        price: 32000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 2,
+        description: 'Two-bedroom wooden alpine chalet suite with fireplace and direct slope vista.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Resort',
+      total_rooms: 80,
+      star_rating: 5,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Ski-in / Ski-out Access',
+        'Free High-Speed Wi-Fi',
+        'Centralized Heated Rooms & Heated Floors',
+        '24/7 Hot Water & Power Backup',
+        'Panoramic Snow Valley Views',
+        'Free On-site Heated Parking',
+        'Alpine Dining Restaurant & Coffee Lounge',
+        '24/7 Ski Gear Locker & Concierge',
+      ],
+      activities: [
+        {
+          name: 'Alpine Skiing & Snowboarding Lessons',
+          duration: '2-4 hours',
+          desc: 'Certified ski instructors with equipment rental directly from resort ski room.',
+        },
+        {
+          name: 'Malam Jabba Chairlift & Zipline VIP Access',
+          duration: 'Flexible',
+          desc: 'Fast-track chairlift ride overlooking snow-draped Himalayan slopes.',
+        },
+        {
+          name: 'Snow Tubing & Sledge Racing',
+          duration: '1-2 hours',
+          desc: 'Thrilling groomed snow track activity safe for families and children.',
+        },
+        {
+          name: 'Evening Campfire BBQ Under the Stars',
+          duration: 'Evening',
+          desc: 'Outdoor snow campfire with live barbecue and mountain hot cider.',
+        },
+      ],
+    },
+    media: [],
+    rating_count: 22,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'fb89fd2592454750a374634ad00388f7',
+    business_id: 'biz-demo-walnut',
+    business_name: 'Walnut Heights Kalam',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Kalam',
+    title: 'Walnut Heights Resort, Kalam',
+    description: 'Scenic boutique wooden chalet resort nestled amid walnut pine forests along the river.',
+    address_text: 'Upper Swat Riverbank, Kalam Valley, Swat',
+    phone: '+92-946-812345',
+    whatsapp_number: '+92-345-8123450',
+    latitude: 35.485,
+    longitude: 72.585,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-walnut-1',
+        name: 'Riverside Cedar Room',
+        price: 9500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 10,
+        description: 'Handcrafted cedar wood room with river verandas, electric blankets, and mountain views.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-walnut-2',
+        name: 'Family Mountain Chalet',
+        price: 16000,
+        unit: 'per_night',
+        capacity: 5,
+        default_units: 4,
+        description: 'Spacious family duplex chalet with living area, double verandas, and dining space.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Resort',
+      total_rooms: 24,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free High-Speed Wi-Fi',
+        'Cedar Wood Heated Chalets',
+        '24/7 Hot Water with Wood Heating',
+        'River & Walnut Forest Views',
+        'Free Private Parking',
+        'Riverside BBQ Terrace & Dining',
+        'Generator Power Backup',
+      ],
+      activities: [
+        {
+          name: 'Pine & Walnut Forest Nature Hike',
+          duration: '2 hours',
+          desc: 'Scenic trail walk through ancient walnut groves along the upper Swat river.',
+        },
+        {
+          name: 'Kalam River Trout Fishing Experience',
+          duration: 'Half day',
+          desc: 'Catch-and-cook river trout angling with rods, bait, and local fishing guide.',
+        },
+        {
+          name: 'Mahodand & Saifullah Lakes 4x4 Excursion',
+          duration: 'Full day',
+          desc: 'Jeep excursion arranged directly from resort to azure glacier lakes.',
+        },
+      ],
+    },
+    media: [],
+    rating_count: 18,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-guesthouse-1',
+    business_id: 'biz-demo-guesthouse',
+    business_name: 'Kalam Pine Valley Guest House',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Kalam',
+    title: 'Kalam Pine Valley Guest House',
+    description: 'Charming traditional wooden guesthouse overlooking Kalam pine forest, offering cozy family rooms, home-cooked Swati meals, and warm hospitality.',
+    address_text: 'Pine Forest Road, Kalam Valley, Swat',
+    phone: '+92-946-812777',
+    whatsapp_number: '+92-345-8127770',
+    latitude: 35.488,
+    longitude: 72.589,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-gh-1',
+        name: 'Deluxe Pine Mountain Room',
+        price: 6500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 6,
+        description: 'Warm pine-paneled room with king bed, electric heating, attached bath with 24/7 hot water, and forest view balcony.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-gh-2',
+        name: 'Family Guesthouse Suite',
+        price: 11000,
+        unit: 'per_night',
+        capacity: 5,
+        default_units: 3,
+        description: 'Spacious 2-bedroom guesthouse suite with private sitting area, traditional rugs, and mountain terrace.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Guesthouse',
+      total_rooms: 12,
+      star_rating: 4,
+      check_in_time: '13:00',
+      check_out_time: '11:00',
+      facilities: [
+        'Free Wi-Fi',
+        'Traditional Homestyle Breakfast',
+        '24/7 Hot Water & Heating',
+        'Pine Forest & Valley Views',
+        'On-site Parking',
+        'Campfire & Lawn Sitting',
+      ],
+      activities: [
+        {
+          name: 'Guided Kalam Pine Forest Trail',
+          duration: '1.5 hours',
+          desc: 'Relaxing walking tour through virgin pine groves with guesthouse host.',
+        },
+      ],
+    },
+    media: [],
+    rating_count: 19,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '1adef98f3df65bbda51b0c084304091b',
+    business_id: 'biz-demo-apartment',
+    business_name: 'Fizagat Luxury Riverview Apartments',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'Fizagat Luxury Riverview Apartments',
+    description: 'Modern serviced holiday apartments overlooking Swat River in Fizagat, featuring fully-equipped kitchens, private river-view balconies, and elevator access.',
+    address_text: 'Fizagat Riverside Park Road, Mingora, Swat',
+    phone: '+92-946-722888',
+    whatsapp_number: '+92-345-7228880',
+    latitude: 34.786,
+    longitude: 72.368,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-apt-1',
+        name: '2-Bedroom Serviced Apartment',
+        price: 14500,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 4,
+        description: 'Complete 2-bedroom luxury flat with furnished living lounge, full kitchen, high-speed WiFi, smart TV, and river balcony.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-apt-2',
+        name: '3-Bedroom Executive Penthouse Flat',
+        price: 24000,
+        unit: 'per_night',
+        capacity: 7,
+        default_units: 2,
+        description: 'Spacious family penthouse apartment with 3 ensuite bedrooms, panoramic river terrace, laundry machines, and dining hall.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Apartment',
+      total_rooms: 16,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Complete Kitchen with Refrigerator & Microwave',
+        'Free High-Speed Wi-Fi & Smart TVs',
+        '24/7 Power Backup & Elevator',
+        'River Swat Front Balconies',
+        'Secure Basement Parking',
+        'Daily Housekeeping',
+      ],
+      activities: [
+        {
+          name: 'Fizagat Riverside Walking Tour',
+          duration: '1 hour',
+          desc: 'Direct access to Fizagat riverside park and children play areas.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-fiz-apt', '/images/deluxe_room.jpg', 'Fizagat Luxury Riverview Apartments', '1adef98f3df65bbda51b0c084304091b')],
+    rating_count: 24,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '8b167bd31f6c4b2a85333a5861200ae8',
+    business_id: 'biz-rock-city',
+    business_name: 'Rock City Resort Fizagat',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'Rock City Resort, Fizagat',
+    description: 'Iconic cliffside resort perched above the roaring Swat River with terraced botanical gardens, open-air riverside BBQ gazebos, and serene mountain panoramas.',
+    address_text: 'Fizagat Cliff Heights, Swat River Road, Fizagat, Swat',
+    phone: '+92-946-724500',
+    whatsapp_number: '+92-345-7245001',
+    latitude: 34.7865,
+    longitude: 72.3725,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-rock-1',
+        name: 'River View Executive Room',
+        price: 9500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Cliffside room with private wooden balcony directly looking over the roaring Swat River.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-rock-2',
+        name: 'Cliffside Family Villa',
+        price: 17500,
+        unit: 'per_night',
+        capacity: 5,
+        default_units: 3,
+        description: 'Spacious family duplex villa with scenic parlor, master bedroom, and panoramic river deck.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Resort',
+      total_rooms: 36,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free High-Speed Wi-Fi',
+        'Swat River Panoramic Terraces',
+        '24/7 Room Heating & Hot Water',
+        'Terraced Riverside Dining Gazebos',
+        'Power Backup Generator (24/7)',
+        'Secure Private Parking',
+        'Children\'s Play Garden',
+        'BBQ & Trout Fish Specialties',
+      ],
+      activities: [
+        {
+          name: 'Fizagat River Cliff Walking Trail',
+          duration: '1 hour',
+          desc: 'Private resort trail leading down to pristine riverside stone beaches.',
+        },
+        {
+          name: 'Swat River Trout Sunset Barbecue',
+          duration: 'Evening',
+          desc: 'Chef-grilled fresh river trout with traditional naan on open river terrace.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-rock-city', '/images/rock_city_resort.jpg', 'Rock City Resort Fizagat', '8b167bd31f6c4b2a85333a5861200ae8')],
+    rating_count: 22,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '5f3a9e710b844f6cae6712390a1bc901',
+    business_id: 'biz-hotel-one',
+    business_name: 'Hotel One Swat',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'Hotel One Swat, Fizagat',
+    description: 'Contemporary upscale hotel managed by Hashoo Group, featuring elegant air-conditioned and heated rooms, multi-cuisine restaurant, and business facilities.',
+    address_text: 'Main Kalam Highway, Fizagat, Swat',
+    phone: '+92-946-722110',
+    whatsapp_number: '+92-345-7221100',
+    latitude: 34.7891,
+    longitude: 72.3752,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-h1-1',
+        name: 'Deluxe King Room',
+        price: 11000,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 10,
+        description: 'Modern room with plush king bed, workspace, 43-inch smart LED, and heated bath.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-h1-2',
+        name: 'Premium River Suite',
+        price: 16500,
+        unit: 'per_night',
+        capacity: 3,
+        default_units: 4,
+        description: 'Suite featuring separate parlor lounge, complimentary mini-bar, and panoramic views of Fizagat ridge.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 42,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free High-Speed Wi-Fi',
+        'Modern Climate Control (Heating/AC)',
+        '24/7 Room Service & Reception',
+        'In-House Restaurant \'Kafe One\'',
+        'Free Secure Basement Parking',
+        '24/7 Power Backup Generator',
+      ],
+      activities: [
+        {
+          name: 'Swat Cultural Museum & White Palace Day Trip',
+          duration: 'Half day',
+          desc: 'Guided concierge trip exploring Swat Museum and historic Royal White Palace.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-hotel-one', '/images/hotel_one_swat.jpg', 'Hotel One Swat', '5f3a9e710b844f6cae6712390a1bc901')],
+    rating_count: 19,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '6c4e1290fa81498b8c4d29310e54b677',
+    business_id: 'biz-greens-kalam',
+    business_name: 'Greens Hotel Kalam',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Kalam',
+    title: 'Greens Hotel by Roomy, Kalam',
+    description: 'Kalam\'s most iconic historic hotel on a scenic pine plateau, offering lush manicured lawns, pine-paneled rooms, room heaters, and tranquil mountain vistas.',
+    address_text: 'Kalam Hilltop, Main Bazaar Road, Kalam Valley, Swat',
+    phone: '+92-946-812111',
+    whatsapp_number: '+92-345-8121112',
+    latitude: 35.4912,
+    longitude: 72.5833,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-greens-1',
+        name: 'Pine View Deluxe Room',
+        price: 10500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 12,
+        description: 'Pine-paneled heritage room with plush king bed, heating, hot shower, and direct pine forest vista.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-greens-2',
+        name: 'Valley Family Suite',
+        price: 18000,
+        unit: 'per_night',
+        capacity: 5,
+        default_units: 5,
+        description: 'Two-room interconnecting family suite with comfortable seating area and valley view verandas.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 50,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free Wi-Fi',
+        'Pine Lawn Mountain Vistas',
+        '24/7 Hot Water & Room Heating',
+        'Traditional Swati & Continental Dining',
+        '24/7 Power Backup Generator',
+        'Free On-site Secure Parking',
+      ],
+      activities: [
+        {
+          name: 'Kalam Valley Pine Plateau Stroll',
+          duration: '1 hour',
+          desc: 'Morning walk through ancient Himalayan cedar and pine woods surrounding the property.',
+        },
+        {
+          name: 'Evening Garden Bonfire & Chai Gathering',
+          duration: 'Evening',
+          desc: 'Warm outdoor wood fire with Cardamom Kashmiri chai and local mountain tales.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-greens-kalam', '/images/greens_hotel_kalam.jpg', 'Greens Hotel Kalam', '6c4e1290fa81498b8c4d29310e54b677')],
+    rating_count: 25,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '7a5c8b3e2109485aafe931085cd49022',
+    business_id: 'biz-zen-luxus',
+    business_name: 'Zen Luxus Hotel Kalam',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Kalam',
+    title: 'Zen Luxus Hotel Kalam',
+    description: 'Ultra-modern architectural hotel in upper Kalam featuring floor-to-ceiling glass panorama walls, central climate heating, luxury bedding, and fine continental cuisine.',
+    address_text: 'Upper Kalam Heights, Riverbank Bypass, Kalam Valley, Swat',
+    phone: '+92-946-812999',
+    whatsapp_number: '+92-345-8129990',
+    latitude: 35.4940,
+    longitude: 72.5870,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-zen-1',
+        name: 'Luxury Panorama King Room',
+        price: 13500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Floor-to-ceiling glass suite looking directly onto snow-covered peaks, king bed, smart heating.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-zen-2',
+        name: 'Presidential Mountain Suite',
+        price: 22500,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 3,
+        description: 'Corner executive penthouse suite with 270-degree valley vistas, designer fireplace, and jacuzzi.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 30,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free Ultra High-Speed Wi-Fi',
+        'Central Heating & Heated Floors',
+        'Floor-to-Ceiling Snow Peak Views',
+        '24/7 Hot Water & Power Backup',
+        'Rooftop Observation & Stargazing Terrace',
+        'Gourmet Cafe & Fine Dining Lounge',
+      ],
+      activities: [
+        {
+          name: 'Rooftop Stargazing & Snow Peak Astronomy',
+          duration: 'Evening',
+          desc: 'High-powered telescope session observing Milky Way skies over Falak Sar peak.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-zen-kalam', '/images/zen_luxus_kalam.jpg', 'Zen Luxus Hotel Kalam', '7a5c8b3e2109485aafe931085cd49022')],
+    rating_count: 21,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '8c2d914560ea4f11bd3209841ca91122',
+    business_id: 'biz-white-palace',
+    business_name: 'White Palace Marghazar',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Mingora',
+    title: 'White Palace Hotel, Marghazar',
+    description: 'Iconic royal summer residence built in 1940 by the first Wali of Swat using white chinar marble, surrounded by natural mountain streams and whispering chinars.',
+    address_text: 'Marghazar Valley, 12 km South of Saidu Sharif, Swat',
+    phone: '+92-946-741122',
+    whatsapp_number: '+92-345-7411220',
+    latitude: 34.6622,
+    longitude: 72.3167,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-wp-1',
+        name: 'Royal Heritage Room',
+        price: 8500,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Marble-floored heritage room with royal arch windows, mountain views, heating, and queen bed.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-wp-2',
+        name: 'Wali-e-Swat Imperial Suite',
+        price: 15000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 2,
+        description: 'Palatial suite with antique wooden carvings, private royal reception salon, and garden fountain balcony.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 28,
+      star_rating: 4,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Historic White Marble Architecture',
+        'Natural Spring Water Cascades & Lawns',
+        '24/7 Hot Water & Room Heating',
+        'Royal Banquet Hall & Courtyard Dining',
+        'Free Secure Grounds Parking',
+        'Power Backup Generator',
+      ],
+      activities: [
+        {
+          name: 'Royal Wali of Swat Heritage Palace Tour',
+          duration: '1 hour',
+          desc: 'Guided walking tour through royal suites, original 1940 furniture, and historic photographs.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-white-palace', '/images/white_palace_marghuzar.jpg', 'White Palace Hotel Marghazar', '8c2d914560ea4f11bd3209841ca91122')],
+    rating_count: 20,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '9a12401f5e7c41328905b1c402e9a567',
+    business_id: 'biz-kuwait-cont',
+    business_name: 'Kuwait Continental Hotel Bahrain',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Bahrain',
+    title: 'Kuwait Continental Hotel, Bahrain',
+    description: 'Established riverfront hotel located directly at the roaring confluence of Swat and Daral rivers in Bahrain, offering fresh river trout and wooden riverside balconies.',
+    address_text: 'River Confluence Road, Main Bazaar, Bahrain, Swat',
+    phone: '+92-946-781200',
+    whatsapp_number: '+92-345-7812000',
+    latitude: 35.2075,
+    longitude: 72.5488,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-kc-1',
+        name: 'River Sound Deluxe Room',
+        price: 7000,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 10,
+        description: 'Cozy wood-accented room with private balcony directly overlooking the thundering river.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-kc-2',
+        name: 'Bahrain Riverside Family Suite',
+        price: 12000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 4,
+        description: 'Two connected bedrooms with panoramic river terrace, attached baths, and 24/7 hot water.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Hotel',
+      total_rooms: 32,
+      star_rating: 3,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free Wi-Fi',
+        'Swat River Confluence Balconies',
+        '24/7 Hot Water & Room Heating',
+        'Riverside Fresh Trout Specialty Dining',
+        'Power Backup Generator',
+      ],
+      activities: [
+        {
+          name: 'Bahrain Woodcraft & Souvenir Bazaar Tour',
+          duration: '1.5 hours',
+          desc: 'Walk through Bahrain\'s famous market for hand-carved cedar furniture and walnut bowls.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-kuwait-cont', '/images/kuwait_continental_bahrain.jpg', 'Kuwait Continental Hotel Bahrain', '9a12401f5e7c41328905b1c402e9a567')],
+    rating_count: 18,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '3e9b11409ac64d999015c7a02b113456',
+    business_id: 'biz-miandam-palace',
+    business_name: 'Hotel Miandam Palace',
+    type_id: 'd11cdd1b925f4215a7e1d7832a606e37',
+    type_code: 'hotel',
+    type_label: 'Hotels & Stays',
+    area_name: 'Swat',
+    title: 'Hotel Miandam Palace',
+    description: 'Quiet hilltop retreat in the terraced fruit orchards of Miandam, famous for its crisp cool climate, medicinal herb forests, and panoramic views.',
+    address_text: 'Upper Ridge Road, Miandam Valley, Swat',
+    phone: '+92-946-791144',
+    whatsapp_number: '+92-345-7911440',
+    latitude: 35.0416,
+    longitude: 72.5517,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-miandam-1',
+        name: 'Terrace Pine Room',
+        price: 6000,
+        unit: 'per_night',
+        capacity: 2,
+        default_units: 8,
+        description: 'Serene room with balcony opening onto apple orchards and pine mountain slopes.',
+        is_bookable: true,
+      },
+      {
+        id: 'pi-miandam-2',
+        name: 'Miandam Panoramic Suite',
+        price: 10000,
+        unit: 'per_night',
+        capacity: 4,
+        default_units: 2,
+        description: 'Spacious family suite with floor-to-ceiling wooden windows overlooking the entire valley basin.',
+        is_bookable: true,
+      },
+    ],
+    details: {
+      accommodation_type: 'Guesthouse',
+      total_rooms: 20,
+      star_rating: 3,
+      check_in_time: '14:00',
+      check_out_time: '12:00',
+      facilities: [
+        'Free Wi-Fi',
+        'Orchard & Valley Panorama Terraces',
+        '24/7 Hot Water & Heating',
+        'Locally Sourced Organic Pashtun Meals',
+        'Free Parking',
+      ],
+      activities: [
+        {
+          name: 'Miandam Medicinal Plants & Orchard Walk',
+          duration: '2 hours',
+          desc: 'Guided nature trek across apple, peach, and walnut groves with local herbalist.',
+        },
+      ],
+    },
+    media: [makeMediaItem('m-miandam', '/images/miandam_valley.jpg', 'Hotel Miandam Palace', '3e9b11409ac64d999015c7a02b113456')],
+    rating_count: 14,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'ceca7963dc2a40d4a83995ae4f9078ae',
+    business_id: 'biz-demo-trans-snow',
+    business_name: 'Malam Jabba Snow & Mountain 4x4 Cruiser',
+    type_id: 'bef2e082a8664dbba8cb7c7e5eb014f5',
+    type_code: 'transport',
+    type_label: 'Transport & 4x4',
+    area_name: 'Malam Jabba',
+    title: 'Malam Jabba Snow & Mountain 4x4 Cruiser',
+    description: 'Rugged Toyota Land Cruiser 4x4 equipped with snow chains, heated seats, roof rack, and expert local driver for high-altitude passes.',
+    address_text: 'Resort Road, Malam Jabba',
+    latitude: 34.7997,
+    longitude: 72.5714,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-trans-snow-1',
+        name: 'Full Day 4x4 Mountain Cruiser with Driver',
+        price: 8500,
+        unit: 'per_day',
+        capacity: 4,
+        is_bookable: true,
+      },
+    ],
+    details: { vehicle_model: 'Toyota Land Cruiser 4x4', seating_capacity: 4 },
+    media: [],
+    rating_count: 9,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '01d0d59e6bd949c4a29f742c3dd30c63',
+    business_id: 'biz-demo-trans-prado',
+    business_name: 'Swat Valley 4x4 Mountain Jeep Safari',
+    type_id: 'bef2e082a8664dbba8cb7c7e5eb014f5',
+    type_code: 'transport',
+    type_label: 'Transport & 4x4',
+    area_name: 'Mingora',
+    title: '4x4 Mountain Jeep, Swat Rides',
+    description: 'Custom Toyota Prado 4x4 for Kalam, Mahodand Lake, and Ushu forest excursions with fuel and driver.',
+    address_text: 'Fizagat Bypass, Mingora',
+    latitude: 34.78,
+    longitude: 72.36,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-trans-prado-1',
+        name: 'Full Day 4x4 Jeep with Driver',
+        price: 14000,
+        unit: 'per_day',
+        capacity: 5,
+        is_bookable: true,
+      },
+    ],
+    details: { vehicle_model: 'Toyota Prado TX 4x4', seating_capacity: 5 },
+    media: [],
+    rating_count: 12,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'e1f81877c998449daad24f6fc62d63ab',
+    business_id: 'biz-demo-guide-jansher',
+    business_name: 'Jan Sher Trekking & Heritage Guide',
+    type_id: 'cc45d8950cb64b1b83b56f92e0939f11',
+    type_code: 'guide',
+    type_label: 'Tour Guides',
+    area_name: 'Mingora',
+    title: 'Jan Sher Trekking & Heritage Guide',
+    description: 'Licensed KP Tourism trekking guide and Buddhist archaeology specialist with 12 years experience in Swat Valley trails.',
+    address_text: 'Swat Museum Road, Saidu Sharif, Mingora',
+    latitude: 34.75,
+    longitude: 72.355,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-guide-jansher-1',
+        name: 'Daily Private Trek & Heritage Guiding Service',
+        price: 3500,
+        unit: 'per_day',
+        capacity: 8,
+        is_bookable: true,
+      },
+    ],
+    details: { languages: ['English', 'Urdu', 'Pashto'], years_experience: 12 },
+    media: [],
+    rating_count: 31,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '7553cc510ba6459daa2c326dd8afa787',
+    business_id: 'biz-demo-guide-ali',
+    business_name: 'Ali Khan Alpine Mountain Guide',
+    type_id: 'cc45d8950cb64b1b83b56f92e0939f11',
+    type_code: 'guide',
+    type_label: 'Tour Guides',
+    area_name: 'Kalam',
+    title: 'Ali Khan Alpine Mountain Guide',
+    description: 'Wilderness first-aid certified mountain guide for Mahodand Lake, Kundol Lake, and Spin Khwar alpine treks.',
+    address_text: 'Main Bazar, Kalam',
+    latitude: 35.48,
+    longitude: 72.58,
+    is_verified: true,
+    status: 'published',
+    price_items: [
+      {
+        id: 'pi-guide-ali-1',
+        name: 'Daily Alpine Trek Guiding Service',
+        price: 3500,
+        unit: 'per_day',
+        capacity: 6,
+        is_bookable: true,
+      },
+    ],
+    details: { languages: ['English', 'Urdu', 'Pashto'], years_experience: 8 },
+    media: [],
+    rating_count: 19,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-activity-1',
+    business_id: 'biz-demo-activity-1',
+    business_name: 'Malam Jabba Adventure Club',
+    type_id: 'type-activity',
+    type_code: 'activity',
+    type_label: 'Adventures & Ski',
+    area_name: 'Malam Jabba',
+    title: 'Malam Jabba Aerial Chairlift & Zipline',
+    description: 'Scenic high-altitude 800m dual zipline and two-seater chairlift across the snow-capped pine valley.',
+    address_text: 'Main Ski Resort Ridge, Malam Jabba, Swat',
+    phone: '+92-946-755010',
+    latitude: 34.7997,
+    longitude: 72.5714,
+    is_verified: true,
+    status: 'published',
+    tags: [
+      { id: 't-act-1', tag_group: 'feature', label: 'Zipline' },
+      { id: 't-act-2', tag_group: 'feature', label: 'Chairlift' },
+      { id: 't-act-3', tag_group: 'facility', label: 'Certified Safety' },
+    ],
+    price_items: [
+      {
+        id: 'pi-activity-1',
+        name: 'Combined Chairlift & Zipline Adventure Pass',
+        price: 2500,
+        unit: 'per_person',
+        capacity: 1,
+        is_bookable: true,
+      },
+    ],
+    details: {},
+    media: [],
+    rating_count: 42,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'listing-demo-shop-1',
+    business_id: 'biz-demo-shop-1',
+    business_name: 'Swat Heritage Gems & Woodcrafts',
+    type_id: 'type-shop',
+    type_code: 'shop',
+    type_label: 'Crafts & Souvenirs',
+    area_name: 'Bahrain',
+    title: 'Swat Heritage Gems, Shawls & Woodcrafts',
+    description: 'Authentic hand-carved deodar walnut woodwork, emerald gemstones, and pure Pashmina and Swati woolen shawls.',
+    address_text: 'River Bazaar, Bahrain, Swat',
+    phone: '+92-946-822450',
+    latitude: 35.2075,
+    longitude: 72.5475,
+    is_verified: true,
+    status: 'published',
+    tags: [
+      { id: 't-sh-1', tag_group: 'feature', label: 'Pashmina' },
+      { id: 't-sh-2', tag_group: 'feature', label: 'Handicrafts' },
+      { id: 't-sh-3', tag_group: 'facility', label: 'Local Artisans' },
+    ],
+    price_items: [
+      {
+        id: 'pi-shop-1',
+        name: 'Pure Handwoven Swati Wool Shawl',
+        price: 4500,
+        unit: 'per_item',
+        capacity: 1,
+        is_bookable: false,
+      },
+    ],
+    details: {},
+    media: [],
+    rating_count: 28,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
+const DEFAULT_DESTINATIONS: Destination[] = [
+  {
+    id: 'dest-1',
+    area_id: 'area-kalam',
+    area_name: 'Kalam',
+    name: 'Kalam Valley',
+    description: 'Alpine meadows, pine-clad foothills, and the roaring Swat River with cool summer temperatures.',
+    category: 'valley',
+    best_season: 'May to October',
+    latitude: 35.48,
+    longitude: 72.58,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dest-2',
+    area_id: 'area-kalam',
+    area_name: 'Kalam',
+    name: 'Mahodand Lake',
+    description: 'Pristine glacial waters, trout fishing, horse riding, and panoramic snow-draped Hindu Kush peaks.',
+    category: 'lake',
+    best_season: 'June to September',
+    latitude: 35.7142,
+    longitude: 72.6486,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dest-3',
+    area_id: 'area-malam-jabba',
+    area_name: 'Malam Jabba',
+    name: 'Malam Jabba',
+    description: 'Premier high-altitude ski resort with aerial chairlift, 800m zipline, and 360° Karakoram & Hindu Kush vistas.',
+    category: 'ski',
+    best_season: 'Winter & Summer',
+    latitude: 34.7997,
+    longitude: 72.5714,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dest-4',
+    area_id: 'area-ushu',
+    area_name: 'Ushu',
+    name: 'Ushu Forest',
+    description: 'Magnificent centuries-old deodar cedar forest with tranquil walking trails and views of Mt. Falaksar.',
+    category: 'forest',
+    best_season: 'May to October',
+    latitude: 35.5333,
+    longitude: 72.6333,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dest-5',
+    area_id: 'area-utror',
+    area_name: 'Utror',
+    name: 'Kundol Lake',
+    description: 'Sparkling turquoise glacial lake surrounded by sheer snow-capped cliffs and wildflowers in northern Utror.',
+    category: 'lake',
+    best_season: 'June to September',
+    latitude: 35.6111,
+    longitude: 72.4833,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dest-6',
+    area_id: 'area-swat',
+    area_name: 'Swat',
+    name: 'White Palace Marghuzar',
+    description: 'Historic 1940 royal summer residence of the Wali of Swat built from pure white Chiniot marble among royal gardens.',
+    category: 'heritage',
+    best_season: 'Year-round (Mar-Nov)',
+    latitude: 34.6933,
+    longitude: 72.3333,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dest-7',
+    area_id: 'area-bahrain',
+    area_name: 'Bahrain',
+    name: 'Bahrain Swat',
+    description: 'Picturesque riverside town at the dramatic confluence of the Swat and Daral rivers, famous for handicrafts and wood carving.',
+    category: 'valley',
+    best_season: 'April to November',
+    latitude: 35.2075,
+    longitude: 72.5475,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'dest-8',
+    area_id: 'area-swat',
+    area_name: 'Swat',
+    name: 'Miandam Valley',
+    description: 'Serene hillside retreat amidst terraced emerald cornfields, peach and apple orchards, and cascading mountain streams.',
+    category: 'valley',
+    best_season: 'April to October',
+    latitude: 35.0433,
+    longitude: 72.5536,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+];
+
+interface TouristShellProps {
+  activeTab: string;
+  onTabChange?: (tab: string) => void;
+  headerAction?: React.ReactNode;
+  onOpenAuth?: (mode?: 'login' | 'register', role?: UserRole, primaryType?: string) => void;
+}
+
+export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChange, headerAction, onOpenAuth }) => {
+  const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
+  // Master data
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [destinations, setDestinations] = useState<Destination[]>(DEFAULT_DESTINATIONS);
+  const [listings, setListings] = useState<ListingItem[]>(() => isCleanSlate ? [] : DEFAULT_VERIFIED_LISTINGS);
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const [allTrips, setAllTrips] = useState<Trip[]>([]);
+  const [activeTripId, setActiveTripId] = useState<string | null>(
+    () => isCleanSlate ? null : (localStorage.getItem('swat_active_trip_id') || null)
+  );
+  const [currentViewedTrip, setCurrentViewedTrip] = useState<Trip | null>(null);
+  const [showTripSwitchModal, setShowTripSwitchModal] = useState(false);
+  const [, setSavedItems] = useState<SavedItem[]>([]);
+  const [reviewModal, setReviewModal] = useState<{
+    isOpen: boolean;
+    booking: Booking | null;
+  }>({
+    isOpen: false,
+    booking: null,
+  });
+
+  // Tourist Home Screen Travel Dates & Weather Forecast Prompt State
+  const [homeStartDate, setHomeStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [homeEndDate, setHomeEndDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 4);
+    return d.toISOString().split('T')[0];
+  });
+  const [weatherModal, setWeatherModal] = useState<{
+    isOpen: boolean;
+    destination: Destination | null;
+  }>({
+    isOpen: false,
+    destination: null,
+  });
+
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedAreaId, setSelectedAreaId] = useState<string>('');
+  const [destCategoryFilter, setDestCategoryFilter] = useState<string>('all');
+  const [activeItineraryPreset, setActiveItineraryPreset] = useState<string | null>(null);
+  const [homeSearchTab, setHomeSearchTab] = useState<'valleys' | 'explore' | 'transport'>('valleys');
+  const [homeExploreFilter, setHomeExploreFilter] = useState<'all' | 'hotel' | 'restaurant' | 'transport' | 'guide' | 'activity' | 'shop'>('all');
+  const [homeOriginCity, setHomeOriginCity] = useState<string>('Islamabad / Rawalpindi');
+  const [transportMode, setTransportMode] = useState<'local' | 'intercity'>('local');
+  const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showAIAssistantModal, setShowAIAssistantModal] = useState(false);
+  const [showAITripModal, setShowAITripModal] = useState(false);
+  const [aiTripPrompt, setAiTripPrompt] = useState('');
+
+  // Active trip calculation (prompt 3: Explore shows "Adding to: <trip name>" with Change trip button)
+  const activeTrip = useMemo(() => {
+    if (activeTripId) {
+      const found = allTrips.find((t) => t.id === activeTripId);
+      if (found) return found;
+    }
+    return allTrips[0] || trip || null;
+  }, [allTrips, activeTripId, trip]);
+
+  // Guaranteed fallback for Swat's popular destinations
+  const effectiveDestinations = useMemo(() => {
+    return destinations && destinations.length > 0 ? destinations : DEFAULT_DESTINATIONS;
+  }, [destinations]);
+
+  // Auth & Profile state (Group 2 & 3: Tourist Profile management)
+  const { user, logout, refreshUser, updateProfile, demoLogin } = useAuth();
+  const [profileName, setProfileName] = useState(user?.full_name || '');
+  const [profileEmail, setProfileEmail] = useState(user?.email || '');
+  const [profilePhone, setProfilePhone] = useState(user?.phone || '');
+  const [profileWhatsapp, setProfileWhatsapp] = useState(user?.whatsapp_number || '');
+  const [profileAddress, setProfileAddress] = useState(user?.address_text || user?.address || '');
+  const [profileLang, setProfileLang] = useState(user?.language || 'en');
+  const [profileEmergencyName, setProfileEmergencyName] = useState(user?.tourist_profile?.emergency_contact_name || '');
+  const [profileEmergencyPhone, setProfileEmergencyPhone] = useState(user?.tourist_profile?.emergency_contact_phone || '');
+  const [profileBudget, setProfileBudget] = useState((user?.tourist_profile as any)?.budget_level || 'mid_range');
+  const [profileTravelStyle, setProfileTravelStyle] = useState((user?.tourist_profile as any)?.travel_style || 'family');
+  const [profileInterests, setProfileInterests] = useState<string[]>(
+    (user?.tourist_profile as any)?.interests || ['Nature & Valleys', 'Hiking & Trekking']
+  );
+  const [notifySMS, setNotifySMS] = useState(true);
+  const [notifyEmail, setNotifyEmail] = useState(true);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileSuccessMsg, setProfileSuccessMsg] = useState<string | null>(null);
+  const [profileErrorMsg, setProfileErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.full_name || '');
+      setProfileEmail(user.email || '');
+      setProfilePhone(user.phone || '');
+      setProfileWhatsapp(user.whatsapp_number || '');
+      setProfileAddress(user.address_text || user.address || '');
+      setProfileLang(user.language || 'en');
+      if (user.tourist_profile) {
+        setProfileEmergencyName(user.tourist_profile.emergency_contact_name || '');
+        setProfileEmergencyPhone(user.tourist_profile.emergency_contact_phone || '');
+        if ((user.tourist_profile as any).budget_level) {
+          setProfileBudget((user.tourist_profile as any).budget_level);
+        }
+        if ((user.tourist_profile as any).travel_style) {
+          setProfileTravelStyle((user.tourist_profile as any).travel_style);
+        }
+        if ((user.tourist_profile as any).interests) {
+          setProfileInterests((user.tourist_profile as any).interests);
+        }
+      }
+    }
+  }, [user]);
+
+  const handleSaveProfile = async () => {
+    setProfileSuccessMsg(null);
+    setProfileErrorMsg(null);
+
+    let activeUser = user;
+    if (!activeUser) {
+      try {
+        activeUser = await demoLogin('tourist');
+      } catch {
+        setProfileErrorMsg('You are not currently logged in. Please click "Tourist (Sara)" in the DEMO LOGINS bar above or sign in to save profile changes to the database.');
+        return;
+      }
+    }
+
+    if (!profileName.trim()) {
+      setProfileErrorMsg('Full Name is required.');
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const payload: Record<string, unknown> = {
+        full_name: profileName.trim(),
+        email: profileEmail.trim() || '',
+        phone: profilePhone.trim() || '',
+        whatsapp_number: profileWhatsapp.trim() || '',
+        address_text: profileAddress.trim() || '',
+        language: profileLang,
+        emergency_contact_name: profileEmergencyName.trim() || '',
+        emergency_contact_phone: profileEmergencyPhone.trim() || '',
+        budget_level: profileBudget,
+        travel_style: profileTravelStyle,
+        interests: profileInterests,
+      };
+
+      let updatedUser: any = null;
+      if (updateProfile) {
+        updatedUser = await updateProfile(payload);
+      } else {
+        updatedUser = await apiRequest('/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        });
+      }
+      if (refreshUser) {
+        await refreshUser();
+      }
+
+      if (updatedUser) {
+        setProfileName(updatedUser.full_name || profileName.trim());
+        setProfileEmail(updatedUser.email || '');
+        setProfilePhone(updatedUser.phone || '');
+        setProfileWhatsapp(updatedUser.whatsapp_number || '');
+        setProfileAddress(updatedUser.address_text || '');
+      }
+
+      // Purge any stale legacy cache keys
+      try {
+        localStorage.removeItem('swat_cached_profile');
+        if (activeUser?.id) {
+          localStorage.removeItem(`swat_cached_profile_${activeUser.id}`);
+        }
+      } catch {
+        // ignore
+      }
+
+      setProfileSuccessMsg('Profile and contact details saved successfully in database!');
+      setTimeout(() => setProfileSuccessMsg(null), 5000);
+    } catch (err: any) {
+      setProfileErrorMsg(err?.message || 'Error updating profile. Please check that email/phone are not already taken.');
+      setTimeout(() => setProfileErrorMsg(null), 6000);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const toggleInterest = (interest: string) => {
+    setProfileInterests((prev) =>
+      prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
+    );
+  };
+
+  const [mapModal, setMapModal] = useState<{
+    open: boolean;
+    title: string;
+    lat: number;
+    lng: number;
+    areaName?: string;
+    categoryOrType?: string;
+    originCity?: string;
+    destinationCity?: string;
+    distanceKm?: number;
+    durationText?: string;
+    viaHighway?: string;
+  }>({
+    open: false,
+    title: '',
+    lat: 35.48,
+    lng: 72.58,
+    originCity: 'Islamabad / Rawalpindi',
+  });
+
+  const [availModal, setAvailModal] = useState<{
+    open: boolean;
+    listingId: string;
+    listingTitle: string;
+    priceItems: PriceItem[];
+  }>({
+    open: false,
+    listingId: '',
+    listingTitle: '',
+    priceItems: [],
+  });
+
+  // Hotel & Restaurant detail modals & selection states
+  const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
+  const [hotelModalListing, setHotelModalListing] = useState<ListingItem | null>(null);
+  const [restaurantModalListing, setRestaurantModalListing] = useState<ListingItem | null>(null);
+  const [serviceModalListing, setServiceModalListing] = useState<ListingItem | null>(null);
+
+  const [myBookings, setMyBookings] = useState<Booking[]>(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('swat_local_bookings') : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+  const [paymentBooking, setPaymentBooking] = useState<Booking | null>(null);
+  const [swatPayModal, setSwatPayModal] = useState<{
+    isOpen: boolean;
+    trip?: Trip | null;
+    booking?: Booking | null;
+  }>({ isOpen: false });
+
+  // Toggle between classic untouched landing page and modern proof-of-concept landing page
+  const [landingVersion, setLandingVersion] = useState<'classic' | 'modern'>(() => {
+    try {
+      const urlParam = new URLSearchParams(window.location.search).get('landing');
+      if (urlParam === 'modern' || urlParam === 'v2') return 'modern';
+      return (localStorage.getItem('swat_landing_version') as any) || 'classic';
+    } catch {
+      return 'classic';
+    }
+  });
+
+  // Ensure the page background is pure white (#FFFFFF) for the classical original landing page
+  useEffect(() => {
+    if (activeTab === 'home' && landingVersion === 'classic') {
+      const prevBg = document.documentElement.style.getPropertyValue('--bg');
+      const prevPageBg = document.documentElement.style.getPropertyValue('--page-bg');
+      const prevPageBgGradient = document.documentElement.style.getPropertyValue('--page-bg-gradient');
+      const prevBodyBg = document.body.style.backgroundColor;
+
+      document.documentElement.style.setProperty('--bg', '#FFFFFF');
+      document.documentElement.style.setProperty('--page-bg', '#FFFFFF');
+      document.documentElement.style.setProperty('--page-bg-gradient', '#FFFFFF');
+      document.body.style.backgroundColor = '#FFFFFF';
+
+      return () => {
+        if (prevBg) document.documentElement.style.setProperty('--bg', prevBg);
+        else document.documentElement.style.removeProperty('--bg');
+
+        if (prevPageBg) document.documentElement.style.setProperty('--page-bg', prevPageBg);
+        else document.documentElement.style.removeProperty('--page-bg');
+
+        if (prevPageBgGradient) document.documentElement.style.setProperty('--page-bg-gradient', prevPageBgGradient);
+        else document.documentElement.style.removeProperty('--page-bg-gradient');
+
+        document.body.style.backgroundColor = prevBodyBg;
+      };
+    }
+  }, [activeTab, landingVersion]);
+
+  // Safety state
+  const [advisories, setAdvisories] = useState<Advisory[]>([]);
+  const [roadStatuses, setRoadStatuses] = useState<RoadStatus[]>([]);
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [activeSOS, setActiveSOS] = useState<SOSEvent | null>(null);
+  const [sosModalOpen, setSosModalOpen] = useState(false);
+  const [sosMessage, setSosMessage] = useState('');
+  const [sosCoords, setSosCoords] = useState<{ lat: number; lng: number }>({ lat: 35.4851, lng: 72.5852 });
+  const [sosSubmitting, setSosSubmitting] = useState(false);
+  const [safetyAreaFilter, setSafetyAreaFilter] = useState('');
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const loadSafetyData = async () => {
+    try {
+      const [advs, roads, contacts] = await Promise.all([
+        fetchActiveAdvisories(safetyAreaFilter || undefined).catch(() => []),
+        fetchRoadStatuses().catch(() => []),
+        fetchEmergencyContacts(safetyAreaFilter || undefined).catch(() => []),
+      ]);
+      setAdvisories(advs);
+      setRoadStatuses(roads);
+      setEmergencyContacts(contacts);
+
+      const token = localStorage.getItem('swat_token');
+      if (token) {
+        const mySos = await fetchMyActiveSOS().catch(() => null);
+        setActiveSOS(mySos);
+      }
+    } catch (err) {
+      console.error('Error loading safety data:', err);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    const initData = async () => {
+      try {
+        const [areasData, destsData] = await Promise.all([
+          getAreas().catch(() => []),
+          getDestinations().catch(() => []),
+        ]);
+        if (areasData && areasData.length > 0) {
+          setAreas(areasData);
+        }
+        if (destsData && destsData.length > 0) {
+          const map = new Map<string, Destination>();
+          for (const d of DEFAULT_DESTINATIONS) {
+            map.set(d.name.toLowerCase().trim(), d);
+          }
+          for (const d of destsData) {
+            const key = d.name.toLowerCase().trim();
+            const existing = map.get(key);
+            map.set(key, { ...existing, ...d });
+          }
+          setDestinations(Array.from(map.values()));
+        } else {
+          setDestinations(DEFAULT_DESTINATIONS);
+        }
+
+        // Load local/offline trips if available
+        let localTrips: Trip[] = [];
+        try {
+          const raw = localStorage.getItem('swat_local_trips');
+          if (raw) localTrips = JSON.parse(raw);
+        } catch {}
+
+        // Load trips, saved items & bookings
+        const token = localStorage.getItem('swat_token');
+        let mergedBookings: Booking[] = [];
+        if (token) {
+          const [tripsData, savedData, bookingsData] = await Promise.all([
+            getTrips().catch(() => []),
+            getSavedItems().catch(() => []),
+            fetchMyBookings().catch(() => []),
+          ]);
+          let mergedTrips = tripsData && tripsData.length > 0 ? tripsData : [];
+          if (localTrips.length > 0) {
+            for (const lt of localTrips) {
+              if (!mergedTrips.some((t) => t.id === lt.id)) {
+                mergedTrips.push(lt);
+              }
+            }
+          }
+          if (mergedTrips.length > 0) {
+            setAllTrips(mergedTrips);
+            const savedActiveId = localStorage.getItem('swat_active_trip_id');
+            const active = mergedTrips.find((t) => t.id === savedActiveId) || mergedTrips[0];
+            setActiveTripId(active.id);
+            setTrip(active);
+            localStorage.setItem('swat_active_trip_id', active.id);
+          } else {
+            setAllTrips([]);
+            setActiveTripId(null);
+            setTrip(null);
+            localStorage.removeItem('swat_active_trip_id');
+          }
+          setSavedItems(savedData);
+          if (bookingsData && Array.isArray(bookingsData)) {
+            mergedBookings = [...bookingsData];
+          }
+        } else if (localTrips.length > 0) {
+          setAllTrips(localTrips);
+          const savedActiveId = localStorage.getItem('swat_active_trip_id');
+          const active = localTrips.find((t) => t.id === savedActiveId) || localTrips[0];
+          setActiveTripId(active.id);
+          setTrip(active);
+          localStorage.setItem('swat_active_trip_id', active.id);
+        }
+
+        // Merge guest session bookings from local storage (swat_local_bookings and swat_ride_orders)
+        try {
+          const rawLocalBookings = localStorage.getItem('swat_local_bookings');
+          if (rawLocalBookings) {
+            const parsed = JSON.parse(rawLocalBookings);
+            if (Array.isArray(parsed)) {
+              for (const lb of parsed) {
+                if (!mergedBookings.some((b) => (b.id && b.id === lb.id) || (b.reference && b.reference === lb.reference))) {
+                  mergedBookings.push(lb);
+                }
+              }
+            }
+          }
+        } catch {}
+
+        try {
+          const rawRideOrders = localStorage.getItem('swat_ride_orders');
+          if (rawRideOrders) {
+            const parsed = JSON.parse(rawRideOrders);
+            if (Array.isArray(parsed)) {
+              for (const r of parsed) {
+                if (!mergedBookings.some((b) => (b.id && b.id === r.id) || (b.reference && b.reference === r.reference))) {
+                  mergedBookings.push({
+                    id: r.id || `ride-${Date.now()}`,
+                    reference: r.reference || 'SWT-TR-RIDE',
+                    tourist_id: r.touristEmail || 'guest',
+                    business_id: r.business_id || r.providerId || 'biz-transport',
+                    listing_id: r.listing_id || 'list-transport',
+                    status: (r.status as any) || 'requested',
+                    start_date: (r.dates && r.dates.split(' • ')[0]) || new Date().toISOString().slice(0, 10),
+                    end_date: undefined,
+                    travellers: 2,
+                    total_amount: r.rawAmount || Number(String(r.amount || '').replace(/[^0-9]/g, '')) || 8000,
+                    payment_status: 'unpaid',
+                    special_requests: r.notes || r.specialRequests,
+                    driver_name: r.driver_name || 'Assigned upon confirmation',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    items: [
+                      {
+                        id: `item-${r.id}`,
+                        booking_id: r.id,
+                        price_item_id: 'p-ride',
+                        price_item_name: r.item || '4x4 Transport Ride',
+                        service_date: new Date().toISOString().slice(0, 10),
+                        quantity: 1,
+                        unit_price: r.rawAmount || 8000,
+                        line_total: r.rawAmount || 8000,
+                        created_at: new Date().toISOString(),
+                      },
+                    ],
+                    history: [],
+                    listing: {
+                      id: r.listing_id || 'list-transport',
+                      title: r.item || '4x4 Swat Valley Transport',
+                      type_code: 'transport',
+                      area_name: 'Swat Valley Fleet',
+                    },
+                    business: {
+                      id: r.business_id || r.providerId || 'biz-transport',
+                      business_name: r.providerName || r.business_name || 'Swat 4x4 Express Fleet',
+                      primary_type: 'transport',
+                    },
+                  } as Booking);
+                }
+              }
+            }
+          }
+        } catch {}
+
+        setMyBookings(mergedBookings);
+
+        // Load safety data
+        loadSafetyData();
+      } catch (err) {
+        console.error('Error loading tourist data:', err);
+      }
+    };
+    initData();
+  }, []);
+
+  // Reload safety data when safety tab is opened or area filter changes
+  useEffect(() => {
+    if (activeTab === 'safety') {
+      loadSafetyData();
+    }
+  }, [activeTab, safetyAreaFilter]);
+
+  // Automatically refresh bookings when navigating to bookings tab or when tourist user changes
+  useEffect(() => {
+    if (activeTab === 'bookings' || user) {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('swat_token') : null;
+      if (token) {
+        fetchMyBookings()
+          .then((serverBookings) => {
+            if (serverBookings && Array.isArray(serverBookings)) {
+              setMyBookings((prev) => {
+                const map = new Map<string, Booking>();
+                serverBookings.forEach((b) => {
+                  if (b.id) map.set(b.id, b);
+                  if (b.reference) map.set(b.reference, b);
+                });
+                prev.forEach((b) => {
+                  if (b.id && !map.has(b.id) && (!b.reference || !map.has(b.reference))) {
+                    map.set(b.id, b);
+                  }
+                });
+                const merged = Array.from(new Set(map.values()));
+                try {
+                  localStorage.setItem('swat_local_bookings', JSON.stringify(merged));
+                } catch {}
+                return merged;
+              });
+            }
+          })
+          .catch(() => {});
+      }
+    }
+  }, [activeTab, user?.id]);
+
+  const handleDetectLocation = () => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setSosCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          showToast('GPS coordinates acquired from device!');
+        },
+        () => {
+          showToast('Could not fetch device GPS; using Swat Valley default.');
+        }
+      );
+    } else {
+      showToast('Geolocation not supported; using default coordinates.');
+    }
+  };
+
+  const handleTriggerSOS = async () => {
+    setSosSubmitting(true);
+    try {
+      const newSos = await createSOSEvent({
+        latitude: sosCoords.lat,
+        longitude: sosCoords.lng,
+        accuracy_m: 10,
+        message: sosMessage || 'Tourist emergency assistance requested.',
+      });
+      setActiveSOS(newSos);
+      setSosModalOpen(false);
+      setSosMessage('');
+      showToast('SOS Alert transmitted to District Control! Dial 1122 immediately for dispatch.');
+    } catch {
+      // If unauthenticated or offline fallback for prototype demo
+      const fallbackSos: SOSEvent = {
+        id: 'sos-' + Date.now(),
+        tourist_id: 'current-tourist',
+        latitude: sosCoords.lat,
+        longitude: sosCoords.lng,
+        message: sosMessage || 'Emergency alert logged',
+        status: 'new',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setActiveSOS(fallbackSos);
+      setSosModalOpen(false);
+      showToast('SOS Alert logged locally. Please dial Rescue 1122 directly!');
+    } finally {
+      setSosSubmitting(false);
+    }
+  };
+
+  // Listen for live transport fleet updates from business portal
+  const [fleetVersion, setFleetVersion] = useState(0);
+  const [communityServicesVersion, setCommunityServicesVersion] = useState(0);
+
+  useEffect(() => {
+    const handleFleetUpdate = () => {
+      setFleetVersion((v) => v + 1);
+    };
+    const handleCommunityServicesUpdate = () => {
+      setCommunityServicesVersion((v) => v + 1);
+    };
+    const handleBookingsUpdate = () => {
+      try {
+        const raw = localStorage.getItem('swat_local_bookings');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setMyBookings((prev) => {
+              const map = new Map<string, Booking>();
+              for (const b of parsed) {
+                if (b.reference) map.set(b.reference, b);
+                else if (b.id) map.set(b.id, b);
+              }
+              for (const b of prev) {
+                const key = b.reference || b.id;
+                if (!map.has(key)) map.set(key, b);
+              }
+              return Array.from(map.values());
+            });
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener('swat_transport_fleet_updated', handleFleetUpdate);
+    window.addEventListener('swat_explore_services_updated', handleCommunityServicesUpdate);
+    window.addEventListener(SWAT_COMMUNITY_APPS_EVENT, handleCommunityServicesUpdate);
+    window.addEventListener('swat_bookings_updated', handleBookingsUpdate);
+    window.addEventListener('storage', handleFleetUpdate);
+    window.addEventListener('storage', handleCommunityServicesUpdate);
+    window.addEventListener('storage', handleBookingsUpdate);
+    return () => {
+      window.removeEventListener('swat_transport_fleet_updated', handleFleetUpdate);
+      window.removeEventListener('swat_explore_services_updated', handleCommunityServicesUpdate);
+      window.removeEventListener(SWAT_COMMUNITY_APPS_EVENT, handleCommunityServicesUpdate);
+      window.removeEventListener('swat_bookings_updated', handleBookingsUpdate);
+      window.removeEventListener('storage', handleFleetUpdate);
+      window.removeEventListener('storage', handleCommunityServicesUpdate);
+      window.removeEventListener('storage', handleBookingsUpdate);
+    };
+  }, []);
+
+  // Fetch explore listings whenever filters change
+  useEffect(() => {
+    const fetchListings = async () => {
+      setLoading(true);
+      try {
+        const items = await getExploreListings({
+          type: selectedType !== 'all' ? selectedType : undefined,
+          area_id: selectedAreaId || undefined,
+          search: searchQuery || undefined,
+        });
+        const publishedTransport = getPublishedTransportListingItems();
+
+        let baseListings = items && items.length > 0 ? [...items] : [];
+
+        if (!isCleanSlate && baseListings.length === 0) {
+          let fallbackList = [...DEFAULT_VERIFIED_LISTINGS];
+          if (selectedType !== 'all') {
+            fallbackList = fallbackList.filter((l) => l.type_code === selectedType);
+          }
+          if (selectedAreaId) {
+            const areaObj = areas.find((a) => a.id === selectedAreaId);
+            fallbackList = fallbackList.filter(
+              (l) => l.area_id === selectedAreaId || (areaObj && l.area_name?.toLowerCase() === areaObj.name.toLowerCase())
+            );
+          }
+          baseListings = fallbackList;
+        }
+
+        // Fetch approved community services (4x4 rides, guides, adventure activities, crafts, homestays)
+        let approvedApps = await fetchApprovedHostServices().catch(() => []);
+        if (!approvedApps || approvedApps.length === 0) {
+          approvedApps = getStoredHostApplications().filter((a) => a.status === 'approved');
+        }
+        const communityListings = (approvedApps || []).map(hostApplicationToListing);
+
+        let merged = [...baseListings];
+
+        // Merge published commercial transport vehicles (only user-custom additions if baseListings from API is present)
+        const defaultFleetIds = new Set(['veh-jeep-1', 'veh-hiace-1', 'veh-prado-1', 'veh-coaster-1', 'veh-brv-1']);
+        const transportToMerge = (items && items.length > 0)
+          ? publishedTransport.filter((pv) => !defaultFleetIds.has(pv.id.replace('listing-', '')))
+          : (isCleanSlate ? publishedTransport.filter((pv) => !defaultFleetIds.has(pv.id.replace('listing-', ''))) : publishedTransport);
+
+        for (const pv of transportToMerge) {
+          if (!merged.some((m) => m.id === pv.id || m.title.toLowerCase() === pv.title.toLowerCase())) {
+            merged.push(pv);
+          }
+        }
+
+        // Merge approved community services
+        for (const cl of communityListings) {
+          if (!merged.some((m) => m.id === cl.id || m.title.toLowerCase() === cl.title.toLowerCase())) {
+            merged.push(cl);
+          }
+        }
+
+        // Apply selectedType filter if specific category is active
+        if (selectedType !== 'all') {
+          merged = merged.filter((l) => l.type_code === selectedType);
+        }
+
+        // Apply search query filter
+        if (searchQuery && searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          merged = merged.filter(
+            (l) =>
+              l.title.toLowerCase().includes(q) ||
+              (l.description || '').toLowerCase().includes(q) ||
+              (l.area_name || '').toLowerCase().includes(q) ||
+              (l.business_name || '').toLowerCase().includes(q) ||
+              l.price_items?.some((p) => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
+          );
+        }
+
+        setListings(merged);
+      } catch (err) {
+        console.error('Error fetching explore listings:', err);
+        const publishedTransport = getPublishedTransportListingItems();
+        let fallbackList = isCleanSlate ? [] : [...DEFAULT_VERIFIED_LISTINGS];
+        if (selectedAreaId) {
+          const areaObj = areas.find((a) => a.id === selectedAreaId);
+          fallbackList = fallbackList.filter(
+            (l) => l.area_id === selectedAreaId || (areaObj && l.area_name?.toLowerCase() === areaObj.name.toLowerCase())
+          );
+        }
+        const approvedApps = getStoredHostApplications().filter((a) => a.status === 'approved');
+        const communityListings = (approvedApps || []).map(hostApplicationToListing);
+
+        let merged = [...fallbackList];
+        for (const pv of publishedTransport) {
+          if (!merged.some((m) => m.id === pv.id || m.title.toLowerCase() === pv.title.toLowerCase())) {
+            merged.push(pv);
+          }
+        }
+        for (const cl of communityListings) {
+          if (!merged.some((m) => m.id === cl.id || m.title.toLowerCase() === cl.title.toLowerCase())) {
+            merged.push(cl);
+          }
+        }
+        if (selectedType !== 'all') {
+          merged = merged.filter((l) => l.type_code === selectedType);
+        }
+        if (searchQuery && searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          merged = merged.filter(
+            (l) =>
+              l.title.toLowerCase().includes(q) ||
+              (l.description || '').toLowerCase().includes(q) ||
+              (l.area_name || '').toLowerCase().includes(q) ||
+              (l.business_name || '').toLowerCase().includes(q) ||
+              l.price_items?.some((p) => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
+          );
+        }
+        setListings(merged);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchListings();
+  }, [selectedType, selectedAreaId, searchQuery, fleetVersion, communityServicesVersion]);
+
+  // Handle saving items
+  const handleToggleSave = async (itemType: 'listing' | 'destination', itemId: string, title: string) => {
+    try {
+      const res = await toggleSaveItem(itemType, itemId);
+      showToast(res.saved ? `Saved "${title}" to your trip list!` : `Removed "${title}" from saved list.`);
+      const updatedSaved = await getSavedItems();
+      setSavedItems(updatedSaved);
+    } catch {
+      showToast('Please log in to save items to your trip.');
+    }
+  };
+
+  // Handle adding listing, destination or custom stop directly to trip
+  const handleAddStop = async (
+    stopType: 'listing' | 'destination' | 'custom',
+    id: string | undefined,
+    title: string,
+    notes?: string,
+    extra?: {
+      price_item_id?: string;
+      quantity?: number;
+      day_number?: number;
+      end_day_number?: number;
+      time_slot?: string;
+    }
+  ) => {
+    try {
+      const targetTripId = activeTripId || (trip ? trip.id : undefined);
+      let updatedTrip: Trip | null = null;
+      try {
+        updatedTrip = await addTripStop({
+          trip_id: targetTripId,
+          stop_type: stopType,
+          listing_id: stopType === 'listing' ? id : undefined,
+          destination_id: stopType === 'destination' ? id : undefined,
+          custom_title: title,
+          price_item_id: extra?.price_item_id,
+          quantity: extra?.quantity || 1,
+          day_number: extra?.day_number || 1,
+          end_day_number: extra?.end_day_number,
+          time_slot: extra?.time_slot,
+          notes: notes || `Added from Swat Explore`,
+        });
+      } catch (apiErr) {
+        // If adding listing stop failed because listing is local/mock, retry as custom stop
+        if (stopType === 'listing' && targetTripId) {
+          try {
+            updatedTrip = await addTripStop({
+              trip_id: targetTripId,
+              stop_type: 'custom',
+              custom_title: title,
+              quantity: extra?.quantity || 1,
+              day_number: extra?.day_number || 1,
+              end_day_number: extra?.end_day_number,
+              time_slot: extra?.time_slot,
+              notes: notes || `Added from Swat Explore`,
+            });
+          } catch {
+            // Local fallback below
+          }
+        }
+      }
+
+      // If backend failed or in prototype/offline mode, synthesize local stop
+      if (!updatedTrip) {
+        const baseTrip = currentViewedTrip || trip || allTrips[0];
+        if (baseTrip) {
+          const newStop: TripStop = {
+            id: `stop-${Date.now()}`,
+            trip_id: baseTrip.id,
+            day_number: extra?.day_number || 1,
+            end_day_number: extra?.end_day_number,
+            stop_order: (baseTrip.stops?.length || 0) + 1,
+            stop_type: stopType,
+            time_slot: extra?.time_slot || '09:00 AM',
+            custom_title: title,
+            notes: notes || `Added from Swat Explore`,
+            listing_id: id,
+            created_at: new Date().toISOString(),
+          };
+          updatedTrip = {
+            ...baseTrip,
+            stops: [...(baseTrip.stops || []), newStop],
+          };
+        }
+      }
+
+      if (updatedTrip) {
+        setTrip(updatedTrip);
+        setAllTrips((prev) => {
+          const idx = prev.findIndex((t) => t.id === updatedTrip!.id);
+          if (idx >= 0) {
+            const copy = [...prev];
+            copy[idx] = updatedTrip!;
+            return copy;
+          }
+          return [updatedTrip!, ...prev];
+        });
+        if (currentViewedTrip && currentViewedTrip.id === updatedTrip.id) {
+          setCurrentViewedTrip(updatedTrip);
+        }
+        showToast(`Added "${title}" to "${updatedTrip.title}"!`);
+        const bks = await fetchMyBookings().catch(() => []);
+        if (bks) setMyBookings(bks);
+      } else {
+        showToast('Please create or select an active trip first.');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Please log in to add stops to your trip plan.');
+    }
+  };
+
+  // Handle adding custom or service stop from TripManagerView
+  const handleAddCustomStopDetailed = async (stopData: {
+    stop_type: 'listing' | 'destination' | 'custom';
+    day_number: number;
+    end_day_number?: number;
+    time_slot?: string;
+    custom_title?: string;
+    notes?: string;
+    listing_id?: string;
+    destination_id?: string;
+    price_item_id?: string;
+    quantity?: number;
+  }) => {
+    try {
+      const targetTripId = currentViewedTrip?.id || activeTripId || (trip ? trip.id : undefined);
+      let updatedTrip: Trip | null = null;
+      try {
+        updatedTrip = await addTripStop({
+          trip_id: targetTripId,
+          stop_type: stopData.stop_type,
+          day_number: stopData.day_number,
+          end_day_number: stopData.end_day_number,
+          time_slot: stopData.time_slot,
+          custom_title: stopData.custom_title,
+          notes: stopData.notes,
+          listing_id: stopData.listing_id,
+          destination_id: stopData.destination_id,
+          price_item_id: stopData.price_item_id,
+          quantity: stopData.quantity || 1,
+        });
+      } catch (err) {
+        // If adding listing stop failed (e.g. 404 listing not found for local provider fleet), retry as custom stop
+        if (stopData.stop_type === 'listing' && stopData.custom_title && targetTripId) {
+          try {
+            updatedTrip = await addTripStop({
+              trip_id: targetTripId,
+              stop_type: 'custom',
+              day_number: stopData.day_number,
+              end_day_number: stopData.end_day_number,
+              time_slot: stopData.time_slot,
+              custom_title: stopData.custom_title,
+              notes: stopData.notes,
+              quantity: stopData.quantity || 1,
+            });
+          } catch {
+            // Local fallback below
+          }
+        }
+      }
+
+      // If backend was not reached or offline prototype
+      if (!updatedTrip) {
+        const baseTrip = currentViewedTrip || trip || allTrips[0];
+        if (baseTrip) {
+          const newStop: TripStop = {
+            id: `stop-${Date.now()}`,
+            trip_id: baseTrip.id,
+            day_number: stopData.day_number,
+            end_day_number: stopData.end_day_number,
+            stop_order: (baseTrip.stops?.length || 0) + 1,
+            stop_type: stopData.stop_type,
+            time_slot: stopData.time_slot || '09:00 AM',
+            custom_title: stopData.custom_title,
+            notes: stopData.notes,
+            listing_id: stopData.listing_id,
+            created_at: new Date().toISOString(),
+          };
+          updatedTrip = {
+            ...baseTrip,
+            stops: [...(baseTrip.stops || []), newStop],
+          };
+        }
+      }
+
+      if (updatedTrip) {
+        setTrip(updatedTrip);
+        setAllTrips((prev) => {
+          const idx = prev.findIndex((t) => t.id === updatedTrip!.id);
+          if (idx >= 0) {
+            const copy = [...prev];
+            copy[idx] = updatedTrip!;
+            return copy;
+          }
+          return [updatedTrip!, ...prev];
+        });
+        if (currentViewedTrip && currentViewedTrip.id === updatedTrip.id) {
+          setCurrentViewedTrip(updatedTrip);
+        }
+        const bks = await fetchMyBookings().catch(() => []);
+        if (bks) setMyBookings(bks);
+
+        // Sync transport hire stop to transport provider ride order queue
+        if (
+          (stopData.custom_title && (stopData.custom_title.includes('🚗') || stopData.custom_title.includes('SWT-'))) ||
+          (stopData.notes && (stopData.notes.includes('Vehicle Hire') || stopData.notes.includes('Plate:')))
+        ) {
+          try {
+            const plateMatch = (stopData.custom_title || '').match(/SWT-[0-9A-Z]+/i) || (stopData.notes || '').match(/SWT-[0-9A-Z]+/i);
+            const regRef = plateMatch ? plateMatch[0].toUpperCase() : 'SWT-8080';
+            const stored = JSON.parse(localStorage.getItem('swat_ride_orders') || '[]');
+            const publishedTransport = getPublishedTransportListingItems();
+            const matchedListing = publishedTransport.find(
+              (l) => l.id === stopData.listing_id || (l.details?.registration_no && l.details.registration_no.toUpperCase() === regRef)
+            );
+            if (!stored.some((o: any) => o.reference === regRef)) {
+              stored.unshift({
+                id: `ride-${Date.now()}`,
+                reference: regRef,
+                tourist: user?.full_name || 'Tourist Passenger',
+                touristEmail: user?.email || 'tourist@swat.pk',
+                item: stopData.custom_title?.replace('🚗', '').trim() || `Vehicle Hire (${regRef})`,
+                dates: `Day ${stopData.day_number} • ${stopData.time_slot || '09:00 AM'}`,
+                amount: 'Rs 12,000',
+                rawAmount: 12000,
+                status: 'requested',
+                notes: stopData.notes,
+                providerId: matchedListing?.business_id,
+                providerName: matchedListing?.business_name,
+                business_id: matchedListing?.business_id,
+                business_name: matchedListing?.business_name,
+                regNumber: regRef,
+                listing_id: stopData.listing_id || matchedListing?.id,
+              });
+              localStorage.setItem('swat_ride_orders', JSON.stringify(stored));
+              window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: stored }));
+            }
+          } catch {}
+        }
+
+        showToast(`Added to Day ${stopData.day_number}!`);
+      } else {
+        showToast('Please select or create a trip first.');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to add stop to trip.');
+      throw err;
+    }
+  };
+
+  // Active trip days list for 1-tap fast additions (Less Input, More Output)
+  const activeTripDaysList = useMemo(() => {
+    const maxDay = Math.max(3, ...(activeTrip?.stops || []).map((s) => s.end_day_number || s.day_number));
+    return Array.from({ length: maxDay }, (_, i) => i + 1);
+  }, [activeTrip]);
+
+  const handleQuickAddListingToDay = async (l: ListingItem, dayNumber: number) => {
+    if (l.type_code === 'hotel') {
+      setSelectedHotelId(l.id);
+      setHotelModalListing(l);
+      showToast(`Selected ${l.title} for Day ${dayNumber} • Select room to confirm`);
+      return;
+    }
+    await handleAddCustomStopDetailed({
+      stop_type: 'listing',
+      listing_id: l.id,
+      day_number: dayNumber,
+      time_slot: '10:00 AM',
+      custom_title: l.title,
+      price_item_id: l.price_items?.[0]?.id,
+    });
+  };
+
+  // Handle adding intercity transport to trip
+  const handleAddIntercityTransportToTrip = async (schedule: TransportSchedule) => {
+    try {
+      await handleAddCustomStopDetailed({
+        stop_type: 'custom',
+        day_number: 1,
+        time_slot: schedule.departure_time,
+        custom_title: `🚌 ${schedule.operator_name} (${schedule.vehicle_title}): ${schedule.origin_city} ➔ ${schedule.destination_city}`,
+        notes: `Ticket Fare: PKR ${schedule.ticket_price_pkr.toLocaleString()} | Journey: ${schedule.duration_text} via ${schedule.via_highway}. Departure: ${schedule.departure_time} from ${schedule.departure_terminal}. Helpline: ${schedule.operator_phone}`,
+      });
+      showToast(`Added ${schedule.operator_name} (${schedule.origin_city} ➔ ${schedule.destination_city}) to your trip plan!`);
+    } catch {
+      showToast('Please log in to add stops to your trip plan.');
+    }
+  };
+
+  // Handle removing stop
+  const handleRemoveStop = async (stopId: string) => {
+    try {
+      const updated = await removeTripStop(stopId);
+      setTrip(updated);
+      showToast('Stop removed from itinerary.');
+    } catch {
+      showToast('Could not remove stop.');
+    }
+  };
+
+  // Handle tourist withdrawing a pending booking request
+  const handleWithdrawBooking = async (bookingId: string) => {
+    try {
+      let updated: Booking | null = null;
+      try {
+        updated = await withdrawBooking(bookingId);
+      } catch (apiErr) {
+        console.warn('Backend withdrawBooking skipped or failed (local/guest/mock booking):', apiErr);
+      }
+      setMyBookings((prev) =>
+        prev.map((b) => {
+          const matches =
+            b.id === bookingId ||
+            b.reference === bookingId ||
+            (b as any).booking_reference === bookingId ||
+            (b.reference && String(b.reference).toUpperCase() === String(bookingId).toUpperCase()) ||
+            ((b as any).booking_reference && String((b as any).booking_reference).toUpperCase() === String(bookingId).toUpperCase());
+          return matches
+            ? {
+                ...(updated || b),
+                status: 'cancelled',
+                cancellation_requested: false,
+                cancel_reason: 'Withdrawn by traveler',
+                cancelled_at: new Date().toISOString(),
+              }
+            : b;
+        })
+      );
+
+      // Persist in localStorage swat_local_bookings
+      try {
+        const raw = localStorage.getItem('swat_local_bookings');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const updatedList = list.map((b: any) => {
+            const matches =
+              b.id === bookingId ||
+              b.reference === bookingId ||
+              b.booking_reference === bookingId ||
+              (b.reference && String(b.reference).toUpperCase() === String(bookingId).toUpperCase()) ||
+              (b.booking_reference && String(b.booking_reference).toUpperCase() === String(bookingId).toUpperCase());
+            return matches
+              ? {
+                  ...b,
+                  status: 'cancelled',
+                  cancellation_requested: false,
+                  cancel_reason: 'Withdrawn by traveler',
+                  cancelled_at: new Date().toISOString(),
+                }
+              : b;
+          });
+          localStorage.setItem('swat_local_bookings', JSON.stringify(updatedList));
+          window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedList }));
+        }
+      } catch {}
+
+      try {
+        const refreshedTrip = await getMyTrip().catch(() => null);
+        if (refreshedTrip) setTrip(refreshedTrip);
+      } catch {}
+      showToast('Booking request withdrawn (Free cancellation).');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to withdraw booking');
+    }
+  };
+
+  // Handle tourist cancelling a booking: submits cancellation request to host to accept
+  const handleCancelBooking = async (bookingId: string, reason?: string, note?: string) => {
+    try {
+      let updated: Booking | null = null;
+      try {
+        updated = await requestBookingCancellation(bookingId, reason, note);
+      } catch (apiErr) {
+        console.warn('Backend requestBookingCancellation fallback (local/mock):', apiErr);
+      }
+
+      const cancellationPayload = {
+        status: 'cancellation_requested' as const,
+        cancellation_requested: true,
+        cancelled_by: 'tourist_requested',
+        cancel_reason: reason || 'Cancellation requested by traveler',
+        cancelled_at: new Date().toISOString(),
+      };
+
+      setMyBookings((prev) =>
+        prev.map((b) =>
+          b.id === bookingId || b.reference === bookingId
+            ? { ...(updated || b), ...cancellationPayload }
+            : b
+        )
+      );
+
+      // Persist in localStorage swat_local_bookings
+      try {
+        const raw = localStorage.getItem('swat_local_bookings');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const updatedList = list.map((b: any) =>
+            b.id === bookingId || b.reference === bookingId
+              ? { ...b, ...cancellationPayload }
+              : b
+          );
+          localStorage.setItem('swat_local_bookings', JSON.stringify(updatedList));
+          window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: updatedList }));
+        }
+      } catch {}
+
+      // Persist in localStorage swat_ride_orders (for 4x4 transport)
+      try {
+        const rawRide = localStorage.getItem('swat_ride_orders');
+        if (rawRide) {
+          const orders = JSON.parse(rawRide);
+          const updatedOrders = orders.map((o: any) =>
+            o.id === bookingId || o.reference === bookingId
+              ? { ...o, status: 'cancellation_requested', cancellation_requested: true, cancel_reason: reason }
+              : o
+          );
+          localStorage.setItem('swat_ride_orders', JSON.stringify(updatedOrders));
+          window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: updatedOrders }));
+        }
+      } catch {}
+
+      try {
+        const refreshedTrip = await getMyTrip().catch(() => null);
+        if (refreshedTrip) setTrip(refreshedTrip);
+      } catch {}
+      showToast('Cancellation request submitted. It will appear on the hotel / guide / transport interface to accept.');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to submit cancellation request');
+    }
+  };
+
+  // Handle tourist removing a cancelled/declined booking from trip view
+  const handleRemoveBooking = async (bookingId: string) => {
+    try {
+      await removeBookingFromTrip(bookingId);
+      setMyBookings((prev) => prev.filter((b) => b.id !== bookingId));
+      const refreshedTrip = await getMyTrip();
+      setTrip(refreshedTrip);
+      showToast('Booking removed from trip view.');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to remove booking');
+    }
+  };
+
+  // Handle updating trip details (dates, travellers, title, notes, status)
+  const handleUpdateTrip = async (data: Partial<Trip>) => {
+    try {
+      const targetId = currentViewedTrip ? currentViewedTrip.id : (activeTripId || undefined);
+      let updated: Trip | null = null;
+      try {
+        updated = targetId ? await patchTripById(targetId, data) : await updateMyTrip(data);
+      } catch (apiErr) {
+        // Fallback for local/offline/demo trips
+        console.warn('Backend patchTripById skipped or failed, using local trip update:', apiErr);
+        const baseTrip = currentViewedTrip || trip;
+        if (baseTrip) {
+          updated = {
+            ...baseTrip,
+            ...data,
+            updated_at: new Date().toISOString(),
+          } as Trip;
+        }
+      }
+
+      if (updated) {
+        setTrip(updated);
+        if (currentViewedTrip && currentViewedTrip.id === updated.id) {
+          setCurrentViewedTrip(updated);
+        }
+        setAllTrips((prev) => prev.map((t) => (t.id === updated!.id ? updated! : t)));
+        // Also persist updated trip in swat_local_trips
+        try {
+          const raw = localStorage.getItem('swat_local_trips');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const updatedList = parsed.map((t: any) => t.id === updated!.id ? updated : t);
+              localStorage.setItem('swat_local_trips', JSON.stringify(updatedList));
+            }
+          }
+        } catch {}
+      }
+
+      const bks = await fetchMyBookings().catch(() => []);
+      if (bks && bks.length > 0) setMyBookings(bks);
+      showToast(data.status === 'completed' ? 'Trip marked as completed!' : 'Trip itinerary updated.');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update trip');
+    }
+  };
+
+  // Handle tourist deleting a trip
+  const handleDeleteTrip = async (tripId: string) => {
+    try {
+      // Attempt backend deletion; if offline, mock or local trip, continue gracefully
+      await deleteTrip(tripId).catch((err) => {
+        console.warn('Backend deleteTrip skipped or failed (local/mock trip):', err);
+      });
+      const remainingTrips = allTrips.filter((t) => t.id !== tripId);
+      setAllTrips(remainingTrips);
+
+      // Clean up localStorage 'swat_local_trips' so the deleted trip does not reappear on refresh
+      try {
+        const raw = localStorage.getItem('swat_local_trips');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const filtered = Array.isArray(parsed) ? parsed.filter((t: any) => t.id !== tripId) : [];
+          localStorage.setItem('swat_local_trips', JSON.stringify(filtered));
+        }
+      } catch (e) {
+        console.warn('Could not update swat_local_trips in localStorage:', e);
+      }
+
+      if (activeTripId === tripId) {
+        const nextActive = remainingTrips[0] || null;
+        setActiveTripId(nextActive ? nextActive.id : null);
+        setTrip(nextActive);
+        if (nextActive) {
+          localStorage.setItem('swat_active_trip_id', nextActive.id);
+        } else {
+          localStorage.removeItem('swat_active_trip_id');
+        }
+      } else if (trip && trip.id === tripId) {
+        const nextActive = remainingTrips[0] || null;
+        setTrip(nextActive);
+      }
+
+      if (currentViewedTrip && currentViewedTrip.id === tripId) {
+        setCurrentViewedTrip(null);
+      }
+      const bks = await fetchMyBookings().catch(() => []);
+      setMyBookings(bks);
+      showToast('Trip deleted successfully.');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete trip');
+    }
+  };
+
+  // Handle paying a single booking with SwatPay
+  const handlePaySingleBooking = async (bookingId: string) => {
+    const target = myBookings.find((b) => b.id === bookingId);
+    if (target) {
+      setSwatPayModal({ isOpen: true, booking: target });
+    } else {
+      showToast('Booking details not found');
+    }
+  };
+
+  // Handle SwatPay payment for entire trip (Rule 5 & SwatPay modal)
+  const handleOpenTripPayment = async () => {
+    const targetTrip = currentViewedTrip || trip;
+    if (targetTrip) {
+      setSwatPayModal({ isOpen: true, trip: targetTrip });
+    } else {
+      showToast('No active trip to pay for.');
+    }
+  };
+
+  // Backward compatible payment confirmation
+  const handleMockPayment = async () => {
+    await handleOpenTripPayment();
+  };
+
+  const renderAdvisoryFrame = (isSidebar: boolean = false) => {
+    const primaryAdv = (advisories && advisories.length > 0)
+      ? (advisories.find((a) => a.severity === 'danger') || advisories.find((a) => a.severity === 'warning') || advisories[0])
+      : null;
+
+    const isDanger = primaryAdv?.severity === 'danger';
+    const advTitle = primaryAdv?.title
+      ? (primaryAdv.title.toLowerCase().includes('advisory') ? primaryAdv.title : `Weather Advisory: ${primaryAdv.title}`)
+      : 'Weather Advisory: Light snow expected at Malam Jabba & Kalam';
+    const advMessage = primaryAdv?.message || 'Main arterial roads remain fully open. 4x4 vehicles advised for Mahodand Lake track. Rescue 1122 active.';
+
+    if (isSidebar) {
+      return (
+        <div
+          id="active-advisory-banner"
+          data-testid="active-advisory-banner"
+          style={{
+            backgroundColor: 'var(--card)',
+            background: isDanger
+              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.16) 0%, rgba(220, 38, 38, 0.08) 100%)'
+              : 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.08) 100%)',
+            border: isDanger ? '1.5px solid rgba(239, 68, 68, 0.6)' : '1.5px solid rgba(245, 158, 11, 0.65)',
+            borderLeft: isDanger ? '5px solid #DC2626' : '5px solid #D97706',
+            borderRadius: '16px',
+            padding: '14px 16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            boxShadow: isDanger
+              ? '0 6px 20px -2px rgba(220, 38, 38, 0.20), 0 2px 8px rgba(0, 0, 0, 0.04)'
+              : '0 6px 20px -2px rgba(217, 119, 6, 0.18), 0 2px 8px rgba(0, 0, 0, 0.04)',
+            backdropFilter: 'blur(8px)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Header pill & badge */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '3px 8px',
+                borderRadius: '9999px',
+                backgroundColor: isDanger ? '#DC2626' : '#D97706',
+                color: '#FFFFFF',
+                fontSize: '10px',
+                fontWeight: 800,
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
+              }}
+            >
+              <span
+                style={{
+                  width: '5px',
+                  height: '5px',
+                  borderRadius: '50%',
+                  backgroundColor: '#FFFFFF',
+                  boxShadow: '0 0 5px #FFFFFF',
+                }}
+              />
+              Live Advisory
+            </span>
+            <Tag variant={isDanger ? 'bad' : 'accent'}>Rescue 1122</Tag>
+          </div>
+
+          {/* Title & emblem */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '9px',
+                background: isDanger
+                  ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
+                  : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                boxShadow: isDanger
+                  ? '0 3px 8px rgba(220, 38, 38, 0.3)'
+                  : '0 3px 8px rgba(217, 119, 6, 0.3)',
+              }}
+            >
+              <AlertTriangle color="#FFFFFF" size={18} strokeWidth={2.4} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  color: 'var(--ink)',
+                  letterSpacing: '-0.01em',
+                  lineHeight: 1.35,
+                }}
+              >
+                {advTitle}
+              </div>
+            </div>
+          </div>
+
+          {/* Message */}
+          <div
+            style={{
+              fontSize: '11.5px',
+              color: 'var(--ink)',
+              opacity: 0.88,
+              lineHeight: 1.45,
+              fontWeight: 500,
+            }}
+          >
+            {advMessage}
+          </div>
+
+          {/* Action button */}
+          <button
+            type="button"
+            onClick={() => onTabChange?.('safety')}
+            id="btn-advisory-view-safety"
+            data-testid="btn-advisory-view-safety"
+            style={{
+              width: '100%',
+              padding: '8px 14px',
+              borderRadius: '9px',
+              backgroundColor: isDanger ? '#DC2626' : '#D97706',
+              color: '#FFFFFF',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              border: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>Safety & Roads Details</span>
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      );
+    }
+
+    // Full-width banner for non-home tabs
+    return (
+      <div
+        id="active-advisory-banner"
+        data-testid="active-advisory-banner"
+        style={{
+          backgroundColor: 'var(--card)',
+          background: isDanger
+            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, rgba(220, 38, 38, 0.12) 100%)'
+            : 'linear-gradient(135deg, rgba(245, 158, 11, 0.20) 0%, rgba(217, 119, 6, 0.13) 100%)',
+          border: isDanger ? '2px solid rgba(239, 68, 68, 0.7)' : '2px solid rgba(245, 158, 11, 0.75)',
+          borderLeft: isDanger ? '6px solid #DC2626' : '6px solid #D97706',
+          borderRadius: '14px',
+          padding: '14px 18px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          marginBottom: '16px',
+          boxShadow: isDanger
+            ? '0 6px 20px -2px rgba(220, 38, 38, 0.25), 0 2px 8px rgba(0, 0, 0, 0.05)'
+            : '0 6px 20px -2px rgba(217, 119, 6, 0.24), 0 2px 8px rgba(0, 0, 0, 0.05)',
+          backdropFilter: 'blur(8px)',
+          position: 'relative',
+          overflow: 'hidden',
+          flexWrap: 'wrap',
+        }}
+      >
+        {/* Left Content with Alert Emblem */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: '260px' }}>
+          <div
+            style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              background: isDanger
+                ? 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)'
+                : 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: isDanger
+                ? '0 4px 12px rgba(220, 38, 38, 0.35)'
+                : '0 4px 12px rgba(217, 119, 6, 0.35)',
+            }}
+          >
+            <AlertTriangle color="#FFFFFF" size={24} strokeWidth={2.4} />
+          </div>
+
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '2.5px 9px',
+                  borderRadius: '9999px',
+                  backgroundColor: isDanger ? '#DC2626' : '#D97706',
+                  color: '#FFFFFF',
+                  fontSize: '10.5px',
+                  fontWeight: 800,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
+                }}
+              >
+                <span
+                  style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: '0 0 6px #FFFFFF',
+                  }}
+                />
+                Live Alert • KP Tourism Authority
+              </span>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--mute)' }}>
+                Active Bulletin • Rescue 1122
+              </span>
+            </div>
+
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '1.02rem',
+                color: 'var(--ink)',
+                letterSpacing: '-0.015em',
+                lineHeight: 1.3,
+              }}
+            >
+              {advTitle}
+            </div>
+            <div
+              style={{
+                fontSize: '12.5px',
+                color: 'var(--ink)',
+                opacity: 0.88,
+                marginTop: '3px',
+                lineHeight: 1.45,
+                fontWeight: 500,
+              }}
+            >
+              {advMessage}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Action & Tag */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0, flexWrap: 'wrap' }}>
+          <Tag variant={isDanger ? 'bad' : 'accent'}>Advisory</Tag>
+          <button
+            type="button"
+            onClick={() => onTabChange?.('safety')}
+            id="btn-advisory-view-safety"
+            data-testid="btn-advisory-view-safety"
+            style={{
+              padding: '7px 14px',
+              borderRadius: '9px',
+              backgroundColor: isDanger ? '#DC2626' : '#D97706',
+              color: '#FFFFFF',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              border: 'none',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>Safety & Roads</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRoadStatusFrame = () => {
+    return (
+      <div
+        id="roads-highway-live-frame"
+        data-testid="roads-highway-live-frame"
+        style={{
+          backgroundColor: 'var(--card)',
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.16) 0%, rgba(5, 150, 105, 0.07) 100%)',
+          border: '1.5px solid rgba(16, 185, 129, 0.55)',
+          borderLeft: '5px solid #059669',
+          borderRadius: '16px',
+          padding: '14px 16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '11px',
+          boxShadow: '0 6px 20px -2px rgba(5, 150, 105, 0.16), 0 2px 8px rgba(0, 0, 0, 0.04)',
+          backdropFilter: 'blur(8px)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Header pill & badge */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '3px 8px',
+              borderRadius: '9999px',
+              backgroundColor: '#059669',
+              color: '#FFFFFF',
+              fontSize: '10px',
+              fontWeight: 800,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.15)',
+            }}
+          >
+            <span
+              style={{
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                backgroundColor: '#FFFFFF',
+                boxShadow: '0 0 5px #FFFFFF',
+              }}
+            />
+            Live Road Status
+          </span>
+          <Tag variant="ok">All Clear</Tag>
+        </div>
+
+        {/* Title & emblem */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <div
+            style={{
+              width: '34px',
+              height: '34px',
+              borderRadius: '9px',
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 3px 8px rgba(5, 150, 105, 0.3)',
+            }}
+          >
+            <Navigation color="#FFFFFF" size={18} strokeWidth={2.4} />
+          </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontWeight: 800,
+                fontSize: '13px',
+                color: 'var(--ink)',
+                letterSpacing: '-0.01em',
+                lineHeight: 1.35,
+              }}
+            >
+              Roads & Highway Live Status
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 500, marginTop: '1px' }}>
+              Swat Expressway M-16 & N-95 Corridor
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Key Arteries */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          {[
+            { road: 'M-16 Swat Expressway', status: 'Clear & Open', badge: 'All Traffic', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
+            { road: 'N-95 Mingora ↔ Bahrain', status: 'Clear & Open', badge: 'Normal Speed', color: '#059669', bg: 'rgba(16, 185, 129, 0.08)' },
+            { road: 'Bahrain ↔ Kalam Highway', status: 'Open', badge: 'Drive Safe', color: '#D97706', bg: 'rgba(245, 158, 11, 0.09)' },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '4px 8px',
+                borderRadius: '7px',
+                backgroundColor: item.bg,
+                border: `1px solid ${item.color}25`,
+                fontSize: '11px',
+                gap: '4px',
+              }}
+            >
+              <span style={{ fontWeight: 650, color: 'var(--ink)', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {item.road}
+              </span>
+              <span style={{ fontWeight: 700, color: item.color, fontSize: '10.5px', flexShrink: 0 }}>
+                {item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Action button matching Advisory button */}
+        <button
+          type="button"
+          onClick={() => onTabChange?.('safety')}
+          id="btn-roads-view-details"
+          data-testid="btn-roads-view-details"
+          style={{
+            width: '100%',
+            padding: '8px 14px',
+            borderRadius: '9px',
+            backgroundColor: '#059669',
+            color: '#FFFFFF',
+            fontSize: '11.5px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            border: 'none',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <span>Safety & Highway Updates</span>
+          <ChevronRight size={13} />
+        </button>
+      </div>
+    );
+  };
+
+  const renderWeekendWeatherCard = () => {
+    const valleyWeatherReports = [
+      {
+        valley: 'Kalam Alpine',
+        temp: '12°C',
+        icon: '⛅',
+        condition: 'Partly Sunny',
+        road: 'Main Road Clear',
+        roadOk: true,
+        query: 'Kalam',
+      },
+      {
+        valley: 'Malam Jabba',
+        temp: '7°C',
+        icon: '❄️',
+        condition: 'Snow Season & Skiing',
+        road: 'Chains required at peak',
+        roadOk: true,
+        query: 'Malam Jabba',
+      },
+      {
+        valley: 'Bahrain & Trout',
+        temp: '16°C',
+        icon: '☀️',
+        condition: 'Clear & Mild',
+        road: 'Direct Riverway Open',
+        roadOk: true,
+        query: 'Bahrain',
+      },
+      {
+        valley: 'Mahodand & Lakes',
+        temp: '6°C',
+        icon: '🏔️',
+        condition: 'Glacial Breeze',
+        road: '4x4 Jeeps Operating',
+        roadOk: true,
+        query: 'Mahodand',
+      },
+    ];
+
+    return (
+      <div
+        id="live-swat-weather-road-pulse"
+        data-testid="live-swat-weather-road-pulse"
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '16px',
+          border: '1px solid rgba(27, 79, 114, 0.12)',
+          boxShadow: '0 4px 20px rgba(18, 50, 74, 0.06)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '12px 14px',
+            background: 'linear-gradient(135deg, rgba(27, 79, 114, 0.05) 0%, rgba(16, 185, 129, 0.08) 100%)',
+            borderBottom: '1px solid rgba(27, 79, 114, 0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <div
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '7px',
+                  background: 'var(--pri)',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '13px',
+                }}
+              >
+                🌤️
+              </div>
+              <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--ink)' }}>
+                This Weekend in Swat
+              </h4>
+            </div>
+
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: '#059669',
+                backgroundColor: '#ECFDF5',
+                padding: '2.5px 7px',
+                borderRadius: '5px',
+                border: '1px solid #A7F3D0',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+              M-16 Open
+            </span>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--mute)' }}>
+            Real-time mountain weather, snow & road clearance
+          </div>
+        </div>
+
+        {/* Micro Weather Cards Stack */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            padding: '12px 14px',
+          }}
+        >
+          {valleyWeatherReports.map((c) => (
+            <button
+              key={c.valley}
+              type="button"
+              onClick={() => setSearchQuery(c.query)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '9px 11px',
+                borderRadius: '10px',
+                border: '1px solid rgba(27, 79, 114, 0.1)',
+                backgroundColor: '#F8FAFD',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.15s ease',
+                width: '100%',
+              }}
+              title={`Click to filter ${c.valley} offerings`}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                <span style={{ fontSize: '11.5px', fontWeight: 750, color: 'var(--ink)' }}>
+                  {c.valley}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--pri)' }}>
+                  {c.icon} {c.temp}
+                </span>
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--mute)', marginTop: '2px' }}>
+                {c.condition}
+              </div>
+              <div
+                style={{
+                  marginTop: '4px',
+                  fontSize: '10px',
+                  fontWeight: 650,
+                  color: c.roadOk ? '#047857' : '#D97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}
+              >
+                <span>🚗 {c.road}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderModernTravelIntelligence = () => (
+    <div
+      className="modern-travel-intelligence-column"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        minWidth: 0,
+        width: '100%',
+      }}
+    >
+      <h2
+        style={{
+          fontSize: '1.25rem',
+          fontWeight: 800,
+          color: 'var(--ink)',
+          margin: '0 0 2px 0',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Live Travel Intelligence
+      </h2>
+
+      {/* CARD 1: Real-time Road Conditions */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          border: '1px solid #E2E8F0',
+          padding: '14px 16px',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              backgroundColor: '#F1F5F9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#475569',
+              flexShrink: 0,
+            }}
+          >
+            <CompassIcon size={20} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+              Real-time Road Conditions
+            </h3>
+            <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
+              Live verified road status &amp; travel advisories across Swat.
+            </p>
+          </div>
+        </div>
+
+        {/* Dynamic Artery Status Indicators */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '7px', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
+          {(roadStatuses && roadStatuses.length > 0 ? roadStatuses : [
+            { id: 'def-1', road_name: 'M-16 Swat Expressway', status: 'open', vehicle_note: 'Clear & Open' } as RoadStatus,
+            { id: 'def-2', road_name: 'N-95 Mingora ↔ Kalam Highway', status: 'open', vehicle_note: 'All Vehicles Permitted' } as RoadStatus,
+            { id: 'def-3', road_name: 'Malam Jabba Hill Road', status: 'open', vehicle_note: 'All Standard Vehicles' } as RoadStatus,
+            { id: 'def-4', road_name: 'Kalam ↔ Mahodand Lake Track', status: 'limited', vehicle_note: 'High-Clearance 4x4' } as RoadStatus,
+          ]).map((road) => {
+            const isClosed = road.status === 'closed';
+            const isLimited = road.status === 'limited';
+            const badgeBg = isClosed ? '#FEF2F2' : isLimited ? '#EFF6FF' : '#ECFDF5';
+            const badgeColor = isClosed ? '#DC2626' : isLimited ? '#028AC8' : '#007A55';
+            const note = road.vehicle_note || (isClosed ? 'Closed' : isLimited ? '4x4 Required' : 'Clear & Open');
+
+            return (
+              <div
+                key={road.id || road.road_name}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '11px',
+                  gap: '8px',
+                }}
+              >
+                <span
+                  style={{
+                    color: '#475569',
+                    fontWeight: 600,
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                  title={road.road_name}
+                >
+                  {road.road_name}:
+                </span>
+                <span
+                  style={{
+                    color: badgeColor,
+                    fontWeight: 800,
+                    backgroundColor: badgeBg,
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    fontSize: '10.5px',
+                  }}
+                >
+                  {note}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* CARD 2: Official Weather Advisory Alerts */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          border: '1px solid #E2E8F0',
+          padding: '14px 16px',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              backgroundColor: '#FEF3C7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#D97706',
+              flexShrink: 0,
+            }}
+          >
+            <AlertTriangle size={20} />
+          </div>
+          <div>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+              Official Weather Advisory Alerts
+            </h3>
+            <p style={{ fontSize: '11px', color: '#64748B', margin: '2px 0 0 0' }}>
+              Official weather advisory and alerts.
+            </p>
+          </div>
+        </div>
+
+        {/* Official Advisory Detail from Proof of Concept */}
+        <div style={{ paddingTop: '6px', borderTop: '1px solid #F1F5F9', fontSize: '11px', color: '#475569', lineHeight: 1.45 }}>
+          <span style={{ fontWeight: 800, color: '#D97706' }}>District Notice #24: </span>
+          Clear conditions across Mingora. Fresh snowfall at Malam Jabba peak (2,800m). SCOM 4G active in Kalam valley.
+        </div>
+        <div style={{ fontSize: '10px', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <PhoneCall size={10} color="#059669" />
+          <span>Swat Emergency Control: <strong>0946-9240400</strong></span>
+        </div>
+      </div>
+
+      {/* CARD 3: Upcoming Weekend Forecasts */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          border: '1px solid #E2E8F0',
+          padding: '14px 16px',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
+            Upcoming Weekend Forecasts
+          </h3>
+          <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#007A55', backgroundColor: '#ECFDF5', padding: '2px 7px', borderRadius: '4px' }}>
+            Live Feeds
+          </span>
+        </div>
+
+        {/* 5-Day Strip (Mon, Tue, Wed, Sat, Sun matching concept) with temperatures */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: '6px',
+            textAlign: 'center',
+            paddingTop: '4px',
+          }}
+        >
+          {[
+            { day: 'Mon', temp: '18°C', icon: <Sun size={17} color="#F59E0B" /> },
+            { day: 'Tue', temp: '15°C', icon: <CloudSun size={17} color="#028AC8" /> },
+            { day: 'Wed', temp: '14°C', icon: <CloudSun size={17} color="#028AC8" /> },
+            { day: 'Sat', temp: '7°C', icon: <CloudRain size={17} color="#64748B" /> },
+            { day: 'Sun', temp: '3°C', icon: <CloudRain size={17} color="#64748B" /> },
+          ].map((w, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '5px 2px',
+                borderRadius: '6px',
+                backgroundColor: '#F8FAFD',
+              }}
+            >
+              <span style={{ fontSize: '11px', fontWeight: 650, color: '#64748B' }}>
+                {w.day}
+              </span>
+              <div>{w.icon}</div>
+              <span style={{ fontSize: '11px', fontWeight: 750, color: '#0F172A' }}>
+                {w.temp}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick valley highlights */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748B', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
+          <span>Kalam: <strong>12°C</strong></span>
+          <span>Malam Jabba: <strong>7°C</strong></span>
+          <span>Bahrain: <strong>16°C</strong></span>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* Toast Feedback */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            backgroundColor: 'var(--ink)',
+            color: '#ffffff',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            boxShadow: '0 8px 24px rgba(18, 50, 74, 0.25)',
+            fontSize: 'var(--font-sm)',
+            fontWeight: 500,
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <Sparkles size={16} color="var(--acc)" />
+          {toastMessage}
+        </div>
+      )}
+
+      {/* Active Advisory Banner on non-home, non-trips, non-bookings tabs */}
+      {activeTab !== 'home' && activeTab !== 'trips' && activeTab !== 'bookings' && renderAdvisoryFrame(false)}
+
+      {/* ========================================================================= */}
+      {/* TAB 1: HOME */}
+      {/* ========================================================================= */}
+      {activeTab === 'home' && (
+        <>
+          {/* Interactive Landing Page View Switcher: Classic View vs Modern Portal V2 */}
+          <div
+            className="landing-version-switcher-bar"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#FFFFFF',
+              borderRadius: '12px',
+              border: '1px solid #E2E8F0',
+              padding: '6px 14px',
+              marginBottom: '10px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+              flexWrap: 'wrap',
+              gap: '8px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 750, color: '#0F172A', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <Sparkles size={13} color="#028AC8" />
+                <span>Landing Page Experience:</span>
+              </span>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  backgroundColor: '#F1F5F9',
+                  borderRadius: '8px',
+                  padding: '3px',
+                  gap: '4px',
+                }}
+              >
+                <button
+                  type="button"
+                  data-testid="btn-landing-classic"
+                  onClick={() => {
+                    setLandingVersion('classic');
+                    try { localStorage.setItem('swat_landing_version', 'classic'); } catch {}
+                  }}
+                  style={{
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: landingVersion === 'classic' ? 800 : 600,
+                    backgroundColor: landingVersion === 'classic' ? '#FFFFFF' : 'transparent',
+                    color: landingVersion === 'classic' ? '#028AC8' : '#64748B',
+                    boxShadow: landingVersion === 'classic' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Classic View (Original)
+                </button>
+                <button
+                  type="button"
+                  data-testid="btn-landing-modern"
+                  onClick={() => {
+                    setLandingVersion('modern');
+                    try { localStorage.setItem('swat_landing_version', 'modern'); } catch {}
+                  }}
+                  style={{
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '4px 12px',
+                    fontSize: '11.5px',
+                    fontWeight: landingVersion === 'modern' ? 800 : 600,
+                    backgroundColor: landingVersion === 'modern' ? '#028AC8' : 'transparent',
+                    color: landingVersion === 'modern' ? '#FFFFFF' : '#64748B',
+                    boxShadow: landingVersion === 'modern' ? '0 1px 3px rgba(2, 138, 200, 0.3)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  ✨ Modern Portal V2
+                </button>
+              </div>
+            </div>
+
+            <span style={{ fontSize: '11px', color: '#64748B' }}>
+              {landingVersion === 'classic'
+                ? 'Original intact classic landing page'
+                : 'New proof-of-concept modern portal layout'}
+            </span>
+          </div>
+
+          {landingVersion === 'modern' ? (
+            <TouristHomeModern
+              listings={listings}
+              destinations={effectiveDestinations}
+              onOpenHotelDetails={(hotel) => setHotelModalListing(hotel)}
+              onOpenRestaurantModal={(restaurant) => setRestaurantModalListing(restaurant)}
+              onOpenServiceModal={(srv) => setServiceModalListing(srv)}
+              onOpenMapModal={(item) => setMapModal({ open: true, ...item })}
+              onOpenWeatherModal={(dest) => setWeatherModal({ isOpen: true, destination: dest })}
+              onOpenAvailModal={(lid, title, items) => setAvailModal({ open: true, listingId: lid, listingTitle: title, priceItems: items })}
+              onOpenAuth={onOpenAuth}
+              onNavigateTab={onTabChange}
+              user={user}
+              roadStatuses={roadStatuses}
+              renderRoadStatusFrame={renderRoadStatusFrame}
+              renderAdvisoryFrame={renderAdvisoryFrame}
+              renderWeekendWeatherCard={renderWeekendWeatherCard}
+            />
+          ) : (
+            <div
+              className="classic-landing-page-root"
+              style={{
+                backgroundColor: '#FFFFFF',
+                width: '100%',
+                minHeight: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px',
+              }}
+            >
+              {/* Top Blue Banner on Tourist Home Screen with 3 Functional Buttons */}
+              <TourismAnimatedBanner
+            title="Swat Tourism Platform"
+            subtitle="Discover valleys, book stays, and explore safely"
+            headerAction={headerAction}
+            homeSearchTab={homeSearchTab}
+            onHomeSearchTabChange={setHomeSearchTab}
+          />
+
+          {/* Top Hero Split Layout: 80% Search Hub & Results / 20% Advisory & Weather Intelligence */}
+          <div className="tourist-home-hero-split">
+            {/* Left 80% Column: Search Frame + Direct Search Result Lists */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, maxWidth: '100%', width: '100%' }}>
+              {/* Hero Search & Transport Hub Frame */}
+              <div
+                className="hero-search-hub-frame"
+                style={{
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid rgba(47, 127, 193, 0.16)',
+                  borderRadius: '10px',
+                  padding: '7px 12px',
+                  boxShadow: '0 2px 10px -3px rgba(18, 50, 74, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '5px',
+                  minWidth: 0,
+                }}
+              >
+            {/* Visually hidden heading for screen readers & semantic outline */}
+            <h2
+              style={{
+                position: 'absolute',
+                width: '1px',
+                height: '1px',
+                padding: 0,
+                margin: '-1px',
+                overflow: 'hidden',
+                clip: 'rect(0, 0, 0, 0)',
+                whiteSpace: 'nowrap',
+                border: 0,
+              }}
+            >
+              Explore the Beauty of Swat Valley
+            </h2>
+
+            {/* TAB CONTENT 1: VALLEYS & PLACES SEARCH */}
+            {homeSearchTab === 'valleys' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                {/* Unified Search Input Container */}
+                <div
+                  className="hero-search-input-box"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: 'var(--bg)',
+                    border: '1.5px solid var(--line)',
+                    borderRadius: '8px',
+                    padding: '2px 5px 2px 10px',
+                    transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
+                    gap: '6px',
+                    minHeight: '32px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: '1 1 180px', minWidth: 0 }}>
+                    <Search size={14} color="var(--pri)" style={{ flexShrink: 0 }} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search Kalam, Mahodand, Malam Jabba, stays, or guides..."
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        outline: 'none',
+                        backgroundColor: 'transparent',
+                        color: 'var(--ink)',
+                        fontSize: '12px',
+                        padding: '3px 4px',
+                        minWidth: 0,
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--mute)',
+                          cursor: 'pointer',
+                          padding: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                        title="Clear search"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexShrink: 0 }}>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        /* search query filters view directly */
+                      }}
+                      style={{
+                        borderRadius: '6px',
+                        padding: '3px 12px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        height: '26px',
+                      }}
+                    >
+                      Search
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowAITripModal(true)}
+                      data-testid="btn-home-ai-trip"
+                      style={{
+                        display: 'none',
+                        borderRadius: '6px',
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        backgroundColor: '#F0FDF4',
+                        color: '#065F46',
+                        border: '1.5px solid #86EFAC',
+                        flexShrink: 0,
+                        alignItems: 'center',
+                        gap: '3px',
+                        height: '26px',
+                      }}
+                    >
+                      <Sparkles size={12} color="#059669" />
+                      <span>AI Trip</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Popular Valleys Quick-Pills Filter Bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: 650, color: 'var(--mute)', flexShrink: 0 }}>
+                    Quick Valleys:
+                  </span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '5px',
+                      overflowX: 'auto',
+                      padding: '1px 0',
+                      scrollbarWidth: 'none',
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
+                    {[
+                      { id: '', label: 'All Valleys', icon: '🌲' },
+                      { id: 'Kalam', label: 'Kalam', icon: '🏔️' },
+                      { id: 'Malam Jabba', label: 'Malam Jabba', icon: '⛷️' },
+                      { id: 'Bahrain', label: 'Bahrain', icon: '🌊' },
+                      { id: 'Mahodand', label: 'Mahodand', icon: '💎' },
+                      { id: 'Ushu', label: 'Ushu', icon: '🌲' },
+                      { id: 'Marghuzar', label: 'White Palace', icon: '🏰' },
+                      { id: 'Miandam', label: 'Miandam', icon: '🍎' },
+                    ].map((valley) => {
+                      const isSelected = valley.id === '' ? !searchQuery : searchQuery.toLowerCase().includes(valley.id.toLowerCase());
+                      return (
+                        <button
+                          key={valley.id}
+                          type="button"
+                          onClick={() => setSearchQuery(valley.id)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3.5px',
+                            padding: '2px 8px',
+                            borderRadius: '9999px',
+                            fontSize: '10.5px',
+                            fontWeight: isSelected ? 700 : 500,
+                            backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
+                            color: isSelected ? '#FFFFFF' : 'var(--ink)',
+                            border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
+                            boxShadow: isSelected ? '0 1px 4px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s ease',
+                            height: '23px',
+                          }}
+                        >
+                          <span style={{ fontSize: '10.5px' }}>{valley.icon}</span>
+                          <span>{valley.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '10.5px',
+                        fontWeight: 650,
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Reset ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Itinerary Presets: Curated 1-Tap Journeys */}
+                <div className="itinerary-presets-container" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10.5px', fontWeight: 650, color: 'var(--ink)', flexShrink: 0 }}>
+                    <Sparkles size={11} color="var(--pri)" />
+                    <span>Presets:</span>
+                  </span>
+
+                  <div
+                    className="itinerary-presets-row"
+                    style={{
+                      display: 'flex',
+                      gap: '5px',
+                      overflowX: 'auto',
+                      padding: '1px 0',
+                      scrollbarWidth: 'none',
+                      flex: 1,
+                      minWidth: 0,
+                    }}
+                  >
+                    {[
+                      {
+                        id: 'family-3d',
+                        label: 'Family Friendly',
+                        duration: '3 Days',
+                        icon: '👨‍👩‍👧',
+                        tag: 'Mingora • Miandam • Kalam',
+                        query: 'Kalam, Miandam, Marghuzar',
+                        category: 'all',
+                      },
+                      {
+                        id: 'ski-snow',
+                        label: 'Ski & Adventure',
+                        duration: '2 Days',
+                        icon: '⛷️',
+                        tag: 'Malam Jabba Slopes',
+                        query: 'Malam Jabba',
+                        category: 'all',
+                      },
+                      {
+                        id: 'honeymoon',
+                        label: 'Honeymoon & Luxury',
+                        duration: '4 Days',
+                        icon: '💍',
+                        tag: 'White Palace • Kalam',
+                        query: 'Marghuzar, Kalam',
+                        category: 'all',
+                      },
+                      {
+                        id: 'backpacker-trek',
+                        label: 'Backpacker & Trek',
+                        duration: '4 Days',
+                        icon: '🎒',
+                        tag: 'Ushu • Mahodand Lake',
+                        query: 'Mahodand, Ushu',
+                        category: 'lake',
+                      },
+                    ].map((preset) => {
+                      const isActive = activeItineraryPreset === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            if (isActive) {
+                              setActiveItineraryPreset(null);
+                              setSearchQuery('');
+                              setDestCategoryFilter('all');
+                            } else {
+                              setActiveItineraryPreset(preset.id);
+                              setSearchQuery(preset.query);
+                              setDestCategoryFilter(preset.category);
+                            }
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            backgroundColor: isActive ? 'var(--pri)' : '#FFFFFF',
+                            color: isActive ? '#FFFFFF' : 'var(--ink)',
+                            border: isActive ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
+                            boxShadow: isActive ? '0 1px 4px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s ease',
+                            flexShrink: 0,
+                            height: '24px',
+                          }}
+                          title={preset.tag}
+                        >
+                          <span style={{ fontSize: '11px' }}>{preset.icon}</span>
+                          <span style={{ fontSize: '10.5px', fontWeight: 650 }}>{preset.label}</span>
+                          <span
+                            style={{
+                              fontSize: '9px',
+                              fontWeight: 700,
+                              padding: '1px 4px',
+                              borderRadius: '4px',
+                              backgroundColor: isActive ? 'rgba(255,255,255,0.22)' : 'rgba(47, 127, 193, 0.1)',
+                              color: isActive ? '#FFFFFF' : 'var(--pri)',
+                            }}
+                          >
+                            {preset.duration}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {activeItineraryPreset && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveItineraryPreset(null);
+                        setSearchQuery('');
+                        setDestCategoryFilter('all');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '10.5px',
+                        fontWeight: 650,
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Reset ✕
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT 2: EXPLORE (STAY, DINING, GUIDE) SEARCH */}
+            {homeSearchTab === 'explore' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} data-testid="home-explore-content">
+                {/* Unified Search Input Container */}
+                <div
+                  className="hero-search-input-box"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    backgroundColor: 'var(--bg)',
+                    border: '1.5px solid var(--line)',
+                    borderRadius: '10px',
+                    padding: '3px 6px 3px 12px',
+                    transition: 'border-color 0.18s ease, box-shadow 0.18s ease',
+                    gap: '8px',
+                    minHeight: '38px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 180px', minWidth: 0 }}>
+                    <Search size={16} color="var(--pri)" style={{ flexShrink: 0 }} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search verified stays, riverside dining, trout cafes, guides..."
+                      data-testid="input-home-explore-search"
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        outline: 'none',
+                        backgroundColor: 'transparent',
+                        color: 'var(--ink)',
+                        fontSize: '13px',
+                        padding: '6px 4px',
+                        minWidth: 0,
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--mute)',
+                          cursor: 'pointer',
+                          padding: '3px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                        title="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto', flexShrink: 0 }}>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        /* filters active view directly */
+                      }}
+                      style={{
+                        borderRadius: '8px',
+                        padding: '5px 14px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        height: '30px',
+                      }}
+                    >
+                      Search
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowAITripModal(true)}
+                      style={{
+                        display: 'none',
+                        borderRadius: '8px',
+                        padding: '5px 10px',
+                        fontSize: '11.5px',
+                        fontWeight: 700,
+                        backgroundColor: '#F0FDF4',
+                        color: '#065F46',
+                        border: '1.5px solid #86EFAC',
+                        flexShrink: 0,
+                        alignItems: 'center',
+                        gap: '4px',
+                        height: '30px',
+                      }}
+                    >
+                      <Sparkles size={13} color="#059669" />
+                      <span>AI Trip</span>
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Explore Category Filter Bar */}
+                <div
+                  className="explore-category-filter-bar"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    flexWrap: 'wrap',
+                    width: '100%',
+                  }}
+                >
+                  <span
+                    className="explore-filter-label"
+                    style={{ fontSize: '11px', fontWeight: 650, color: 'var(--mute)', flexShrink: 0 }}
+                  >
+                    Filter Offerings:
+                  </span>
+                  <div
+                    className="explore-filter-pills-row"
+                    style={{
+                      display: 'flex',
+                      gap: '5px',
+                      flexWrap: 'wrap',
+                      padding: '2px 0',
+                      flex: 1,
+                      minWidth: 0,
+                      alignItems: 'center',
+                    }}
+                  >
+                    {[
+                      { id: 'all', label: 'All', icon: '✨' },
+                      { id: 'hotel', label: 'Stays', icon: '🏨' },
+                      { id: 'restaurant', label: 'Dining', icon: '🍽️' },
+                      { id: 'transport', label: '4x4 Jeeps', icon: '🚙' },
+                      { id: 'guide', label: 'Guides', icon: '🧭' },
+                      { id: 'activity', label: 'Adventures', icon: '⛷️' },
+                      { id: 'shop', label: 'Crafts', icon: '🛍️' },
+                    ].map((cat) => {
+                      const isSelected = homeExploreFilter === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            setHomeExploreFilter(cat.id as any);
+                            setSelectedType(cat.id === 'all' ? 'all' : cat.id);
+                          }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '3.5px',
+                            padding: '0 8px',
+                            borderRadius: '9999px',
+                            fontSize: '10.5px',
+                            fontWeight: isSelected ? 700 : 550,
+                            backgroundColor: isSelected ? 'var(--pri)' : 'var(--card)',
+                            color: isSelected ? 'var(--cta-text)' : 'var(--ink)',
+                            border: isSelected ? '1px solid var(--pri)' : '1px solid var(--line)',
+                            boxShadow: isSelected ? '0 2px 6px rgba(47, 127, 193, 0.2)' : '0 1px 2px rgba(0,0,0,0.02)',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            transition: 'all 0.15s ease',
+                            height: '24px',
+                            boxSizing: 'border-box',
+                            lineHeight: 1,
+                            flexShrink: 0,
+                          }}
+                        >
+                          <span style={{ fontSize: '11px', lineHeight: 1 }}>{cat.icon}</span>
+                          <span style={{ lineHeight: 1 }}>{cat.label}</span>
+                        </button>
+                      );
+                    })}
+                    {homeExploreFilter !== 'all' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHomeExploreFilter('all');
+                          setSelectedType('all');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--pri)',
+                          fontSize: '11px',
+                          fontWeight: 650,
+                          cursor: 'pointer',
+                          padding: '0 4px',
+                          flexShrink: 0,
+                          height: '24px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        Reset ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT 3: TRANSPORT & BUSES PLANNER (Local 4x4 Mountain Jeeps & Intercity Coaches) */}
+            {homeSearchTab === 'transport' && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px',
+                  backgroundColor: '#F8FAFD',
+                  borderRadius: '12px',
+                  padding: '14px 16px',
+                  border: '1px solid rgba(27, 79, 114, 0.1)',
+                }}
+                data-testid="home-intercity-transport-banner"
+              >
+                {/* 2-Option Mutually Exclusive Selector: Local Transport vs Intercity Bus Transport */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '4px',
+                    backgroundColor: 'rgba(27, 79, 114, 0.08)',
+                    borderRadius: '12px',
+                    width: 'fit-content',
+                    maxWidth: '100%',
+                  }}
+                  data-testid="home-transport-mode-selector"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setTransportMode('local')}
+                    id="btn-home-mode-local"
+                    data-testid="btn-home-mode-local"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '8px 18px',
+                      borderRadius: '9px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: transportMode === 'local' ? 750 : 600,
+                      backgroundColor: transportMode === 'local' ? 'var(--pri)' : 'transparent',
+                      color: transportMode === 'local' ? '#FFFFFF' : 'var(--ink)',
+                      boxShadow: transportMode === 'local' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <Car size={16} />
+                    <span>Local Transport</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransportMode('intercity')}
+                    id="btn-home-mode-intercity"
+                    data-testid="btn-home-mode-intercity"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '7px',
+                      padding: '8px 18px',
+                      borderRadius: '9px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: transportMode === 'intercity' ? 750 : 600,
+                      backgroundColor: transportMode === 'intercity' ? 'var(--pri)' : 'transparent',
+                      color: transportMode === 'intercity' ? '#FFFFFF' : 'var(--ink)',
+                      boxShadow: transportMode === 'intercity' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    <Bus size={16} />
+                    <span>Intercity Bus Transport</span>
+                  </button>
+                </div>
+
+                {/* OPTION 1: Local Transport Header, Search Input & Quick Filter Pills */}
+                {transportMode === 'local' && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Car size={18} color="var(--pri)" />
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 750, color: 'var(--ink)' }}>
+                            Local 4x4 Mountain Jeeps, Toyota Prado &amp; Adventure Rentals
+                          </h4>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: 'var(--mute)' }}>
+                            Verified local mountain cruisers with snow chains &amp; expert drivers for Kalam, Mahodand &amp; Malam Jabba
+                          </p>
+                        </div>
+                      </div>
+                      <Tag variant="ok" style={{ fontWeight: 700, fontSize: '11px' }}>
+                        🌲 High-Altitude Certified
+                      </Tag>
+                    </div>
+
+                    {/* Local Transport Search Input Box */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: '#FFFFFF',
+                        border: '1.5px solid var(--line)',
+                        borderRadius: '12px',
+                        padding: '4px 6px 4px 14px',
+                        gap: '10px',
+                        minHeight: '46px',
+                      }}
+                    >
+                      <Search size={18} color="var(--pri)" style={{ flexShrink: 0 }} />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search 4x4 jeeps, Toyota Prado, Land Cruiser, Kalam, Malam Jabba, drivers..."
+                        data-testid="input-home-local-transport-search"
+                        style={{
+                          flex: 1,
+                          border: 'none',
+                          outline: 'none',
+                          backgroundColor: 'transparent',
+                          color: 'var(--ink)',
+                          fontSize: '14px',
+                          padding: '8px 4px',
+                        }}
+                      />
+                      {searchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchQuery('')}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: 'var(--mute)',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Clear search"
+                        >
+                          <X size={15} />
+                        </button>
+                      )}
+                      <Button
+                        variant="primary"
+                        onClick={() => {
+                          const el = document.getElementById('home-local-transport-section');
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }}
+                        style={{
+                          borderRadius: '9px',
+                          padding: '8px 20px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        Search Jeeps
+                      </Button>
+                    </div>
+
+                    {/* Quick Vehicle & Valley Filter Bar */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--mute)' }}>
+                        <span style={{ fontWeight: 600 }}>Quick Vehicle &amp; Valley Filter:</span>
+                        {searchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--pri)',
+                              fontSize: '11px',
+                              fontWeight: 650,
+                              cursor: 'pointer',
+                              padding: 0,
+                            }}
+                          >
+                            Reset to All 4x4 Rides
+                          </button>
+                        )}
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '7px',
+                          overflowX: 'auto',
+                          padding: '2px 2px 4px 2px',
+                          scrollbarWidth: 'none',
+                        }}
+                      >
+                        {[
+                          { id: '', label: 'All 4x4 Rides', icon: '🚙' },
+                          { id: 'Prado', label: 'Toyota Prado TX', icon: '🚙' },
+                          { id: 'Cruiser', label: 'Land Cruiser Snow 4x4', icon: '❄️' },
+                          { id: 'Kalam', label: 'Kalam & Mahodand', icon: '🏔️' },
+                          { id: 'Malam Jabba', label: 'Malam Jabba Ski Pass', icon: '⛷️' },
+                          { id: 'Mingora', label: 'Mingora Hub', icon: '🏙️' },
+                        ].map((f) => {
+                          const isSelected = f.id === '' ? !searchQuery : searchQuery.toLowerCase().includes(f.id.toLowerCase());
+                          return (
+                            <button
+                              key={f.id}
+                              type="button"
+                              onClick={() => setSearchQuery(f.id)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px',
+                                padding: '6px 12px',
+                                borderRadius: '9999px',
+                                fontSize: '11.5px',
+                                fontWeight: isSelected ? 700 : 550,
+                                backgroundColor: isSelected ? 'var(--pri)' : '#FFFFFF',
+                                color: isSelected ? '#FFFFFF' : 'var(--ink)',
+                                border: isSelected ? '1px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.16)',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <span>{f.icon}</span>
+                              <span>{f.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* OPTION 2: Intercity Bus Transport Header, Origin City Selector & Corridor Info */}
+                {transportMode === 'intercity' && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Bus size={18} color="var(--pri)" />
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '13px', fontWeight: 750, color: 'var(--ink)' }}>
+                            Intercity Coaches &amp; Cabs from <strong>Islamabad, Lahore, Peshawar &amp; Karachi</strong> via M-16 Expressway
+                          </h4>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--mute)' }}>
+                            Daily scheduled VIP departures via Swat Motorway tunnel corridor
+                          </p>
+                        </div>
+                      </div>
+                      <Tag variant="accent" style={{ fontWeight: 700, fontSize: '11px' }}>
+                        M-16 Direct Expressway
+                      </Tag>
+                    </div>
+
+                    {/* Origin City Picker */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 650, color: 'var(--ink)' }}>
+                        Select Your Origin Departure City:
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: '8px' }}>
+                        {[
+                          { city: 'Islamabad / Rawalpindi', badge: '3.5 hrs (245 km)', icon: '🏛️' },
+                          { city: 'Lahore', badge: '6.5 hrs (510 km)', icon: '🏰' },
+                          { city: 'Peshawar', badge: '2.5 hrs (180 km)', icon: '🕌' },
+                        ].map((opt) => {
+                          const isSelected = homeOriginCity === opt.city;
+                          return (
+                            <button
+                              key={opt.city}
+                              type="button"
+                              onClick={() => setHomeOriginCity(opt.city as any)}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-start',
+                                padding: '8px 10px',
+                                borderRadius: '9px',
+                                border: isSelected ? '1.5px solid var(--pri)' : '1px solid rgba(27, 79, 114, 0.14)',
+                                backgroundColor: isSelected ? '#FFFFFF' : '#F1F5F9',
+                                boxShadow: isSelected ? '0 2px 8px rgba(47, 127, 193, 0.15)' : 'none',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                transition: 'all 0.15s ease',
+                              }}
+                            >
+                              <span style={{ fontSize: '12px', fontWeight: 700, color: isSelected ? 'var(--pri)' : 'var(--ink)' }}>
+                                {opt.icon} {opt.city.split(' / ')[0]}
+                              </span>
+                              <span style={{ fontSize: '10.5px', color: 'var(--mute)', marginTop: '2px' }}>
+                                {opt.badge}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Destination & Fleet Overview */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor: '#FFFFFF',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(27, 79, 114, 0.08)',
+                        fontSize: '11.5px',
+                        color: 'var(--ink)',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                      }}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                        <MapPin size={13} color="var(--pri)" />
+                        Destination: <strong>Mingora / Swat Motorway Bypass Terminal</strong>
+                      </span>
+                      <span style={{ color: 'var(--ok)', fontWeight: 650 }}>
+                        Daewoo, Faisal Movers &amp; VIP Fleets Active
+                      </span>
+                    </div>
+
+
+                  </>
+                )}
+              </div>
+            )}
+            </div>
+
+            {/* Transport Spotlight (Local 4x4 Jeeps + Intercity Bus Timings) when Transport tab is active on Home */}
+            {homeSearchTab === 'transport' && (
+              <div
+                id="home-transport-schedules-section"
+                style={{ display: 'flex', flexDirection: 'column', gap: '26px', marginTop: '0px' }}
+                data-testid="home-transport-showcase"
+              >
+                {/* 1. Local Valley 4x4 Mountain Jeeps & Rentals Showcase Grid (when transportMode === 'local') */}
+                {transportMode === 'local' && (
+                  <div id="home-local-transport-section">
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '16px',
+                        flexWrap: 'wrap',
+                        gap: '10px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div
+                          style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '10px',
+                            background: 'linear-gradient(135deg, #134B73, #028AC8)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#ffffff',
+                            boxShadow: '0 4px 12px rgba(19, 75, 115, 0.25)',
+                          }}
+                        >
+                          <Car size={20} />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>
+                            Local Valley 4x4 Mountain Jeeps &amp; Rentals
+                          </h3>
+                          <p style={{ fontSize: '13px', color: 'var(--mute)', margin: '2px 0 0 0' }}>
+                            Verified local 4x4 mountain cruisers, safari jeeps, and drivers for Kalam, Mahodand &amp; Malam Jabba
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '5px 12px',
+                          borderRadius: '20px',
+                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                          border: '1px solid rgba(52, 211, 153, 0.3)',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          color: '#059669',
+                        }}
+                      >
+                        <ShieldCheck size={14} color="#059669" />
+                        <span>Snow Chain &amp; Alpine Certified</span>
+                      </span>
+                    </div>
+
+                    {/* Grid of Local Transport Listings */}
+                    <div className="grid-cards" data-testid="grid-local-transport-home">
+                      {(() => {
+                        const localVehicles = listings.filter((l) => {
+                          const matchesType = l.type_code === 'transport';
+                          const q = searchQuery.toLowerCase().trim();
+                          const matchesSearch =
+                            !q ||
+                            l.title.toLowerCase().includes(q) ||
+                            (l.description || '').toLowerCase().includes(q) ||
+                            (l.area_name || '').toLowerCase().includes(q) ||
+                            (l.business_name || '').toLowerCase().includes(q) ||
+                            (l.details?.vehicle_model || '').toLowerCase().includes(q) ||
+                            l.price_items?.some((p) => p.name.toLowerCase().includes(q));
+                          return matchesType && matchesSearch;
+                        });
+
+                        if (localVehicles.length === 0) {
+                          return (
+                            <div
+                              style={{
+                                gridColumn: '1 / -1',
+                                padding: '36px 20px',
+                                textAlign: 'center',
+                                backgroundColor: 'var(--card)',
+                                borderRadius: '16px',
+                                border: '1px dashed var(--line)',
+                              }}
+                            >
+                              <Car size={32} color="var(--pri)" style={{ margin: '0 auto 10px auto', opacity: 0.8 }} />
+                              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
+                                No 4x4 mountain jeeps found for "{searchQuery}"
+                              </h4>
+                              <p style={{ margin: '6px 0 14px 0', fontSize: '13px', color: 'var(--mute)' }}>
+                                Try searching for "Kalam", "Prado", or "Cruiser" to view available mountain fleets.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                style={{
+                                  padding: '6px 14px',
+                                  borderRadius: '8px',
+                                  backgroundColor: 'var(--pri)',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  fontSize: '12px',
+                                  fontWeight: 650,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                View All 4x4 Jeeps
+                              </button>
+                            </div>
+                          );
+                        }
+
+                        return localVehicles.map((l) => {
+                          const priceItem = l.price_items?.[0];
+                          const priceLine = priceItem ? `Rs ${priceItem.price.toLocaleString()} / day` : 'Custom fare';
+                          const availabilityText = l.details?.vehicle_model || '4x4 Mountain Jeep';
+
+                          let listingCover = l.media?.[0]?.url || '/images/places/kalam.jpg';
+                          if (!l.media?.[0]?.url) {
+                            if (l.title.toLowerCase().includes('cruiser') || l.title.toLowerCase().includes('snow')) {
+                              listingCover = '/images/places/malam_jabba.jpg';
+                            } else if (l.title.toLowerCase().includes('prado')) {
+                              listingCover = '/images/places/kalam.jpg';
+                            }
+                          }
+
+                          return (
+                            <ListingCard
+                              key={`home-transport-${l.id}`}
+                              id={l.id}
+                              title={l.title}
+                              type="transport"
+                              areaName={l.area_name || 'Swat Valley'}
+                              isVerified={l.is_verified || l.status === 'published'}
+                              coverImage={listingCover}
+                              tags={[
+                                l.details?.vehicle_model || '4x4 Jeep',
+                                l.details?.seating_capacity ? `${l.details.seating_capacity} Seats` : '4-5 Seats',
+                                'With Driver',
+                              ]}
+                              priceLine={priceLine}
+                              availabilityText={availabilityText}
+                              phone={l.phone || '+92 946 711640'}
+                              addressText={l.address_text || `${l.area_name || 'Mingora'}, Swat`}
+                              isCommunityService={Boolean(l.details?.is_community_service)}
+                              onInstantReserve={() => setServiceModalListing(l)}
+                              onViewMap={() => {
+                                setMapModal({
+                                  open: true,
+                                  title: l.title,
+                                  lat: l.latitude || 34.77,
+                                  lng: l.longitude || 72.36,
+                                  areaName: l.area_name || 'Mingora, Swat',
+                                  categoryOrType: 'Transport & 4x4',
+                                  originCity: 'Islamabad / Rawalpindi',
+                                  destinationCity: l.area_name || 'Swat',
+                                });
+                              }}
+                              onCheckDates={() =>
+                                setAvailModal({
+                                  open: true,
+                                  listingId: l.id,
+                                  listingTitle: l.title,
+                                  priceItems: l.price_items || [],
+                                })
+                              }
+                              onAddToTrip={() => {
+                                handleToggleSave('listing', l.id, l.title);
+                                handleAddStop('listing', l.id, l.title, `Local 4x4 Transport: ${l.title}`, {
+                                  price_item_id: priceItem?.id,
+                                  quantity: 1,
+                                });
+                              }}
+                            />
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Intercity Coaches Bus Schedules & Timings (when transportMode === 'intercity') */}
+                {transportMode === 'intercity' && (
+                  <div id="home-intercity-schedules-section">
+                    <IntercityTransportExplorer
+                      key={`home-intercity-${homeOriginCity}`}
+                      initialOrigin={homeOriginCity}
+                      onAddToTrip={handleAddIntercityTransportToTrip}
+                      onViewRouteMap={(origin, dest, sch) =>
+                        setMapModal({
+                          open: true,
+                          title: `${origin.split(' / ')[0]} ➔ ${dest}`,
+                          lat: 34.7717,
+                          lng: 72.3602,
+                          originCity: origin,
+                          destinationCity: dest,
+                          durationText: sch?.duration_text,
+                          viaHighway: sch?.via_highway,
+                        })
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Explore Spotlight (Stays, Dining, Guides) when Explore tab is active in Home Frame */}
+            {homeSearchTab === 'explore' && (
+              <div style={{ marginTop: '0px' }} data-testid="home-explore-showcase">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '10px',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '7px',
+                        background: 'linear-gradient(135deg, #174C72, #047857)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#ffffff',
+                        boxShadow: '0 2px 8px rgba(23, 76, 114, 0.2)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <CompassIcon size={16} />
+                    </div>
+                    <div>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.25 }}>
+                        {homeExploreFilter === 'hotel'
+                          ? 'Verified Stays & Mountain Resorts'
+                          : homeExploreFilter === 'restaurant'
+                          ? 'Riverside Dining & Fresh Trout Cafes'
+                          : homeExploreFilter === 'transport'
+                          ? 'Local 4x4 Mountain Jeeps & Rentals'
+                          : homeExploreFilter === 'guide'
+                          ? 'Certified Local Guides & Trackers'
+                          : homeExploreFilter === 'activity'
+                          ? 'Adventure Sports & Activities'
+                          : homeExploreFilter === 'shop'
+                          ? 'Swat Handicrafts, Shawls & Souvenirs'
+                          : 'Explore Swat: Stays, Dining & Guides'}
+                      </h3>
+                      <p style={{ fontSize: '11.5px', color: 'var(--mute)', margin: '1px 0 0 0' }}>
+                        Certified hospitality, family dining, and authorized local tour operators
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Swat Valley / Area Filter placed neatly alongside the title */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <select
+                      value={selectedAreaId}
+                      onChange={(e) => setSelectedAreaId(e.target.value)}
+                      className="home-explore-area-select"
+                      data-testid="select-explore-stays-area"
+                      style={{
+                        padding: '5px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--line)',
+                        backgroundColor: 'var(--card)',
+                        color: 'var(--ink)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        boxShadow: '0 1px 3px rgba(18, 50, 74, 0.04)',
+                        height: '32px',
+                        minWidth: '160px',
+                        maxWidth: '220px',
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="">All Valleys &amp; Areas</option>
+                      {areas.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} ({a.area_type})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+              {/* Grid of Verified Listings (Arranged in 2 Columns on Web, Single Column on Phone) */}
+              <div
+                className="grid-cards home-explore-grid-2col"
+                data-testid="grid-home-explore-2col"
+                style={{
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+                {(() => {
+                  const filtered = listings.filter((l) => {
+                    const matchesCategory =
+                      homeExploreFilter === 'all'
+                        ? (l.type_code === 'hotel' || l.type_code === 'restaurant' || l.type_code === 'guide' || l.type_code === 'activity' || l.type_code === 'transport' || l.type_code === 'shop')
+                        : l.type_code === homeExploreFilter;
+                    const matchesSearch =
+                      !searchQuery ||
+                      l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (l.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (l.area_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      l.price_items?.some((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+                    const matchesArea = !selectedAreaId || l.area_id === selectedAreaId;
+                    return matchesCategory && matchesSearch && matchesArea;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div
+                        style={{
+                          gridColumn: '1 / -1',
+                          padding: '36px 20px',
+                          textAlign: 'center',
+                          backgroundColor: 'var(--card)',
+                          borderRadius: '16px',
+                          border: '1px dashed var(--line)',
+                        }}
+                      >
+                        <CompassIcon size={32} color="var(--pri)" style={{ margin: '0 auto 10px auto', opacity: 0.8 }} />
+                        <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
+                          No verified listings found
+                        </h4>
+                        <p style={{ margin: '4px 0 14px 0', fontSize: '12.5px', color: 'var(--mute)' }}>
+                          Try clearing the search query or exploring all categories.
+                        </p>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSelectedAreaId('');
+                            setHomeExploreFilter('all');
+                          }}
+                        >
+                          Show All Stays &amp; Dining
+                        </Button>
+                      </div>
+                    );
+                  }
+
+                  const displayed = searchQuery || selectedAreaId || homeExploreFilter !== 'all'
+                    ? filtered
+                    : filtered.slice(0, 6);
+                  return displayed.map((l) => {
+                    const primaryPriceItem = l.price_items?.[0];
+                    const priceLine = primaryPriceItem
+                      ? `PKR ${primaryPriceItem.price.toLocaleString()} / ${primaryPriceItem.unit.replace('per_', '')}`
+                      : 'Contact for rates';
+                    const availabilityText = primaryPriceItem?.is_bookable
+                      ? `${primaryPriceItem.default_units || 5} units free`
+                      : 'Open daily';
+
+                    let listingCover = (l as any).cover_image_url || l.media?.[0]?.url || '';
+                    if (!listingCover) {
+                      const titleLower = (l.title || '').toLowerCase();
+                      if (l.type_code === 'hotel') {
+                        if (titleLower.includes('rock city')) {
+                          listingCover = '/images/rock_city_resort.jpg';
+                        } else if (titleLower.includes('hotel one')) {
+                          listingCover = '/images/hotel_one_swat.jpg';
+                        } else if (titleLower.includes('greens')) {
+                          listingCover = '/images/greens_hotel_kalam.jpg';
+                        } else if (titleLower.includes('zen luxus')) {
+                          listingCover = '/images/zen_luxus_kalam.jpg';
+                        } else if (titleLower.includes('kuwait') || titleLower.includes('bahrain')) {
+                          listingCover = '/images/kuwait_continental_bahrain.jpg';
+                        } else if (titleLower.includes('white palace') || titleLower.includes('marghazar')) {
+                          listingCover = '/images/white_palace_marghuzar.jpg';
+                        } else if (titleLower.includes('malam jabba') || titleLower.includes('pc ')) {
+                          listingCover = '/images/malam_jabba.jpg';
+                        } else if (titleLower.includes('miandam')) {
+                          listingCover = '/images/miandam_valley.jpg';
+                        } else if (titleLower.includes('apartment') || titleLower.includes('flat')) {
+                          listingCover = '/images/deluxe_room.jpg';
+                        } else if (titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('guest') || titleLower.includes('walnut')) {
+                          listingCover = '/images/kalam_lodge.jpg';
+                        } else {
+                          listingCover = '/images/swat_serena.jpg';
+                        }
+                      } else if (l.type_code === 'restaurant') {
+                        listingCover = '/images/trout_restaurant.jpg';
+                      } else if (l.type_code === 'guide') {
+                        listingCover = '/images/ushu_forest.jpg';
+                      } else if (l.type_code === 'shop') {
+                        listingCover = '/images/places/bahrain.jpg';
+                      } else if (l.type_code === 'transport') {
+                        listingCover = '/images/places/kalam.jpg';
+                      } else {
+                        listingCover = '/images/malam_jabba.jpg';
+                      }
+                    }
+
+                    const accType = l.details?.accommodation_type || (
+                      l.title.toLowerCase().includes('resort')
+                        ? 'Resort'
+                        : (l.title.toLowerCase().includes('apartment') || l.title.toLowerCase().includes('flat'))
+                        ? 'Apartment'
+                        : (l.title.toLowerCase().includes('guest') || l.title.toLowerCase().includes('inn') || l.title.toLowerCase().includes('lodge'))
+                        ? 'Guesthouse'
+                        : 'Hotel'
+                    );
+
+                    return (
+                      <ListingCard
+                        key={`home-explore-${l.id}`}
+                        id={l.id}
+                        title={l.title}
+                        type={l.type_code}
+                        accommodationType={l.type_code === 'hotel' ? accType : undefined}
+                        areaName={l.area_name || 'Swat Valley'}
+                        isVerified={l.is_verified || l.status === 'published'}
+                        coverImage={listingCover}
+                        tags={l.tags?.map((t) => t.label) || l.price_items?.slice(0, 3).map((p) => p.name) || []}
+                        priceLine={priceLine}
+                        availabilityText={availabilityText}
+                        phone={l.phone || '+92 946 711640'}
+                        addressText={l.address_text || `${l.area_name || 'Saidu Sharif'}, Swat`}
+                        isCommunityService={Boolean(l.details?.is_community_service)}
+                        onInstantReserve={
+                          (l.type_code === 'transport' || l.type_code === 'guide' || l.type_code === 'activity' || l.details?.is_community_service)
+                            ? () => setServiceModalListing(l)
+                            : undefined
+                        }
+                        onViewHotelDetails={l.type_code === 'hotel' ? () => setHotelModalListing(l) : undefined}
+                        onViewMenu={l.type_code === 'restaurant' ? () => setRestaurantModalListing(l) : undefined}
+                        onViewMap={() => {
+                          const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
+                          const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
+                          setMapModal({
+                            open: true,
+                            title: l.title,
+                            lat,
+                            lng,
+                            areaName: l.area_name || 'Swat',
+                            categoryOrType: l.type_label || (l.type_code === 'hotel' ? 'Hotel & Stay' : l.type_code === 'restaurant' ? 'Dining & Restaurant' : l.type_code === 'activity' ? 'Adventure & Ski' : 'Explore Listing'),
+                            originCity: 'Islamabad / Rawalpindi',
+                            destinationCity: l.area_name || l.title,
+                          });
+                        }}
+                        onViewWeather={
+                          l.type_code === 'hotel'
+                            ? () => {
+                                const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
+                                const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
+                                setWeatherModal({
+                                  isOpen: true,
+                                  destination: {
+                                    id: l.id,
+                                    name: l.title,
+                                    area_name: l.area_name || 'Swat Valley',
+                                    latitude: lat,
+                                    longitude: lng,
+                                    category: 'Hotel',
+                                    area_id: l.area_id || '',
+                                    is_approved: true,
+                                    is_featured: false,
+                                    created_at: new Date().toISOString(),
+                                  },
+                                });
+                              }
+                            : undefined
+                        }
+                        onCheckDates={
+                          l.type_code === 'hotel'
+                            ? () =>
+                                setAvailModal({
+                                  open: true,
+                                  listingId: l.id,
+                                  listingTitle: l.title,
+                                  priceItems: l.price_items || [],
+                                })
+                            : undefined
+                        }
+                        onAddToTrip={() => {
+                          if (!user && onOpenAuth) {
+                            showToast('Please sign in or register to save to your trip itinerary.');
+                            onOpenAuth('login', 'tourist');
+                            return;
+                          }
+                          handleToggleSave('listing', l.id, l.title);
+                          handleAddStop('listing', l.id, l.title);
+                        }}
+                      />
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* Popular Destinations Cards - Only display when on Valleys & Places tab */}
+          {homeSearchTab === 'valleys' && (
+            <div className="dest-section-container" style={{ marginTop: '0px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+            {/* Properly Framed White Header Box for Popular Destinations */}
+            <div
+              className="dest-header-frame"
+              style={{
+                backgroundColor: 'var(--card)',
+                border: '1px solid rgba(47, 127, 193, 0.16)',
+                borderRadius: '10px',
+                padding: '6px 12px',
+                boxShadow: '0 2px 10px -3px rgba(18, 50, 74, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02)',
+                display: 'none',
+                flexDirection: 'column',
+                gap: '5px',
+                marginBottom: '8px',
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                  <div
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '5px',
+                      background: 'linear-gradient(135deg, var(--pri), #047857)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      boxShadow: '0 1px 4px rgba(16, 185, 129, 0.2)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Mountain size={13} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
+                    <h3 className="dest-header-title" style={{ fontSize: '13px', fontWeight: 700, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em', lineHeight: 1.2 }}>
+                      Popular Destinations
+                    </h3>
+                    <p className="dest-header-subtitle" style={{ fontSize: '10.5px', color: 'var(--mute)', margin: 0, lineHeight: 1.2 }}>
+                      Alpine valleys, turquoise glacial lakes &amp; peaks
+                    </p>
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    padding: '2px 7px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(47, 127, 193, 0.08)',
+                    color: 'var(--pri)',
+                    fontSize: '10.5px',
+                    fontWeight: 650,
+                    border: '1px solid rgba(47, 127, 193, 0.22)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Sparkles size={10} />
+                  {effectiveDestinations.length} Approved Swat Spots
+                </span>
+              </div>
+
+              {/* Scenic Category Filter Chips */}
+              <div
+                className="scenic-category-chips-row"
+                style={{
+                  display: 'flex',
+                  gap: '5px',
+                  overflowX: 'auto',
+                  padding: '1px 0',
+                  scrollbarWidth: 'none',
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                }}
+              >
+                {[
+                  { id: 'all', label: 'All Sceneries', count: effectiveDestinations.length, icon: <Sparkles size={11} /> },
+                  { id: 'valley', label: 'Alpine Valleys', count: effectiveDestinations.filter((d) => d.category === 'valley').length || 3, icon: <Mountain size={11} /> },
+                  { id: 'lake', label: 'Glacial Lakes', count: effectiveDestinations.filter((d) => d.category === 'lake').length || 2, icon: <Waves size={11} /> },
+                  { id: 'ski', label: 'Ski & Adventure', count: effectiveDestinations.filter((d) => d.category === 'ski').length || 1, icon: <Sparkles size={11} /> },
+                  { id: 'forest', label: 'Cedar Forests', count: effectiveDestinations.filter((d) => d.category === 'forest').length || 1, icon: <Trees size={11} /> },
+                  { id: 'heritage', label: 'Royal Heritage', count: effectiveDestinations.filter((d) => d.category === 'heritage').length || 1, icon: <Landmark size={11} /> },
+                ].map((cat) => {
+                  const isActive = destCategoryFilter === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setDestCategoryFilter(cat.id)}
+                      data-testid={`dest-cat-btn-${cat.id}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 8px 2px 7px',
+                        borderRadius: '9999px',
+                        fontSize: '10.5px',
+                        fontWeight: isActive ? 650 : 500,
+                        background: isActive
+                          ? 'linear-gradient(135deg, var(--pri) 0%, #1e6296 100%)'
+                          : 'var(--card)',
+                        color: isActive ? 'var(--cta-text)' : 'var(--ink)',
+                        border: isActive
+                          ? '1px solid var(--pri)'
+                          : '1px solid var(--line)',
+                        boxShadow: isActive
+                          ? '0 2px 6px rgba(47, 127, 193, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+                          : '0 1px 2px rgba(18, 50, 74, 0.04)',
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
+                        flexShrink: 0,
+                        height: '24px',
+                        boxSizing: 'border-box',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.borderColor = 'rgba(47, 127, 193, 0.45)';
+                          e.currentTarget.style.backgroundColor = 'var(--soft)';
+                          e.currentTarget.style.color = 'var(--pri)';
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = '0 2px 6px rgba(47, 127, 193, 0.1)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.borderColor = 'var(--line)';
+                          e.currentTarget.style.backgroundColor = 'var(--card)';
+                          e.currentTarget.style.color = 'var(--ink)';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 1px 2px rgba(18, 50, 74, 0.04)';
+                        }
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          color: isActive ? 'var(--cta-text)' : 'var(--pri)',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {cat.icon}
+                      </span>
+                      <span>{cat.label}</span>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: '15px',
+                          height: '14px',
+                          padding: '0 4px',
+                          borderRadius: '8px',
+                          fontSize: '9.5px',
+                          fontWeight: 700,
+                          backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : 'var(--bg)',
+                          color: isActive ? 'var(--cta-text)' : 'var(--mute)',
+                          border: isActive ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid var(--line)',
+                          lineHeight: 1,
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        {cat.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Destinations Scenery Grid */}
+            <div
+              className="destinations-scenery-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(285px, 1fr))',
+                gap: '16px',
+                width: '100%',
+                maxWidth: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
+              }}
+            >
+              {(() => {
+                const filteredDestinations = effectiveDestinations.filter((d) => {
+                  const queryTokens = searchQuery ? searchQuery.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean) : [];
+                  const matchesSearch =
+                    queryTokens.length === 0 ||
+                    queryTokens.some((token) =>
+                      d.name.toLowerCase().includes(token) ||
+                      d.description?.toLowerCase().includes(token) ||
+                      (d.area_name && d.area_name.toLowerCase().includes(token))
+                    );
+                  const matchesCategory =
+                    destCategoryFilter === 'all' || d.category === destCategoryFilter;
+                  return matchesSearch && matchesCategory;
+                });
+
+                if (filteredDestinations.length === 0) {
+                  return (
+                    <div
+                      style={{
+                        gridColumn: '1 / -1',
+                        padding: '40px 20px',
+                        textAlign: 'center',
+                        backgroundColor: 'var(--surface)',
+                        borderRadius: '16px',
+                        border: '1px dashed var(--border)',
+                      }}
+                    >
+                      <Mountain size={36} color="var(--pri)" style={{ margin: '0 auto 12px auto', opacity: 0.8 }} />
+                      <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
+                        No destinations match "{searchQuery}"
+                      </h4>
+                      <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: 'var(--mute)' }}>
+                        Try searching for Kalam, Mahodand, Malam Jabba, or clear your filters to view all Swat spots.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery('');
+                          setDestCategoryFilter('all');
+                        }}
+                        style={{
+                          padding: '8px 18px',
+                          borderRadius: '8px',
+                          backgroundColor: 'var(--pri)',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          fontWeight: 700,
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Reset All Filters
+                      </button>
+                    </div>
+                  );
+                }
+
+                return filteredDestinations.map((dest, idx) => {
+                  // Metadata enrichment per destination
+                  const n = (dest.name || '').toLowerCase();
+                  let destImg = '/images/kalam_valley.jpg';
+                  let elevation = '2,000m / 6,560 ft';
+                  let highlight = 'Alpine Meadows & River Confluence';
+                  let categoryLabel = 'Alpine Valley';
+                  let CategoryIcon = Mountain;
+
+                  if (n.includes('mahodand')) {
+                    destImg = '/images/mahodand_lake.jpg';
+                    elevation = '2,865m / 9,400 ft';
+                    highlight = 'Glacial Waters & Trout Boating';
+                    categoryLabel = 'Glacial Lake';
+                    CategoryIcon = Waves;
+                  } else if (n.includes('kundol')) {
+                    destImg = '/images/kundol_lake.jpg';
+                    elevation = '2,950m / 9,680 ft';
+                    highlight = 'Turquoise Cirque & Wildflowers';
+                    categoryLabel = 'Glacial Lake';
+                    CategoryIcon = Waves;
+                  } else if (n.includes('malam jabba')) {
+                    destImg = '/images/malam_jabba.jpg';
+                    elevation = '2,804m / 9,200 ft';
+                    highlight = 'Chairlift, Ski Slopes & Zipline';
+                    categoryLabel = 'Ski & Adventure Resort';
+                    CategoryIcon = Sparkles;
+                  } else if (n.includes('ushu')) {
+                    destImg = '/images/ushu_forest.jpg';
+                    elevation = '2,300m / 7,550 ft';
+                    highlight = 'Ancient Cedars & Mt Falaksar';
+                    categoryLabel = 'Cedar Forest';
+                    CategoryIcon = Trees;
+                  } else if (n.includes('white palace') || n.includes('marghuzar')) {
+                    destImg = '/images/white_palace_marghuzar.jpg';
+                    elevation = '1,120m / 3,674 ft';
+                    highlight = '1940 Royal White Chiniot Palace';
+                    categoryLabel = 'Royal Heritage';
+                    CategoryIcon = Landmark;
+                  } else if (n.includes('bahrain')) {
+                    destImg = '/images/bahrain_swat.jpg';
+                    elevation = '1,400m / 4,593 ft';
+                    highlight = 'Roaring River Confluence & Bazaars';
+                    categoryLabel = 'Riverside Valley';
+                    CategoryIcon = Mountain;
+                  } else if (n.includes('miandam')) {
+                    destImg = '/images/miandam_valley.jpg';
+                    elevation = '1,800m / 5,900 ft';
+                    highlight = 'Terraced Slopes & Fruit Orchards';
+                    categoryLabel = 'Hill Retreat';
+                    CategoryIcon = Mountain;
+                  }
+
+                  return (
+                    <div
+                      key={`dest-card-${dest.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${idx}`}
+                      className="dest-scenery-card"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        borderRadius: '16px',
+                        border: '1px solid var(--line)',
+                        backgroundColor: 'var(--card)',
+                        overflow: 'hidden',
+                        boxShadow: '0 4px 18px -2px rgba(18, 50, 74, 0.05)',
+                        transition: 'transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease',
+                        width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-3px)';
+                        e.currentTarget.style.borderColor = 'rgba(47, 127, 193, 0.45)';
+                        e.currentTarget.style.boxShadow = '0 8px 24px -2px rgba(47, 127, 193, 0.14)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.borderColor = 'var(--line)';
+                        e.currentTarget.style.boxShadow = '0 4px 18px -2px rgba(18, 50, 74, 0.05)';
+                      }}
+                    >
+                      {/* Photo Header */}
+                      <div
+                        className="dest-card-photo"
+                        style={{
+                          height: '210px',
+                          backgroundImage: `url(${destImg})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          position: 'relative',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {/* Gradient Backdrop for contrast */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            inset: 0,
+                            background:
+                              'linear-gradient(to top, rgba(15, 23, 42, 0.88) 0%, rgba(15, 23, 42, 0.25) 50%, rgba(0,0,0,0.1) 100%)',
+                          }}
+                        />
+
+                        {/* Top Pills Row */}
+                        <div
+                          className="dest-card-top-pills-row"
+                          style={{
+                            position: 'absolute',
+                            top: '12px',
+                            left: '12px',
+                            right: '12px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            zIndex: 2,
+                            flexWrap: 'wrap',
+                            gap: '6px',
+                          }}
+                        >
+                          <span
+                            className="dest-card-top-pill"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '5px 11px',
+                              borderRadius: '20px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.94)',
+                              backdropFilter: 'blur(8px)',
+                              color: '#0f172a',
+                              fontWeight: 650,
+                              fontSize: '11px',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            }}
+                          >
+                            <CategoryIcon size={12} color="var(--pri)" />
+                            {categoryLabel}
+                          </span>
+
+                          <span
+                            className="dest-card-top-pill"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '5px 11px',
+                              borderRadius: '20px',
+                              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                              backdropFilter: 'blur(8px)',
+                              color: '#f8fafc',
+                              fontWeight: 600,
+                              fontSize: '11px',
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                            }}
+                          >
+                            <CompassIcon size={12} color="#38bdf8" />
+                            {elevation}
+                          </span>
+                        </div>
+
+                        {/* Bottom Highlight Banner over Image */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            bottom: '12px',
+                            left: '12px',
+                            right: '12px',
+                            zIndex: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(16, 185, 129, 0.9)',
+                              backdropFilter: 'blur(6px)',
+                              color: '#ffffff',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              letterSpacing: '0.01em',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.25)',
+                            }}
+                          >
+                            <Sparkles size={11} />
+                            {highlight}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Body */}
+                      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                          <div>
+                            <h4
+                              style={{
+                                fontWeight: 700,
+                                fontSize: '1.15rem',
+                                color: 'var(--ink)',
+                                margin: 0,
+                                letterSpacing: '-0.01em',
+                              }}
+                            >
+                              {dest.name}
+                            </h4>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                              <div
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '12px',
+                                  color: 'var(--pri)',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <MapPin size={13} />
+                                <span>{dest.area_name || 'Swat Valley'}</span>
+                              </div>
+                              <span
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  color: '#D97706',
+                                  backgroundColor: 'rgba(245, 158, 11, 0.09)',
+                                  padding: '1px 6px',
+                                  borderRadius: '10px',
+                                }}
+                              >
+                                <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                                <span>{(4.7 + ((dest.name.charCodeAt(0) % 3) * 0.1)).toFixed(1)}</span>
+                                <span style={{ color: 'var(--mute)', fontWeight: 500 }}>
+                                  ({85 + (dest.name.charCodeAt(dest.name.length - 1) % 90)}+ reviews)
+                                </span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <Tag variant="ok" style={{ textTransform: 'capitalize', fontSize: '11px' }}>
+                            {dest.category}
+                          </Tag>
+                        </div>
+
+                        <p
+                          style={{
+                            fontSize: '13px',
+                            color: 'var(--mute)',
+                            marginTop: '10px',
+                            lineHeight: 1.5,
+                            flex: 1,
+                            minHeight: '38px',
+                          }}
+                        >
+                          {dest.description || 'Pristine destination in Swat Valley.'}
+                        </p>
+
+                        {/* Season & Accessibility Metadata */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: '12px',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            backgroundColor: 'var(--soft)',
+                            fontSize: '11px',
+                            color: 'var(--ink)',
+                          }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontWeight: 550 }}>
+                            <Clock size={12} color="var(--pri)" />
+                            {dest.best_season || 'Ideal in Summer'}
+                          </span>
+                          <span style={{ color: 'var(--mute)', fontWeight: 500 }}>
+                            Approved Tourist Route
+                          </span>
+                        </div>
+
+                        {/* Action Buttons: 2-Column Responsive Row to Prevent Mobile Cutting */}
+                        <div
+                          className="dest-card-action-row"
+                          style={{
+                            marginTop: '10px',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '6px',
+                            width: '100%',
+                            maxWidth: '100%',
+                            minWidth: 0,
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setWeatherModal({ isOpen: true, destination: dest })}
+                            data-testid={`btn-weather-forecast-${dest.id}`}
+                            className="btn-card-weather"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              padding: '5px 6px',
+                              borderRadius: '8px',
+                              border: '1.5px solid var(--pri)',
+                              backgroundColor: 'var(--soft)',
+                              color: 'var(--ink)',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              minHeight: '32px',
+                              width: '100%',
+                              maxWidth: '100%',
+                              minWidth: 0,
+                              boxSizing: 'border-box',
+                              transition: 'all 0.15s ease',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            <CloudSun size={13} color="var(--pri)" style={{ flexShrink: 0 }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>Weather</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMapModal({
+                                open: true,
+                                title: dest.name,
+                                lat: dest.latitude || 35.48,
+                                lng: dest.longitude || 72.58,
+                                areaName: dest.area_name,
+                                categoryOrType: dest.category,
+                                originCity: 'Islamabad / Rawalpindi',
+                                destinationCity: dest.name,
+                              })
+                            }
+                            data-testid={`btn-view-map-${dest.id}`}
+                            className="btn-card-view-map"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px',
+                              padding: '5px 6px',
+                              borderRadius: '8px',
+                              border: '1.5px solid var(--line)',
+                              backgroundColor: 'var(--card)',
+                              color: 'var(--ink)',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              minHeight: '32px',
+                              width: '100%',
+                              maxWidth: '100%',
+                              minWidth: 0,
+                              boxSizing: 'border-box',
+                              transition: 'all 0.15s ease',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
+                            <MapPin size={13} color="var(--pri)" style={{ flexShrink: 0 }} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>View Map</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+              </div>
+            </div>
+          )}
+          </div>
+
+            {/* Right 20% Column: Live Road Status Frame (over Advisory), Active Advisory Frame & This Weekend Weather Frame */}
+            <div
+              className="tourist-home-hero-sidebar"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                minWidth: 0,
+                position: 'sticky',
+                top: '16px',
+              }}
+            >
+              {renderModernTravelIntelligence()}
+            </div>
+          </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2: EXPLORE */}
+      {/* ========================================================================= */}
+      {activeTab === 'explore' && (
+        <>
+          {/* Active Trip Banner in Explore (Prompt 3: Explore shows "Adding to: <trip name>" with a Change trip button) */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 18px',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--line)',
+              borderRadius: 'var(--radius-card)',
+              boxShadow: '0 2px 8px rgba(18, 50, 74, 0.05)',
+              gap: '12px',
+              marginBottom: '10px',
+              flexWrap: 'wrap',
+            }}
+            data-testid="explore-active-trip-banner"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Plane size={20} color="var(--pri)" />
+              <div>
+                <span style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', display: 'block' }}>
+                  Target Trip (Stops & Bookings):
+                </span>
+                <span style={{ fontSize: 'var(--font-sm)', fontWeight: 700, color: 'var(--ink)' }}>
+                  Adding to: <span style={{ color: 'var(--pri)' }}>{activeTrip?.title || trip?.title || 'My Swat Trip'}</span>
+                </span>
+              </div>
+            </div>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowTripSwitchModal(true)}
+              id="btn-change-trip"
+            >
+              Change trip
+            </Button>
+          </div>
+
+          {/* Filter Bar: 6 Types Chips + Area Dropdown */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+              <Chip active={selectedType === 'all'} onClick={() => setSelectedType('all')}>
+                All Offerings
+              </Chip>
+              {(['hotel', 'restaurant', 'transport', 'guide', 'activity', 'shop'] as ListingTypeCode[]).map((t) => (
+                <Chip key={t} active={selectedType === t} onClick={() => setSelectedType(t)}>
+                  {t === 'hotel'
+                    ? 'Hotels'
+                    : t === 'restaurant'
+                    ? 'Restaurants'
+                    : t === 'transport'
+                    ? 'Transport'
+                    : t === 'guide'
+                    ? 'Guides'
+                    : t === 'activity'
+                    ? 'Activities'
+                    : 'Shops'}
+                </Chip>
+              ))}
+            </div>
+
+            {/* Mutually Exclusive 2-Option Selector for Transport Screen in Explore Tab */}
+            {selectedType === 'transport' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '4px',
+                  backgroundColor: 'rgba(27, 79, 114, 0.08)',
+                  borderRadius: '12px',
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  margin: '2px 0 6px 0',
+                }}
+                data-testid="explore-transport-mode-selector"
+              >
+                <button
+                  type="button"
+                  onClick={() => setTransportMode('local')}
+                  id="btn-explore-mode-local"
+                  data-testid="btn-explore-mode-local"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '7px 16px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '12.5px',
+                    fontWeight: transportMode === 'local' ? 750 : 600,
+                    backgroundColor: transportMode === 'local' ? 'var(--pri)' : 'transparent',
+                    color: transportMode === 'local' ? '#FFFFFF' : 'var(--ink)',
+                    boxShadow: transportMode === 'local' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Car size={15} />
+                  <span>Local Transport</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTransportMode('intercity')}
+                  id="btn-explore-mode-intercity"
+                  data-testid="btn-explore-mode-intercity"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '7px 16px',
+                    borderRadius: '9px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '12.5px',
+                    fontWeight: transportMode === 'intercity' ? 750 : 600,
+                    backgroundColor: transportMode === 'intercity' ? 'var(--pri)' : 'transparent',
+                    color: transportMode === 'intercity' ? '#FFFFFF' : 'var(--ink)',
+                    boxShadow: transportMode === 'intercity' ? '0 2px 8px rgba(47, 127, 193, 0.28)' : 'none',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Bus size={15} />
+                  <span>Intercity Bus Transport</span>
+                </button>
+              </div>
+            )}
+
+            {/* Sub-bar: Area Selector & Search */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <select
+                value={selectedAreaId}
+                onChange={(e) => setSelectedAreaId(e.target.value)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-button)',
+                  border: '1px solid var(--line)',
+                  backgroundColor: 'var(--card)',
+                  color: 'var(--ink)',
+                  fontSize: 'var(--font-xs)',
+                  minWidth: '160px',
+                }}
+              >
+                <option value="">All Swat Areas</option>
+                {areas.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.area_type})
+                  </option>
+                ))}
+              </select>
+
+              <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Filter listings by name, menu item, or tag..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 34px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--card)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-xs)',
+                  }}
+                />
+                <Search size={14} style={{ position: 'absolute', left: '12px', top: '11px', color: 'var(--mute)' }} />
+              </div>
+            </div>
+          </div>
+          {/* Listings Count & Visibility Gate Indicator */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
+                <span>
+                  Showing {listings.length} verified listings
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle size={13} color="var(--ok)" /> Authority Verified Only (Rule 2)
+                </span>
+              </div>
+
+              {/* Listings Grid or Intercity Transport */}
+          {selectedType === 'transport' && transportMode === 'intercity' ? (
+            <div style={{ marginTop: '12px' }}>
+              <IntercityTransportExplorer
+                key={`explore-intercity-${homeOriginCity}`}
+                initialOrigin={homeOriginCity}
+                onAddToTrip={handleAddIntercityTransportToTrip}
+                onViewRouteMap={(origin, dest, sch) =>
+                  setMapModal({
+                    open: true,
+                    title: `${origin.split(' / ')[0]} ➔ ${dest}`,
+                    lat: 34.7717,
+                    lng: 72.3602,
+                    originCity: origin,
+                    destinationCity: dest,
+                    durationText: sch?.duration_text,
+                    viaHighway: sch?.via_highway,
+                  })
+                }
+              />
+            </div>
+          ) : loading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--mute)' }}>
+              Loading verified listings...
+            </div>
+          ) : listings.length === 0 ? (
+            <Card padding="lg" style={{ textAlign: 'center', backgroundColor: 'var(--card)' }}>
+              <h3 style={{ fontSize: 'var(--font-lg)', color: 'var(--ink)', marginBottom: '8px' }}>
+                No published listings found
+              </h3>
+              <p style={{ fontSize: 'var(--font-sm)', color: 'var(--mute)', maxWidth: '440px', margin: '0 auto 16px auto' }}>
+                Only listings with status = 'published' from authority-verified businesses appear here. Switch to Business role to publish listings, and Authority role to approve them!
+              </p>
+              <Button variant="secondary" onClick={() => { setSelectedType('all'); setSelectedAreaId(''); setSearchQuery(''); }}>
+                Clear Filters
+              </Button>
+            </Card>
+          ) : (
+            <>
+              {/* Selected Hotel Quick Banner */}
+              {selectedHotelId && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '12px 18px',
+                    backgroundColor: 'rgba(23, 76, 114, 0.08)',
+                    border: '1px solid var(--pri)',
+                    borderRadius: 'var(--radius-button)',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                    marginBottom: '10px',
+                  }}
+                  data-testid="selected-hotel-banner"
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Sparkles size={16} color="var(--pri)" />
+                    <span style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)' }}>
+                      Selected Hotel: <strong>{listings.find((h) => h.id === selectedHotelId)?.title || 'Selected Hotel'}</strong>
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => {
+                        const h = listings.find((item) => item.id === selectedHotelId);
+                        if (h) setHotelModalListing(h);
+                      }}
+                      id="btn-banner-view-hotel"
+                    >
+                      View All Rooms, Facilities & Activities
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setSelectedHotelId(null)}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="split-layout-container">
+                <div className="split-layout-main">
+                  <div className="grid-cards">
+                    {listings.map((l) => {
+                      const primaryPriceItem = l.price_items?.[0];
+                      const priceLine = primaryPriceItem
+                        ? `PKR ${primaryPriceItem.price.toLocaleString()} / ${primaryPriceItem.unit.replace('per_', '')}`
+                        : 'Contact for rates';
+
+                      const availabilityText = primaryPriceItem?.is_bookable
+                        ? `${primaryPriceItem.default_units || 5} units free`
+                        : 'Open daily';
+
+                      // Format extra info based on type
+                      let extraInfo = '';
+                      if (l.type_code === 'restaurant') {
+                        const hours = l.opening_time && l.closing_time ? `${l.opening_time} - ${l.closing_time}` : 'Open 08:00 AM – 11:00 PM';
+                        extraInfo = `Hours: ${hours} • Menu: ${l.price_items?.map((p) => p.name).slice(0, 3).join(', ')}`;
+                      } else if (l.type_code === 'hotel') {
+                        const facCount = Array.isArray(l.details?.facilities) ? l.details.facilities.length : 8;
+                        const actCount = Array.isArray(l.details?.activities) ? l.details.activities.length : 4;
+                        extraInfo = `Check-in: ${l.details?.check_in_time || '14:00'} • ${l.price_items?.length || 2} Room Types • ${facCount} Facilities • ${actCount} Activities`;
+                      } else if (l.type_code === 'activity') {
+                        extraInfo = `Duration: ${l.details?.duration_hours || 2}h • Min Age: ${l.details?.min_age || 10}+`;
+                      } else if (l.type_code === 'shop') {
+                        extraInfo = `Products: ${l.price_items?.map((p) => p.name).slice(0, 3).join(', ')}`;
+                      } else if (l.type_code === 'guide') {
+                        const langs = Array.isArray(l.details?.languages)
+                          ? l.details.languages.join(', ')
+                          : (typeof l.details?.languages === 'string' ? l.details.languages : 'Urdu, English');
+                        extraInfo = `Experience: ${l.details?.years_experience || 5} yrs • Languages: ${langs}`;
+                      } else if (l.type_code === 'transport') {
+                        extraInfo = `Vehicle: ${l.details?.vehicle_type || '4x4 Jeep'} • Seats: ${l.details?.seats || 6}`;
+                      }
+
+                      let listingCover = (l as any).cover_image_url || l.media?.[0]?.url || '';
+                      if (!listingCover) {
+                        const titleLower = (l.title || '').toLowerCase();
+                        if (l.type_code === 'hotel') {
+                          if (titleLower.includes('rock city')) {
+                            listingCover = '/images/rock_city_resort.jpg';
+                          } else if (titleLower.includes('hotel one')) {
+                            listingCover = '/images/hotel_one_swat.jpg';
+                          } else if (titleLower.includes('greens')) {
+                            listingCover = '/images/greens_hotel_kalam.jpg';
+                          } else if (titleLower.includes('zen luxus')) {
+                            listingCover = '/images/zen_luxus_kalam.jpg';
+                          } else if (titleLower.includes('kuwait') || titleLower.includes('bahrain')) {
+                            listingCover = '/images/kuwait_continental_bahrain.jpg';
+                          } else if (titleLower.includes('white palace') || titleLower.includes('marghazar')) {
+                            listingCover = '/images/white_palace_marghuzar.jpg';
+                          } else if (titleLower.includes('malam jabba') || titleLower.includes('pc ')) {
+                            listingCover = '/images/malam_jabba.jpg';
+                          } else if (titleLower.includes('miandam')) {
+                            listingCover = '/images/miandam_valley.jpg';
+                          } else if (titleLower.includes('apartment') || titleLower.includes('flat')) {
+                            listingCover = '/images/deluxe_room.jpg';
+                          } else if (titleLower.includes('kalam') || titleLower.includes('lodge') || titleLower.includes('heights') || titleLower.includes('guest') || titleLower.includes('walnut')) {
+                            listingCover = '/images/kalam_lodge.jpg';
+                          } else {
+                            listingCover = '/images/swat_serena.jpg';
+                          }
+                        } else if (l.type_code === 'restaurant') {
+                          listingCover = '/images/trout_restaurant.jpg';
+                        } else if (l.type_code === 'activity') {
+                          listingCover = '/images/malam_jabba.jpg';
+                        } else if (l.type_code === 'guide') {
+                          listingCover = '/images/ushu_forest.jpg';
+                        } else if (l.type_code === 'transport') {
+                          listingCover = '/images/kalam_valley.jpg';
+                        } else {
+                          listingCover = '/images/swat_serena.jpg';
+                        }
+                      }
+
+                      const accType = l.details?.accommodation_type || (
+                        l.title.toLowerCase().includes('resort')
+                          ? 'Resort'
+                          : (l.title.toLowerCase().includes('apartment') || l.title.toLowerCase().includes('flat'))
+                          ? 'Apartment'
+                          : (l.title.toLowerCase().includes('guest') || l.title.toLowerCase().includes('inn') || l.title.toLowerCase().includes('lodge'))
+                          ? 'Guesthouse'
+                          : 'Hotel'
+                      );
+
+                      return (
+                        <ListingCard
+                          key={l.id}
+                          id={l.id}
+                          title={l.title}
+                          type={l.type_code}
+                          accommodationType={l.type_code === 'hotel' ? accType : undefined}
+                          coverImage={listingCover}
+                          areaName={l.area_name || 'Swat'}
+                          isVerified={l.is_verified}
+                          tags={l.tags?.map((t) => t.label) || []}
+                          priceLine={priceLine}
+                          availabilityText={availabilityText}
+                          extraInfo={extraInfo}
+                          phone={l.phone}
+                          whatsappNumber={l.whatsapp_number}
+                          addressText={l.address_text}
+                          isSelected={selectedHotelId === l.id}
+                          isCommunityService={Boolean(l.details?.is_community_service)}
+                          onInstantReserve={
+                            (l.type_code === 'transport' || l.type_code === 'guide' || l.details?.is_community_service)
+                              ? () => setServiceModalListing(l)
+                              : undefined
+                          }
+                          onSelect={() => {
+                            if (l.type_code === 'hotel') {
+                              setSelectedHotelId(l.id);
+                            }
+                          }}
+                          onViewHotelDetails={
+                            l.type_code === 'hotel' && !l.details?.is_community_service
+                              ? () => {
+                                  setSelectedHotelId(l.id);
+                                  setHotelModalListing(l);
+                                }
+                              : undefined
+                          }
+                          onViewMenu={
+                            l.type_code === 'restaurant' && !l.details?.is_community_service
+                              ? () => {
+                                  setRestaurantModalListing(l);
+                                }
+                              : undefined
+                          }
+                          onViewMap={() =>
+                            setMapModal({
+                              open: true,
+                              title: l.title,
+                              lat: l.latitude || 35.48,
+                              lng: l.longitude || 72.58,
+                              areaName: l.area_name,
+                              categoryOrType: l.type_label,
+                              originCity: 'Islamabad / Rawalpindi',
+                              destinationCity: l.area_name || l.title,
+                            })
+                          }
+                          onViewWeather={
+                            l.type_code === 'hotel'
+                              ? () => {
+                                  const lat = l.latitude || (l.area_name?.toLowerCase().includes('kalam') ? 35.49 : l.area_name?.toLowerCase().includes('malam') ? 34.80 : 34.77);
+                                  const lng = l.longitude || (l.area_name?.toLowerCase().includes('kalam') ? 72.58 : l.area_name?.toLowerCase().includes('malam') ? 72.57 : 72.36);
+                                  setWeatherModal({
+                                    isOpen: true,
+                                    destination: {
+                                      id: l.id,
+                                      name: l.title,
+                                      area_name: l.area_name || 'Swat Valley',
+                                      latitude: lat,
+                                      longitude: lng,
+                                      category: 'Hotel',
+                                      area_id: l.area_id || '',
+                                      is_approved: true,
+                                      is_featured: false,
+                                      created_at: new Date().toISOString(),
+                                    },
+                                  });
+                                }
+                              : undefined
+                          }
+                          onCheckDates={() =>
+                            setAvailModal({
+                              open: true,
+                              listingId: l.id,
+                              listingTitle: l.title,
+                              priceItems: l.price_items || [],
+                            })
+                          }
+                          onAddToTrip={() => {
+                            if (l.type_code === 'hotel') {
+                              setSelectedHotelId(l.id);
+                              setHotelModalListing(l);
+                            } else {
+                              handleAddStop('listing', l.id, l.title);
+                            }
+                          }}
+                          availableDays={activeTripDaysList}
+                          onQuickAddToDay={(day) => handleQuickAddListingToDay(l, day)}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Desktop Split-Screen Live Itinerary Preview Tray (Phase 3) */}
+                <aside className="split-layout-side" data-testid="explore-split-itinerary-tray">
+                  <div
+                    style={{
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: '14px',
+                      border: '1.5px solid rgba(27, 79, 114, 0.12)',
+                      boxShadow: '0 4px 18px rgba(18, 50, 74, 0.08)',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(27, 79, 114, 0.08)', paddingBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CompassIcon size={18} color="var(--pri)" />
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: 800, color: 'var(--ink)' }}>
+                            Active Itinerary
+                          </h4>
+                          <span style={{ fontSize: '11px', color: 'var(--mute)' }}>
+                            {activeTrip?.title || 'My Swat Trip'}
+                          </span>
+                        </div>
+                      </div>
+                      <Tag variant={activeTrip?.status === 'confirmed' ? 'ok' : 'accent'} style={{ fontSize: '10px', textTransform: 'capitalize' }}>
+                        {activeTrip?.status || 'Draft'}
+                      </Tag>
+                    </div>
+
+                    {/* Live Day Breakdowns */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto', paddingRight: '2px' }}>
+                      {activeTripDaysList.map((d) => {
+                        const dayStops = (activeTrip?.stops || []).filter(
+                          (s) => (s.day_number <= d && (s.end_day_number || s.day_number) >= d)
+                        );
+                        return (
+                          <div
+                            key={d}
+                            style={{
+                              padding: '8px 10px',
+                              borderRadius: '8px',
+                              backgroundColor: '#F8FAFD',
+                              border: '1px solid rgba(27, 79, 114, 0.07)',
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                              <span style={{ fontSize: '11.5px', fontWeight: 750, color: 'var(--pri)' }}>
+                                Day {d}
+                              </span>
+                              <span style={{ fontSize: '10.5px', color: 'var(--mute)' }}>
+                                {dayStops.length} {dayStops.length === 1 ? 'Stop' : 'Stops'}
+                              </span>
+                            </div>
+                            {dayStops.length === 0 ? (
+                              <div style={{ fontSize: '11px', color: 'var(--mute)', fontStyle: 'italic' }}>
+                                Empty • Tap "+ Day {d}" on any card to add
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                {dayStops.map((s, idx) => (
+                                  <div
+                                    key={s.id || idx}
+                                    style={{
+                                      fontSize: '11.5px',
+                                      color: 'var(--ink)',
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                    }}
+                                  >
+                                    • {s.listing?.title || s.destination?.name || s.custom_title || 'Stop'}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Total & Quick Manage Button */}
+                    <div style={{ borderTop: '1px solid rgba(27, 79, 114, 0.08)', paddingTop: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--mute)', fontWeight: 650 }}>Estimated Total</span>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#047857' }}>
+                          PKR {Number(activeTrip?.estimated_total || 0).toLocaleString()}
+                        </span>
+                      </div>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => {
+                          if (currentViewedTrip && currentViewedTrip.id === activeTrip?.id) {
+                            onTabChange?.('trips');
+                          } else if (activeTrip) {
+                            setCurrentViewedTrip(activeTrip);
+                            setTrip(activeTrip);
+                            onTabChange?.('trips');
+                          } else {
+                            onTabChange?.('trips');
+                          }
+                        }}
+                        style={{ width: '100%', justifyContent: 'center', fontWeight: 700, fontSize: '12px' }}
+                      >
+                        Open Full Itinerary ➔
+                      </Button>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 2B: BOOKINGS (Dedicated My Bookings Dashboard & Reservations)        */}
+      {/* ========================================================================= */}
+      {activeTab === 'bookings' && (
+        <>
+          {/* Top Blue Banner on Tourist Screen with matching landing page styling */}
+          <TourismAnimatedBanner
+            title="My Bookings & Reservations"
+            subtitle="Centralized dashboard for all your stays, 4x4 transport, guides, and alpine adventure passes"
+            headerAction={headerAction}
+            activeTab="bookings"
+          />
+
+          <MyBookingsView
+            bookings={myBookings}
+            onCancelBooking={handleCancelBooking}
+            onWithdrawBooking={handleWithdrawBooking}
+            onPayBooking={handlePaySingleBooking}
+            onRateBooking={(b) => setReviewModal({ isOpen: true, booking: b })}
+            onCompleteBooking={async (bookingId) => {
+              try {
+                await completeBooking(bookingId);
+                const allB = await fetchMyBookings().catch(() => []);
+                if (allB && allB.length > 0) setMyBookings(allB);
+                showToast('Stay marked as completed! You can now write your verified review.');
+                const target = (allB || myBookings).find((x) => x.id === bookingId);
+                if (target) {
+                  setReviewModal({ isOpen: true, booking: target });
+                }
+              } catch (err) {
+                setMyBookings((prev) =>
+                  prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b))
+                );
+                const target = myBookings.find((x) => x.id === bookingId);
+                if (target) {
+                  setReviewModal({ isOpen: true, booking: { ...target, status: 'completed' } });
+                }
+              }
+            }}
+            onExploreServices={() => onTabChange ? onTabChange('home') : null}
+            onOpenAuth={onOpenAuth}
+            isGuest={!user || !localStorage.getItem('swat_token')}
+          />
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 3: TRIPS (My Trips Overview & 3-View Manager via TripManagerView)    */}
+      {/* ========================================================================= */}
+      {activeTab === 'trips' && (
+        <>
+          {/* Top Blue Banner on Tourist Screen with matching landing page styling */}
+          <TourismAnimatedBanner
+            title="Swat Tourism Platform"
+            subtitle="Discover valleys, book stays, and explore safely"
+            headerAction={headerAction}
+            homeSearchTab={homeSearchTab}
+            onHomeSearchTabChange={setHomeSearchTab}
+          />
+
+          {/* Top Hero Split Layout: 80% Trip Planner / 20% Advisory, Road & Weather Intelligence */}
+          <div className="tourist-home-hero-split">
+            {/* Left 80% Column: Trip Manager & Saved Trips Views */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0, maxWidth: '100%', width: '100%' }}>
+              {currentViewedTrip ? (
+            <TripManagerView
+              trip={currentViewedTrip}
+              bookings={myBookings.filter(
+                (b) => b.trip_id === currentViewedTrip.id || !b.trip_id
+              )}
+              availableListings={listings}
+              onUpdateTrip={handleUpdateTrip}
+              onRemoveStop={handleRemoveStop}
+              onAddCustomStop={handleAddCustomStopDetailed}
+              onWithdrawBooking={handleWithdrawBooking}
+              onCancelBooking={handleCancelBooking}
+              onRemoveBooking={handleRemoveBooking}
+              onPayBooking={handlePaySingleBooking}
+              onPayEntireTrip={handleMockPayment}
+              onGetCancellationPreview={getCancellationPreview}
+              onCompleteBooking={async (bookingId) => {
+                try {
+                  await completeBooking(bookingId);
+                } catch (err: any) {
+                  console.warn('Backend completeBooking skipped or failed (demo/offline booking):', err);
+                }
+                // Always mark booking as completed locally so tourist is never blocked
+                setMyBookings((prev) =>
+                  prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b))
+                );
+                showToast('Stay concluded! Rate and review your experience.');
+                try {
+                  const allB = await fetchMyBookings();
+                  if (allB && allB.length > 0) setMyBookings(allB);
+                } catch {}
+              }}
+              onRateBooking={(b) => {
+                setReviewModal({ isOpen: true, booking: b });
+              }}
+              onReplaceBooking={(b) => {
+                if (b.listing?.type_code) {
+                  setSelectedType(b.listing.type_code);
+                }
+                showToast(`Explore alternative options for ${b.listing?.title || 'listing'}`);
+              }}
+              onOpenMapModal={(item) => setMapModal({ open: true, ...item })}
+              onOpenHotelDetailsModal={(hotel) => setHotelModalListing(hotel)}
+              onBackToTrips={() => setCurrentViewedTrip(null)}
+              onDeleteTrip={() => handleDeleteTrip(currentViewedTrip.id)}
+              isActiveTrip={currentViewedTrip.id === activeTripId}
+              onSetAsActiveTrip={() => {
+                setActiveTripId(currentViewedTrip.id);
+                localStorage.setItem('swat_active_trip_id', currentViewedTrip.id);
+                showToast(`Set "${currentViewedTrip.title}" as active trip.`);
+              }}
+            />
+          ) : (
+            <MyTripsListView
+              trips={allTrips.length > 0 ? allTrips : (trip ? [trip] : [])}
+              activeTripId={activeTripId || (trip ? trip.id : null)}
+              onSelectActiveTrip={(tripId) => {
+                setActiveTripId(tripId);
+                localStorage.setItem('swat_active_trip_id', tripId);
+                const chosen = allTrips.find((t) => t.id === tripId);
+                if (chosen) setTrip(chosen);
+                showToast(`Active trip set to "${chosen?.title || 'Trip'}"`);
+              }}
+              onOpenTrip={(t) => {
+                setCurrentViewedTrip(t);
+                setTrip(t);
+              }}
+              onCreateTrip={async (tripData) => {
+                try {
+                  let created: Trip;
+                  try {
+                    created = await createTrip(tripData);
+                  } catch {
+                    created = {
+                      id: 'trip-local-' + Date.now(),
+                      tourist_id: user?.id || 'tourist-local',
+                      title: tripData.title || 'My Swat Trip',
+                      start_date: tripData.start_date,
+                      end_date: tripData.end_date,
+                      travellers: tripData.travellers || 2,
+                      status: 'planned',
+                      estimated_total: (tripData as any).estimated_total || 0,
+                      notes: tripData.notes,
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                      stops: [],
+                    };
+                  }
+
+                  if (!created.stops || created.stops.length === 0) {
+                    if ((tripData as any).stops && (tripData as any).stops.length > 0) {
+                      created = {
+                        ...created,
+                        stops: (tripData as any).stops.map((s: any, idx: number) => ({
+                          id: s.id || `stop-ai-${Date.now()}-${idx}`,
+                          trip_id: created.id,
+                          day_number: s.day_number || 1,
+                          end_day_number: s.end_day_number,
+                          stop_order: s.stop_order || idx + 1,
+                          time_slot: s.time_slot || '09:00 AM',
+                          stop_type: s.stop_type || 'custom',
+                          custom_title: s.custom_title || 'Stop',
+                          notes: s.notes,
+                          created_at: new Date().toISOString(),
+                        })),
+                      };
+                    }
+                  }
+
+                  setAllTrips((prev) => {
+                    const updated = [created, ...prev.filter((t) => t.id !== created.id)];
+                    try {
+                      localStorage.setItem('swat_local_trips', JSON.stringify(updated));
+                    } catch {}
+                    return updated;
+                  });
+                  setActiveTripId(created.id);
+                  localStorage.setItem('swat_active_trip_id', created.id);
+                  setTrip(created);
+                  setCurrentViewedTrip(created);
+                  showToast(`Trip "${created.title}" created with ${created.stops?.length || 0} stops!`);
+                  return created;
+                } catch (err: any) {
+                  const msg = err.message || 'Failed to create trip';
+                  showToast(msg);
+                  throw err;
+                }
+              }}
+              onWriteReview={async (t) => {
+                setCurrentViewedTrip(t);
+                setTrip(t);
+                try {
+                  const allB = await fetchMyBookings().catch(() => myBookings);
+                  const targetBooking =
+                    allB.find(
+                      (b) =>
+                        (b.trip_id === t.id || (!b.trip_id && allB.length === 1)) &&
+                        (b.status === 'completed' || b.status === 'confirmed' || b.status === 'accepted')
+                    ) ||
+                    allB[0] ||
+                    (t.stops && t.stops.find((s) => s.listing_id || s.listing)
+                      ? {
+                          id: `b-trip-${t.id}`,
+                          reference: `SWT-TRIP-${t.id.slice(0, 6).toUpperCase()}`,
+                          trip_id: t.id,
+                          listing_id: t.stops.find((s) => s.listing_id || s.listing)?.listing_id || 'serena-hotel-swat',
+                          listing: t.stops.find((s) => s.listing_id || s.listing)?.listing || { title: t.title, type_code: 'hotel' },
+                          status: 'completed',
+                          total_amount: t.estimated_total || 24000,
+                        }
+                      : {
+                          id: `b-trip-${t.id}`,
+                          reference: `SWT-TRIP-${t.id.slice(0, 6).toUpperCase()}`,
+                          trip_id: t.id,
+                          listing_id: 'serena-hotel-swat',
+                          listing: { title: t.title, type_code: 'hotel' },
+                          status: 'completed',
+                          total_amount: t.estimated_total || 24000,
+                        });
+
+                  if (targetBooking) {
+                    setReviewModal({ isOpen: true, booking: { ...(targetBooking as any), status: 'completed' } });
+                  } else {
+                    showToast('Viewing trip details.');
+                  }
+                } catch {
+                  // Fallback
+                }
+              }}
+              onDeleteTrip={handleDeleteTrip}
+            />
+          )}
+            </div>
+
+            {/* Right 20% Column: Live Road Status Frame (over Advisory), Active Advisory Frame & This Weekend Weather Frame */}
+            <div
+              className="tourist-home-hero-sidebar"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                minWidth: 0,
+                position: 'sticky',
+                top: '16px',
+              }}
+            >
+              {renderModernTravelIntelligence()}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 4: SAFETY */}
+      {/* ========================================================================= */}
+      {activeTab === 'safety' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} data-testid="safety-tab-content">
+          {/* Active SOS Banner if Tourist has triggered one that is not yet resolved */}
+          {activeSOS && activeSOS.status !== 'resolved' && (
+            <Card
+              padding="md"
+              style={{
+                backgroundColor: 'rgba(214, 86, 74, 0.08)',
+                border: '2px solid var(--bad)',
+                animation: 'pulse 2s infinite',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ShieldAlert size={22} color="var(--bad)" />
+                    <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 700, color: 'var(--bad)', margin: 0 }}>
+                      EMERGENCY SOS ACTIVE
+                    </h3>
+                    <Tag variant="bad">Status: {activeSOS.status.toUpperCase()}</Tag>
+                  </div>
+                  <p style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)', marginTop: '8px', marginBottom: '4px' }}>
+                    <strong>Coordinates logged:</strong> {activeSOS.latitude.toFixed(4)}, {activeSOS.longitude.toFixed(4)}
+                  </p>
+                  {activeSOS.message && (
+                    <p style={{ fontSize: 'var(--font-sm)', color: 'var(--mute)', margin: '4px 0' }}>
+                      <strong>Reported:</strong> {activeSOS.message}
+                    </p>
+                  )}
+                  {activeSOS.status === 'acknowledged' && (
+                    <p style={{ fontSize: 'var(--font-sm)', color: 'var(--acc)', fontWeight: 600, marginTop: '6px' }}>
+                      Rescue team acknowledged your alert.{activeSOS.resolution_note ? ` Note: ${activeSOS.resolution_note}` : ''}
+                    </p>
+                  )}
+                </div>
+
+                <a
+                  href="tel:1122"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 16px',
+                    backgroundColor: 'var(--bad)',
+                    color: '#fff',
+                    borderRadius: 'var(--radius-button)',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    fontSize: 'var(--font-sm)',
+                  }}
+                >
+                  <PhoneCall size={16} /> Direct Call 1122
+                </a>
+              </div>
+            </Card>
+          )}
+
+          {/* Emergency SOS Trigger Card */}
+          <Card padding="md" style={{ border: '1px solid rgba(214, 86, 74, 0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h3
+                  style={{
+                    fontSize: 'var(--font-lg)',
+                    fontWeight: 700,
+                    color: 'var(--bad)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    margin: 0,
+                  }}
+                >
+                  <ShieldAlert size={22} /> Emergency SOS & Tourist Dispatch
+                </h3>
+                <p style={{ fontSize: 'var(--font-sm)', color: 'var(--mute)', marginTop: '4px', maxWidth: '640px' }}>
+                  If you are stranded, facing harsh weather, or in immediate distress, trigger an SOS.
+                  This immediately logs your GPS coordinates with Swat District Authorities.
+                  <strong style={{ color: 'var(--ink)' }}> Always dial Rescue 1122 directly for fastest medical/rescue response.</strong>
+                </p>
+              </div>
+
+              <Button
+                variant="danger"
+                size="lg"
+                onClick={() => setSosModalOpen(true)}
+                data-testid="btn-trigger-sos-modal"
+              >
+                Raise SOS Alert
+              </Button>
+            </div>
+          </Card>
+
+          {/* Area Filter for Advisories & Contacts */}
+          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', alignItems: 'center' }}>
+            <span style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase' }}>
+              Filter by Valley:
+            </span>
+            <Chip active={safetyAreaFilter === ''} onClick={() => setSafetyAreaFilter('')}>
+              All Swat
+            </Chip>
+            {areas.map((a) => (
+              <Chip
+                key={a.id}
+                active={safetyAreaFilter === a.id}
+                onClick={() => setSafetyAreaFilter(a.id)}
+              >
+                {a.name}
+              </Chip>
+            ))}
+          </div>
+
+          {/* Active Public Advisories */}
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} color="var(--acc)" /> Active Safety & Weather Advisories
+              </h4>
+              <span style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
+                {advisories.length} active notice{advisories.length === 1 ? '' : 's'}
+              </span>
+            </div>
+
+            {advisories.length === 0 ? (
+              <Card padding="md">
+                <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--mute)' }}>
+                  <CheckCircle size={32} color="var(--ok)" style={{ margin: '0 auto 8px' }} />
+                  <div style={{ fontWeight: 600, color: 'var(--ink)' }}>All Clear in Selected Valley</div>
+                  <div style={{ fontSize: 'var(--font-xs)', marginTop: '4px' }}>
+                    No active weather warnings, road closures, or danger notices currently in effect.
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {advisories.map((adv) => {
+                  const isDanger = adv.severity === 'danger';
+                  const isWarning = adv.severity === 'warning';
+                  const borderColor = isDanger ? 'var(--bad)' : isWarning ? 'var(--acc)' : 'var(--pri)';
+                  const bgColor = isDanger
+                    ? 'rgba(214, 86, 74, 0.06)'
+                    : isWarning
+                    ? 'rgba(230, 149, 0, 0.06)'
+                    : 'rgba(38, 70, 83, 0.05)';
+
+                  return (
+                    <Card
+                      key={adv.id}
+                      padding="md"
+                      style={{
+                        borderLeft: `4px solid ${borderColor}`,
+                        backgroundColor: bgColor,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 700, fontSize: 'var(--font-base)', color: 'var(--ink)' }}>
+                              {adv.title}
+                            </span>
+                            <Tag variant={isDanger ? 'bad' : isWarning ? 'accent' : 'pri'}>
+                              {adv.severity.toUpperCase()}
+                            </Tag>
+                            <span style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', textTransform: 'capitalize' }}>
+                              Category: {adv.category}
+                            </span>
+                            {adv.area_name && (
+                              <Tag variant="soft">Valley: {adv.area_name}</Tag>
+                            )}
+                          </div>
+                          <p style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)', marginTop: '8px', lineHeight: 1.5 }}>
+                            {adv.message}
+                          </p>
+                          <div style={{ fontSize: '11px', color: 'var(--mute)', marginTop: '6px' }}>
+                            Published: {new Date(adv.starts_at || adv.created_at).toLocaleDateString()}
+                            {adv.expires_at && ` • Valid until: ${new Date(adv.expires_at).toLocaleDateString()}`}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Live Road Status Updates */}
+          <Card padding="md">
+            <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MapPin size={18} color="var(--pri)" /> Road Status Updates & Mountain Passes
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {(roadStatuses.length > 0 ? roadStatuses : [
+                {
+                  id: 'r-1',
+                  road_name: 'Mingora to Kalam Highway (N-95)',
+                  status: 'open',
+                  vehicle_note: 'All vehicle types permitted',
+                  reason: 'Road clear and operational',
+                },
+                {
+                  id: 'r-2',
+                  road_name: 'Kalam to Mahodand Lake Track',
+                  status: 'limited',
+                  vehicle_note: '4x4 Only, tire chains required in snow',
+                  reason: 'Rough terrain and slush near glacial crossings',
+                },
+                {
+                  id: 'r-3',
+                  road_name: 'Malam Jabba Hill Expressway',
+                  status: 'open',
+                  vehicle_note: 'Snow chains advised during night frost',
+                  reason: 'Normal traffic flow',
+                },
+                {
+                  id: 'r-4',
+                  road_name: 'Bahrain to Madyan Bypass',
+                  status: 'open',
+                  vehicle_note: 'All vehicles',
+                  reason: 'Operational',
+                },
+              ]).map((road) => {
+                const isOpen = road.status === 'open';
+                const isLimited = road.status === 'limited';
+
+                return (
+                  <div
+                    key={road.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 0',
+                      borderBottom: '1px solid var(--line)',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{road.road_name}</div>
+                      <div style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', marginTop: '2px' }}>
+                        {road.vehicle_note && <span>Requirement: {road.vehicle_note}</span>}
+                        {road.reason && road.reason !== road.vehicle_note && (
+                          <span> • Condition: {road.reason}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Tag variant={isOpen ? 'ok' : isLimited ? 'accent' : 'bad'}>
+                        {isOpen ? 'Open' : isLimited ? 'Limited (4x4)' : 'Closed'}
+                      </Tag>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
+          {/* 24/7 Emergency Contacts Directory */}
+          <Card padding="md">
+            <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <PhoneCall size={18} color="var(--pri)" /> 24/7 District Emergency Directory
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px' }}>
+              {(emergencyContacts.length > 0 ? emergencyContacts : [
+                {
+                  id: 'c-1',
+                  name: 'Rescue 1122 Swat Control',
+                  phone: '1122',
+                  service_type: 'rescue',
+                  address_text: 'District HQ Saidu Sharif',
+                  is_24h: true,
+                },
+                {
+                  id: 'c-2',
+                  name: 'Police Emergency Helpline',
+                  phone: '15',
+                  service_type: 'police',
+                  address_text: 'Central Police Office Swat',
+                  is_24h: true,
+                },
+                {
+                  id: 'c-3',
+                  name: 'Swat Tourist Police Squad',
+                  phone: '09469240440',
+                  service_type: 'tourism_police',
+                  address_text: 'Mingora Tourist Facilitation Post',
+                  is_24h: true,
+                },
+                {
+                  id: 'c-4',
+                  name: 'Saidu Teaching Hospital Emergency',
+                  phone: '09469240112',
+                  service_type: 'hospital',
+                  address_text: 'Saidu Sharif Main Campus',
+                  is_24h: true,
+                },
+              ]).map((c) => (
+                <a
+                  key={c.id}
+                  href={`tel:${c.phone}`}
+                  style={{
+                    padding: '12px',
+                    backgroundColor: 'var(--bg)',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--line)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    textDecoration: 'none',
+                    transition: 'border-color 0.2s',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: c.service_type === 'rescue' ? 'rgba(214, 86, 74, 0.12)' : 'rgba(38, 70, 83, 0.12)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <PhoneCall
+                      size={18}
+                      color={c.service_type === 'rescue' ? 'var(--bad)' : 'var(--pri)'}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 'var(--font-sm)' }}>
+                      {c.name}
+                    </div>
+                    <div style={{ fontSize: 'var(--font-xs)', color: 'var(--pri)', fontWeight: 600 }}>
+                      Tel: {c.phone} {c.is_24h && '• 24/7'}
+                    </div>
+                    {c.address_text && (
+                      <div style={{ fontSize: '11px', color: 'var(--mute)' }}>{c.address_text}</div>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 5: PROFILE */}
+      {/* ========================================================================= */}
+      {activeTab === 'profile' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} data-testid="profile-tab-content">
+          <div>
+            <h3 style={{ fontSize: 'var(--font-xl)', fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
+              Tourist Profile & Lifeline
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
+              Manage your personal info, emergency contacts for mountain safety, and travel preferences.
+            </p>
+          </div>
+
+          {profileSuccessMsg && (
+            <div
+              style={{
+                backgroundColor: 'rgba(56, 161, 105, 0.12)',
+                border: '1px solid var(--ok)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+                fontSize: 'var(--font-sm)',
+                color: 'var(--ok)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              data-testid="profile-status-message"
+            >
+              <CheckCircle2 size={18} />
+              {profileSuccessMsg}
+            </div>
+          )}
+
+          {profileErrorMsg && (
+            <div
+              style={{
+                backgroundColor: 'rgba(214, 86, 74, 0.12)',
+                border: '1px solid var(--bad)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+                fontSize: 'var(--font-sm)',
+                color: 'var(--bad)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              data-testid="profile-error-message"
+            >
+              <AlertCircle size={18} />
+              {profileErrorMsg}
+            </div>
+          )}
+
+          {/* Personal Info & Language */}
+          <Card padding="md">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <User size={20} color="var(--pri)" />
+              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0 }}>Personal Details & Language</h4>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  placeholder="e.g. Sara Ahmed"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-profile-name"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={profileEmail}
+                  onChange={(e) => setProfileEmail(e.target.value)}
+                  placeholder="e.g. sara.ahmed@example.com"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-profile-email"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Mobile Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  placeholder="e.g. +92 300 1234567"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-profile-phone"
+                />
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)' }}>
+                    WhatsApp Number
+                  </label>
+                  {profilePhone && profilePhone !== profileWhatsapp && (
+                    <button
+                      type="button"
+                      onClick={() => setProfileWhatsapp(profilePhone)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--pri)',
+                        fontSize: '11px',
+                        cursor: 'pointer',
+                        padding: 0,
+                        fontWeight: 600,
+                      }}
+                      title="Use mobile phone number for WhatsApp"
+                    >
+                      Same as mobile
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="tel"
+                  value={profileWhatsapp}
+                  onChange={(e) => setProfileWhatsapp(e.target.value)}
+                  placeholder="e.g. +92 300 1234567"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-profile-whatsapp"
+                />
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Physical / Residential Address
+                </label>
+                <textarea
+                  rows={2}
+                  value={profileAddress}
+                  onChange={(e) => setProfileAddress(e.target.value)}
+                  placeholder="e.g. House 42, Street 18, F-7/2, Islamabad"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                  }}
+                  data-testid="input-profile-address"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Preferred Language
+                </label>
+                <select
+                  value={profileLang}
+                  onChange={(e) => setProfileLang(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="select-profile-language"
+                >
+                  <option value="en">English</option>
+                  <option value="ur">Urdu (اردو)</option>
+                  <option value="ps">Pashto (پښتو)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', marginBottom: '6px' }}>
+                  Account Status & Role
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', height: '42px', gap: '8px' }}>
+                  <Tag variant="ok">Active Verified Tourist</Tag>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Emergency Lifeline Contact */}
+          <Card padding="md" style={{ border: '1px solid rgba(214, 86, 74, 0.25)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <Shield size={20} color="var(--bad)" />
+              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0, color: 'var(--bad)' }}>
+                Emergency SOS Contact Lifeline
+              </h4>
+            </div>
+            <p style={{ margin: '0 0 16px', fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
+              In the event that you trigger an Emergency SOS alert in high-altitude valleys, Swat Tourist Police and Rescue 1122 will attempt to contact this emergency contact alongside your GPS location.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Emergency Contact Name
+                </label>
+                <input
+                  type="text"
+                  value={profileEmergencyName}
+                  onChange={(e) => setProfileEmergencyName(e.target.value)}
+                  placeholder="e.g. Tariq Khan (Brother/Parent)"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-emergency-name"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Emergency Contact Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={profileEmergencyPhone}
+                  onChange={(e) => setProfileEmergencyPhone(e.target.value)}
+                  placeholder="e.g. +92 300 9876543"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="input-emergency-phone"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Travel Preferences */}
+          <Card padding="md">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <CompassIcon size={20} color="var(--pri)" />
+              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0 }}>Travel Style & Preferences</h4>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Budget Tier
+                </label>
+                <select
+                  value={profileBudget}
+                  onChange={(e) => setProfileBudget(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="select-profile-budget"
+                >
+                  <option value="budget">Budget (Economy / Backpacking)</option>
+                  <option value="mid_range">Mid-Range (Standard Hotels & Jeep)</option>
+                  <option value="premium">Premium (Luxury Suites & Private Chauffeur)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>
+                  Travel Companion Group
+                </label>
+                <select
+                  value={profileTravelStyle}
+                  onChange={(e) => setProfileTravelStyle(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                    boxSizing: 'border-box',
+                  }}
+                  data-testid="select-profile-style"
+                >
+                  <option value="solo">Solo Explorer</option>
+                  <option value="couple">Couple / Honeymoon</option>
+                  <option value="family">Family with Children</option>
+                  <option value="friends">Friends Adventure</option>
+                  <option value="group">Large Tour Group</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '8px' }}>
+                Interests & Activities (Click to toggle)
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {[
+                  'Nature & Valleys',
+                  'Hiking & Trekking',
+                  'Historical Heritage',
+                  'Local Food & Trout',
+                  'Adventure & Rafting',
+                  'River Camping',
+                  'Craft Shopping',
+                ].map((item) => {
+                  const active = profileInterests.includes(item);
+                  return (
+                    <Chip
+                      key={item}
+                      active={active}
+                      onClick={() => toggleInterest(item)}
+                    >
+                      {item}
+                    </Chip>
+                  );
+                })}
+              </div>
+            </div>
+          </Card>
+
+          {/* Notification Settings */}
+          <Card padding="md">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <Bell size={20} color="var(--pri)" />
+              <h4 style={{ fontSize: 'var(--font-base)', fontWeight: 600, margin: 0 }}>Notification Settings</h4>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--font-sm)', color: 'var(--ink)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={notifySMS}
+                  onChange={(e) => setNotifySMS(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--pri)' }}
+                  data-testid="checkbox-notify-sms"
+                />
+                <span>Receive urgent SMS alerts for road blocks, severe weather, and route closures in Swat</span>
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: 'var(--font-sm)', color: 'var(--ink)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--pri)' }}
+                  data-testid="checkbox-notify-email"
+                />
+                <span>Receive booking acceptance status, booking vouchers, and itinerary updates via email</span>
+              </label>
+            </div>
+          </Card>
+
+          {/* Feedback messages right above action buttons for immediate visibility */}
+          {profileSuccessMsg && (
+            <div
+              style={{
+                backgroundColor: 'rgba(56, 161, 105, 0.12)',
+                border: '1px solid var(--ok)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+                fontSize: 'var(--font-sm)',
+                color: 'var(--ok)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              data-testid="profile-bottom-status-message"
+            >
+              <CheckCircle2 size={18} />
+              {profileSuccessMsg}
+            </div>
+          )}
+
+          {profileErrorMsg && (
+            <div
+              style={{
+                backgroundColor: 'rgba(214, 86, 74, 0.12)',
+                border: '1px solid var(--bad)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '12px 16px',
+                fontSize: 'var(--font-sm)',
+                color: 'var(--bad)',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              data-testid="profile-bottom-error-message"
+            >
+              <AlertCircle size={18} />
+              {profileErrorMsg}
+            </div>
+          )}
+
+          {!user && (
+            <div
+              style={{
+                backgroundColor: 'rgba(234, 179, 8, 0.12)',
+                border: '1px solid #EAB308',
+                borderRadius: 'var(--radius-sm)',
+                padding: '10px 14px',
+                fontSize: 'var(--font-xs)',
+                color: '#CA8A04',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <AlertCircle size={16} />
+              <span>You are viewing as a Guest. Click <strong>Tourist (Sara)</strong> in the top DEMO LOGINS bar or Sign In to save profile data to the database.</span>
+            </div>
+          )}
+
+          {/* Action Buttons: Save & Logout */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '4px' }}>
+            <Button
+              variant="danger"
+              icon={<LogOut size={16} />}
+              onClick={logout}
+              data-testid="btn-logout"
+            >
+              Log out
+            </Button>
+
+            <Button
+              variant="primary"
+              size="md"
+              icon={<Save size={16} />}
+              onClick={handleSaveProfile}
+              disabled={isSavingProfile}
+              data-testid="btn-save-profile"
+            >
+              {isSavingProfile ? 'Saving Changes...' : 'Save Profile Changes'}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Map Modal */}
+      <MapModal
+        isOpen={mapModal.open}
+        onClose={() => setMapModal((prev) => ({ ...prev, open: false }))}
+        title={mapModal.title}
+        latitude={mapModal.lat}
+        longitude={mapModal.lng}
+        areaName={mapModal.areaName}
+        categoryOrType={mapModal.categoryOrType}
+        originCity={mapModal.originCity}
+        destinationCity={mapModal.destinationCity}
+        distanceKm={mapModal.distanceKm}
+        durationText={mapModal.durationText}
+        viaHighway={mapModal.viaHighway}
+      />
+
+      {/* Availability / Dates Modal */}
+      <AvailabilityModal
+        isOpen={availModal.open}
+        onClose={() => setAvailModal((prev) => ({ ...prev, open: false }))}
+        listingId={availModal.listingId}
+        listingTitle={availModal.listingTitle}
+        priceItems={availModal.priceItems}
+        onSelectAndAdd={(item, date) => {
+          handleAddStop('listing', availModal.listingId, availModal.listingTitle, `Selected ${item.name} for ${date}`);
+        }}
+        onBookingSuccess={(booking) => {
+          setMyBookings((prev) => [booking, ...prev]);
+          showToast(`Instant reservation ${booking.reference || ''} confirmed!`);
+        }}
+      />
+
+      {/* SOS Alert Modal */}
+      {sosModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '16px',
+          }}
+          data-testid="sos-modal-backdrop"
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--card)',
+              borderRadius: 'var(--radius-card)',
+              width: '100%',
+              maxWidth: '520px',
+              padding: '24px',
+              border: '2px solid var(--bad)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--bad)', marginBottom: '12px' }}>
+              <ShieldAlert size={28} />
+              <h3 style={{ fontSize: 'var(--font-xl)', fontWeight: 800, margin: 0 }}>
+                Confirm Emergency SOS
+              </h3>
+            </div>
+
+            <p style={{ fontSize: 'var(--font-sm)', color: 'var(--ink)', lineHeight: 1.5, margin: 0 }}>
+              This will broadcast an urgent emergency alert to <strong>Swat District Authorities & Tourist Police</strong> with your precise GPS coordinates.
+            </p>
+
+            {/* Rescue 1122 Notice */}
+            <div
+              style={{
+                marginTop: '16px',
+                padding: '12px',
+                backgroundColor: 'rgba(214, 86, 74, 0.08)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--bad)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, color: 'var(--bad)', fontSize: 'var(--font-sm)' }}>
+                  Rescue 1122 Dispatch Note
+                </div>
+                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
+                  For medical or mountain rescue emergencies, also dial 1122 directly.
+                </div>
+              </div>
+              <a
+                href="tel:1122"
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: 'var(--bad)',
+                  color: '#fff',
+                  borderRadius: 'var(--radius-button)',
+                  fontWeight: 700,
+                  fontSize: 'var(--font-xs)',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Call 1122
+              </a>
+            </div>
+
+            {/* Coordinates */}
+            <div style={{ marginTop: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', textTransform: 'uppercase' }}>
+                  GPS Coordinates
+                </label>
+                <button
+                  type="button"
+                  onClick={handleDetectLocation}
+                  style={{
+                    border: 'none',
+                    background: 'none',
+                    color: 'var(--pri)',
+                    fontSize: 'var(--font-xs)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Acquire Current GPS
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={sosCoords.lat}
+                  onChange={(e) => setSosCoords((prev) => ({ ...prev, lat: parseFloat(e.target.value) || 0 }))}
+                  placeholder="Latitude"
+                  data-testid="input-sos-lat"
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                  }}
+                />
+                <input
+                  type="number"
+                  step="0.0001"
+                  value={sosCoords.lng}
+                  onChange={(e) => setSosCoords((prev) => ({ ...prev, lng: parseFloat(e.target.value) || 0 }))}
+                  placeholder="Longitude"
+                  data-testid="input-sos-lng"
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-button)',
+                    border: '1px solid var(--line)',
+                    backgroundColor: 'var(--bg)',
+                    color: 'var(--ink)',
+                    fontSize: 'var(--font-sm)',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Message input */}
+            <div style={{ marginTop: '16px' }}>
+              <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--mute)', marginBottom: '6px', textTransform: 'uppercase' }}>
+                Emergency Nature / Description (Optional)
+              </label>
+              <textarea
+                rows={3}
+                value={sosMessage}
+                onChange={(e) => setSosMessage(e.target.value)}
+                placeholder="E.g., Car slid off ice near Malam Jabba, two hikers injured, flood water rising..."
+                data-testid="input-sos-message"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: 'var(--radius-button)',
+                  border: '1px solid var(--line)',
+                  backgroundColor: 'var(--bg)',
+                  color: 'var(--ink)',
+                  fontSize: 'var(--font-sm)',
+                  boxSizing: 'border-box',
+                  fontFamily: 'inherit',
+                }}
+              />
+            </div>
+
+            {/* Actions */}
+            <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <Button
+                variant="secondary"
+                onClick={() => setSosModalOpen(false)}
+                disabled={sosSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleTriggerSOS}
+                disabled={sosSubmitting}
+                data-testid="btn-confirm-sos"
+              >
+                {sosSubmitting ? 'Transmitting Alert...' : 'Transmit SOS Alert'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Quick Change Active Trip (Prompt 3: Change trip button in Explore) */}
+      {showTripSwitchModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(18, 50, 74, 0.65)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '16px',
+          }}
+          data-testid="trip-switch-modal"
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--card)',
+              borderRadius: 'var(--radius-lg)',
+              maxWidth: '460px',
+              width: '100%',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '22px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plane size={20} color="var(--pri)" />
+                <h3 style={{ fontSize: 'var(--font-lg)', fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
+                  Change Active Trip
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowTripSwitchModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mute)' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)', margin: '0 0 16px' }}>
+              Choose which trip will receive items when you tap &quot;Add to trip&quot; or &quot;Save to trip&quot; from Explore:
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
+              {(allTrips.length > 0 ? allTrips : (trip ? [trip] : [])).map((t) => {
+                const isSelected = activeTrip?.id === t.id;
+                return (
+                  <div
+                    key={t.id}
+                    onClick={() => {
+                      setActiveTripId(t.id);
+                      localStorage.setItem('swat_active_trip_id', t.id);
+                      setTrip(t);
+                      setShowTripSwitchModal(false);
+                      showToast(`Active trip set to "${t.title}"`);
+                    }}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: isSelected ? '2px solid var(--pri)' : '1px solid var(--line)',
+                      backgroundColor: isSelected ? 'var(--soft)' : 'var(--card)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 'var(--font-sm)', color: 'var(--ink)' }}>
+                        {t.title}
+                      </div>
+                      <div style={{ fontSize: 'var(--font-xs)', color: 'var(--mute)' }}>
+                        {t.start_date || 'Dates flexible'} • {t.travellers} traveller{t.travellers > 1 ? 's' : ''}
+                      </div>
+                    </div>
+                    {isSelected ? (
+                      <Tag variant="ok">Current Active</Tag>
+                    ) : (
+                      <Button variant="secondary" size="sm">Select</Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: '14px' }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowTripSwitchModal(false);
+                  onTabChange?.('trips');
+                }}
+              >
+                Go to Trips tab
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<Plus size={14} />}
+                onClick={() => {
+                  setShowTripSwitchModal(false);
+                  onTabChange?.('trips');
+                }}
+              >
+                + New trip
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Hotel Details (Rooms details, Facilities, Activities) */}
+      {hotelModalListing && (
+        <HotelDetailsModal
+          hotel={hotelModalListing}
+          onClose={() => setHotelModalListing(null)}
+          onViewMap={(lat, lng, title, areaName) => {
+            setHotelModalListing(null);
+            setMapModal({
+              open: true,
+              title,
+              lat,
+              lng,
+              areaName: areaName || 'Swat',
+              categoryOrType: 'Hotel & Stay',
+              originCity: 'Islamabad / Rawalpindi',
+              destinationCity: areaName || title,
+            });
+          }}
+          onAddRoomToTrip={(room, startDate, endDate, travellers, roomsCount) => {
+            let dayNum = 1;
+            let endDayNum = 2;
+            if (startDate && endDate) {
+              const d1 = new Date(startDate).getTime();
+              const d2 = new Date(endDate).getTime();
+              const diffNights = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+              endDayNum = dayNum + diffNights;
+            }
+            handleAddStop(
+              'listing',
+              hotelModalListing.id,
+              `${hotelModalListing.title} - ${room.name}`,
+              `Room: ${room.name} (${Number(room.price).toLocaleString()} PKR/night) • ${startDate || ''} to ${endDate || ''} (${roomsCount || 1} room, ${travellers || 2} guests)`,
+              {
+                price_item_id: room.id,
+                quantity: roomsCount || 1,
+                day_number: dayNum,
+                end_day_number: endDayNum,
+                time_slot: '02:00 PM',
+              }
+            );
+            setHotelModalListing(null);
+            showToast(`Added ${room.name} at ${hotelModalListing.title} to trip!`);
+          }}
+          onBookingSuccess={(b) => {
+            showToast(`Stay reservation (${b.reference}) registered for ${hotelModalListing.title}!`);
+            setMyBookings((prev) => [b, ...prev.filter((x) => x.id !== b.id && x.reference !== b.reference)]);
+            fetchMyBookings().then(setMyBookings).catch(() => {});
+            getTrips().then(setAllTrips).catch(() => {});
+          }}
+          onOpenAuth={onOpenAuth}
+          onNavigateBookings={() => onTabChange ? onTabChange('bookings') : null}
+          onAddActivityToTrip={(actName) => {
+            handleAddStop('custom', undefined, `${hotelModalListing.title}: ${actName}`);
+            setHotelModalListing(null);
+            showToast(`Added activity "${actName}" to itinerary!`);
+          }}
+          onCheckDates={() => {
+            const h = hotelModalListing;
+            setHotelModalListing(null);
+            setAvailModal({
+              open: true,
+              listingId: h.id,
+              listingTitle: h.title,
+              priceItems: h.price_items || [],
+            });
+          }}
+        />
+      )}
+
+      {/* Modal: Instant Service Reservation (Transport, Guide, Community Services Hiring) */}
+      {serviceModalListing && (
+        <InstantServiceReservationModal
+          listing={serviceModalListing}
+          onClose={() => setServiceModalListing(null)}
+          onBookingSuccess={(booking) => {
+            setMyBookings((prev) => [booking, ...prev]);
+            showToast(`Instant reservation ${booking.reference || ''} confirmed!`);
+          }}
+          onAddToTrip={(priceItem, sDate, eDate) => {
+            handleToggleSave('listing', serviceModalListing.id, serviceModalListing.title);
+            handleAddStop(
+              'listing',
+              serviceModalListing.id,
+              serviceModalListing.title,
+              `${serviceModalListing.title} (${sDate} to ${eDate})`,
+              { price_item_id: priceItem?.id, quantity: 1 }
+            );
+            showToast(`Added ${serviceModalListing.title} to trip itinerary!`);
+          }}
+        />
+      )}
+
+      {/* Modal: Restaurant Details (Contact No, Location, Full Menu) */}
+      {restaurantModalListing && (
+        <RestaurantDetailsModal
+          restaurant={restaurantModalListing}
+          onClose={() => setRestaurantModalListing(null)}
+          onViewMap={(lat, lng, title, areaName) => {
+            setRestaurantModalListing(null);
+            setMapModal({
+              open: true,
+              title,
+              lat,
+              lng,
+              areaName,
+              categoryOrType: 'Restaurant',
+            });
+          }}
+          onAddMenuItemToTrip={(menuItem) => {
+            handleAddStop('listing', restaurantModalListing.id, `${restaurantModalListing.title} - Dining: ${menuItem.name}`);
+            setRestaurantModalListing(null);
+            showToast(`Added dining stop (${menuItem.name}) to trip!`);
+          }}
+        />
+      )}
+
+      {/* Modal: Write Review for Completed Stay */}
+      <ReviewModal
+        isOpen={reviewModal.isOpen}
+        onClose={() => setReviewModal({ isOpen: false, booking: null })}
+        booking={reviewModal.booking}
+        onSuccess={async () => {
+          showToast('Review submitted successfully! Thank you for your feedback.');
+          try {
+            const allB = await fetchMyBookings().catch(() => []);
+            if (allB && allB.length > 0) setMyBookings(allB);
+          } catch {}
+        }}
+      />
+
+      {/* Modal: Live OpenWeatherMap Forecast Prompt */}
+      <WeatherForecastModal
+        isOpen={weatherModal.isOpen}
+        onClose={() => setWeatherModal({ isOpen: false, destination: null })}
+        destination={weatherModal.destination}
+        startDate={homeStartDate}
+        endDate={homeEndDate}
+        onDateRangeChange={(start, end) => {
+          setHomeStartDate(start);
+          setHomeEndDate(end);
+        }}
+      />
+    
+      {/* SwatPay Multi-Provider Checkout Modal */}
+      <SwatPayModal
+        isOpen={swatPayModal.isOpen}
+        onClose={() => setSwatPayModal({ isOpen: false })}
+        trip={swatPayModal.trip}
+        booking={swatPayModal.booking}
+        bookings={myBookings}
+        onPaymentSuccess={async (result) => {
+          if (result.bookingId) {
+            setMyBookings((prev) =>
+              prev.map((b) =>
+                b.id === result.bookingId
+                  ? {
+                      ...b,
+                      payment_status: result.paymentStatus,
+                      deposit_amount: result.depositAmount,
+                      status: 'confirmed',
+                    }
+                  : b
+              )
+            );
+          } else if (result.tripId) {
+            setMyBookings((prev) =>
+              prev.map((b) =>
+                b.trip_id === result.tripId || !b.trip_id
+                  ? {
+                      ...b,
+                      payment_status: result.paymentStatus,
+                      deposit_amount: result.depositAmount ? Math.round(result.depositAmount / (prev.length || 1)) : undefined,
+                      status: 'confirmed',
+                    }
+                  : b
+              )
+            );
+            const updated = await updateMyTrip({ status: 'confirmed' }).catch(() => null);
+            if (updated) {
+              setTrip(updated);
+              if (currentViewedTrip && currentViewedTrip.id === updated.id) {
+                setCurrentViewedTrip(updated);
+              }
+            }
+          }
+          try {
+            const allB = await fetchMyBookings().catch(() => []);
+            if (allB && allB.length > 0) setMyBookings(allB);
+          } catch {}
+          setSwatPayModal({ isOpen: false });
+        }}
+        showToast={showToast}
+      />
+
+      {/* Easypaisa Payment Modal */}
+      <EasypaisaPaymentModal
+        isOpen={!!paymentBooking}
+        booking={paymentBooking}
+        onClose={() => setPaymentBooking(null)}
+        onPaymentSuccess={async (updated) => {
+          setMyBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+          try {
+            const refreshedTrip = await getMyTrip();
+            setTrip(refreshedTrip);
+          } catch {
+            // trip refresh silent catch
+          }
+          setPaymentBooking(null);
+        }}
+        showToast={showToast}
+      />
+
+      {/* Floating AI Concierge Co-Pilot Button (Phase D) */}
+      <button
+        type="button"
+        onClick={() => setShowAIAssistantModal(true)}
+        data-testid="btn-floating-ai-concierge"
+        id="btn-floating-ai-concierge"
+        title="Open Swat Tourism AI Concierge"
+        style={{
+          position: 'fixed',
+          bottom: '22px',
+          right: '22px',
+          zIndex: 80,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '7px',
+          padding: '10px 18px',
+          borderRadius: '9999px',
+          background: 'linear-gradient(135deg, #1B4F72 0%, #10B981 100%)',
+          color: '#FFFFFF',
+          fontWeight: 800,
+          fontSize: '12.5px',
+          boxShadow: '0 6px 20px rgba(16, 185, 129, 0.45)',
+          border: '2px solid rgba(255, 255, 255, 0.4)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <Sparkles size={16} />
+        <span>AI Concierge</span>
+      </button>
+
+      {/* AI Assistant Modal (Phase C & D) */}
+      <TouristAIAssistantModal
+        isOpen={showAIAssistantModal}
+        onClose={() => setShowAIAssistantModal(false)}
+        onNavigateTab={(tab) => {
+          if (tab === 'ai-trip-plan') {
+            setShowAITripModal(true);
+          } else {
+            onTabChange?.(tab as any);
+          }
+        }}
+        onOpenTripPlan={(prompt) => {
+          setAiTripPrompt(prompt);
+          setShowAITripModal(true);
+        }}
+        touristName={user?.full_name || 'Tourist Guest'}
+        touristPhone={user?.phone || '+92-300-1234567'}
+      />
+
+      {/* AI 1-Prompt Trip Generator Modal (Phase A) */}
+      <AITripGeneratorModal
+        isOpen={showAITripModal}
+        initialPrompt={aiTripPrompt}
+        onClose={() => {
+          setShowAITripModal(false);
+          setAiTripPrompt('');
+        }}
+        onCreateTrip={async (data: any) => {
+          let created: Trip;
+          try {
+            created = await createTrip({
+              title: data.title || 'AI Swat Trip',
+              start_date: data.start_date,
+              end_date: data.end_date,
+              travellers: data.travellers || 2,
+              notes: data.notes,
+              estimated_total: data.estimated_total,
+              stops: data.stops,
+            });
+          } catch {
+            created = {
+              id: 'trip-ai-' + Date.now(),
+              tourist_id: user?.id || 'tourist-local',
+              title: data.title || 'AI Swat Trip',
+              start_date: data.start_date,
+              end_date: data.end_date,
+              travellers: data.travellers || 2,
+              status: 'planned',
+              estimated_total: data.estimated_total || 0,
+              notes: data.notes,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              stops: [],
+            };
+          }
+
+          if (!created.stops || created.stops.length === 0) {
+            created = {
+              ...created,
+              stops: (data.stops || []).map((s: any, idx: number) => ({
+                id: s.id || `stop-ai-${Date.now()}-${idx}`,
+                trip_id: created.id,
+                day_number: s.day_number || 1,
+                end_day_number: s.end_day_number,
+                stop_order: s.stop_order || idx + 1,
+                time_slot: s.time_slot || '09:00 AM',
+                stop_type: s.stop_type || 'custom',
+                custom_title: s.custom_title || 'Stop',
+                notes: s.notes,
+                created_at: new Date().toISOString(),
+              })),
+            };
+          }
+
+          setAllTrips((prev) => {
+            const updated = [created, ...prev.filter((t) => t.id !== created.id)];
+            try {
+              localStorage.setItem('swat_local_trips', JSON.stringify(updated));
+            } catch {}
+            return updated;
+          });
+          setActiveTripId(created.id);
+          localStorage.setItem('swat_active_trip_id', created.id);
+          setTrip(created);
+          setCurrentViewedTrip(created);
+          onTabChange?.('trips');
+          return created;
+        }}
+        showToast={showToast}
+      />
+
+    </div>
+  );
 };
