@@ -63,6 +63,19 @@ export interface CommissionTransaction {
   created_at: string;
 }
 
+export interface RegisteredFinanceBusiness {
+  id: string;
+  business_name: string;
+  primary_type: string;
+  has_invoice: boolean;
+  invoice_id?: string;
+  invoice_number?: string;
+  onebill_consumer_id?: string;
+  status: string;
+  total_commission_due: number;
+  total_gross_bookings: number;
+}
+
 export const financeApi = {
   getCommissionTiers: () => apiRequest<CommissionTier[]>('/finance/commission-tiers'),
   
@@ -94,10 +107,16 @@ export const financeApi = {
       body: JSON.stringify({ payment_method: paymentMethod, payment_reference: reference }),
     }),
 
-  generateMonthlyInvoices: (period: string = '2026-11') =>
-    apiRequest<MonthlyInvoice[]>(`/finance/invoices/generate-monthly?billing_period=${period}`, {
+  generateMonthlyInvoices: (period: string = '2026-11', businessId?: string) => {
+    let url = `/finance/invoices/generate-monthly?billing_period=${period}`;
+    if (businessId) url += `&business_id=${businessId}`;
+    return apiRequest<MonthlyInvoice[]>(url, {
       method: 'POST',
-    }),
+    });
+  },
+
+  getRegisteredBusinesses: (period: string = '2026-11') =>
+    apiRequest<RegisteredFinanceBusiness[]>(`/finance/businesses?billing_period=${period}`),
 
   getPayouts: () => apiRequest<OperatorPayout[]>('/finance/payouts'),
 

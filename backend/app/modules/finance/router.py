@@ -357,18 +357,58 @@ async def list_commission_transactions(
     return res.scalars().all()
 
 
-@router.post("/invoices/generate-monthly", response_model=List[MonthlyInvoiceOut])
-async def generate_monthly_invoices(
+@router.get("/businesses")
+async def list_finance_businesses(
     billing_period: str = "2026-11",
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Batch Invoice Generator:
-    Compiles all cash-on-arrival completed bookings into monthly invoices with unique 1Link 1Bill IDs.
-    """
-    # Find all businesses
-    biz_res = await db.execute(select(BusinessProfile))
+    """List all registered business profiles with their billing & invoice status."""
+    biz_res = await db.execute(select(BusinessProfile).order_by(BusinessProfile.business_name))
     businesses = biz_res.scalars().all()
+
+    inv_res = await db.execute(
+        select(MonthlyInvoice).where(MonthlyInvoice.billing_period == billing_period)
+    )
+    invoices = inv_res.scalars().all()
+    inv_map = {inv.business_id: inv for inv in invoices}
+
+    out = []
+    for b in businesses:
+        inv = inv_map.get(b.id)
+        out.append({
+            "id": str(b.id),
+            "business_name": b.business_name,
+            "primary_type": b.primary_type or "hotel",
+            "has_invoice": inv is not None,
+            "invoice_id": str(inv.id) if inv else None,
+            "invoice_number": inv.invoice_number if inv else None,
+            "onebill_consumer_id": inv.onebill_consumer_id if inv else None,
+            "status": inv.status if inv else "pending_generation",
+            "total_commission_due": float(inv.total_commission_due) if inv else 0.0,
+            "total_gross_bookings": float(inv.total_gross_bookings) if inv else 0.0,
+        })
+    return out
+
+
+@router.post("/invoices/generate-monthly", response_model=List[MonthlyInvoiceOut])
+async def generate_monthly_invoices(
+    billing_period: str = "2026-11",
+    business_id: Optional[uuid.UUID] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Batch or Individual Monthly Invoice Generator:
+    Compiles completed bookings into monthly invoices with unique 1Link 1Bill IDs.
+    Can be run for all businesses in batch or for a specific individual business.
+    """
+    if business_id:
+        biz_res = await db.execute(select(BusinessProfile).where(BusinessProfile.id == business_id))
+        businesses = biz_res.scalars().all()
+        if not businesses:
+            raise HTTPException(status_code=404, detail="Business profile not found")
+    else:
+        biz_res = await db.execute(select(BusinessProfile))
+        businesses = biz_res.scalars().all()
 
     created_invoices = []
     import secrets
@@ -400,7 +440,10 @@ async def generate_monthly_invoices(
                 MonthlyInvoice.billing_period == billing_period
             )
         )
-        if existing_inv.scalar_one_or_none():
+        ext = existing_inv.scalar_one_or_none()
+        if ext:
+            if business_id:
+                created_invoices.append(ext)
             continue
 
         # Get bookings for this business
@@ -458,9 +501,13 @@ async def generate_monthly_invoices(
         db.add(inv)
         created_invoices.append(inv)
 
-    await db.commit()
-    for inv in created_invoices:
-        await db.refresh(inv)
+    if created_invoices:
+        await db.commit()
+        for inv in created_invoices:
+            await db.refresh(inv)
+
+    if business_id:
+        return created_invoices
 
     # Return all invoices for this period
     all_res = await db.execute(
