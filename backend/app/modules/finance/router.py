@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, update
 
 from app.core.database import get_db
+from app.core.deps import get_optional_token_payload
 from app.modules.finance.models import (
     CommissionTier,
     PartnerCommissionOverride,
@@ -164,14 +165,35 @@ async def get_financial_stats(db: AsyncSession = Depends(get_db)):
 async def list_all_invoices(
     status_filter: Optional[str] = None,
     business_id: Optional[uuid.UUID] = None,
+    payload: Optional[dict] = Depends(get_optional_token_payload),
     db: AsyncSession = Depends(get_db)
 ):
-    """List all monthly commission invoices (Authority View)."""
+    """List monthly commission invoices (strictly isolated to owner if caller is business)."""
     stmt = select(MonthlyInvoice).order_by(desc(MonthlyInvoice.issued_at))
+
+    if payload:
+        user_role = payload.get("role")
+        user_id_str = payload.get("sub")
+        if user_role == "business" and user_id_str:
+            user_id = uuid.UUID(user_id_str)
+            bp_q = select(BusinessProfile).where(BusinessProfile.owner_id == user_id)
+            bp_res = await db.execute(bp_q)
+            profiles = bp_res.scalars().all()
+            if not profiles:
+                return []
+            profile_ids = [p.id for p in profiles]
+            if business_id and business_id not in profile_ids:
+                return []
+            target_ids = [business_id] if business_id else profile_ids
+            stmt = stmt.where(MonthlyInvoice.business_id.in_(target_ids))
+        elif business_id:
+            stmt = stmt.where(MonthlyInvoice.business_id == business_id)
+    elif business_id:
+        stmt = stmt.where(MonthlyInvoice.business_id == business_id)
+
     if status_filter:
         stmt = stmt.where(MonthlyInvoice.status == status_filter)
-    if business_id:
-        stmt = stmt.where(MonthlyInvoice.business_id == business_id)
+
     res = await db.execute(stmt)
     return res.scalars().all()
 
@@ -179,12 +201,37 @@ async def list_all_invoices(
 @router.get("/invoices/my", response_model=List[MonthlyInvoiceOut])
 async def list_my_invoices(
     business_id: Optional[uuid.UUID] = None,
+    payload: Optional[dict] = Depends(get_optional_token_payload),
     db: AsyncSession = Depends(get_db)
 ):
-    """List invoices for the operator's business."""
+    """List invoices strictly for the authenticated operator's own business."""
     stmt = select(MonthlyInvoice).order_by(desc(MonthlyInvoice.issued_at))
-    if business_id:
+
+    if payload:
+        user_role = payload.get("role")
+        user_id_str = payload.get("sub")
+        if user_role == "business" and user_id_str:
+            user_id = uuid.UUID(user_id_str)
+            bp_q = select(BusinessProfile).where(BusinessProfile.owner_id == user_id)
+            bp_res = await db.execute(bp_q)
+            profiles = bp_res.scalars().all()
+            if not profiles:
+                return []
+            profile_ids = [p.id for p in profiles]
+            if business_id and business_id not in profile_ids:
+                return []
+            target_ids = [business_id] if business_id else profile_ids
+            stmt = stmt.where(MonthlyInvoice.business_id.in_(target_ids))
+        elif user_role in ("authority", "admin"):
+            if business_id:
+                stmt = stmt.where(MonthlyInvoice.business_id == business_id)
+        else:
+            return []
+    elif business_id:
         stmt = stmt.where(MonthlyInvoice.business_id == business_id)
+    else:
+        return []
+
     res = await db.execute(stmt)
     return res.scalars().all()
 

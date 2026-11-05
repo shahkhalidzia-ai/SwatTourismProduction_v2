@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -27,6 +27,16 @@ async def get_current_token_payload(token: str = Depends(oauth2_scheme)) -> dict
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+async def get_optional_token_payload(token: str = Depends(oauth2_scheme)) -> Optional[dict]:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        return payload
+    except JWTError:
+        return None
 
 
 def require_roles(allowed_roles: List[str]):

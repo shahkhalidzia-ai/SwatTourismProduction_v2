@@ -12,12 +12,14 @@ interface OperatorEarningsInvoicesViewProps {
   businessId?: string;
   businessName?: string;
   primaryType?: string;
+  isDemoUser?: boolean;
 }
 
 export const OperatorEarningsInvoicesView: React.FC<OperatorEarningsInvoicesViewProps> = ({
   businessId,
-  businessName = 'Swat Serena Hotel',
+  businessName = 'My Business',
   primaryType = 'hotel',
+  isDemoUser = false,
 }) => {
   const [invoices, setInvoices] = useState<MonthlyInvoice[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,16 +30,20 @@ export const OperatorEarningsInvoicesView: React.FC<OperatorEarningsInvoicesView
   const loadInvoices = async () => {
     setLoading(true);
     try {
-      const data = await financeApi.getInvoices(undefined, businessId);
-      // If none for this specific id, fetch general demo list
-      if (data && data.length > 0) {
-        setInvoices(data);
-      } else {
+      if (businessId) {
+        // Fetch strictly for this authenticated business profile
+        const data = await financeApi.getMyInvoices(businessId);
+        setInvoices(data || []);
+      } else if (isDemoUser) {
+        // Only unauthenticated demo mode accounts load mock demo list
         const all = await financeApi.getInvoices();
         setInvoices(all.slice(0, 5));
+      } else {
+        setInvoices([]);
       }
     } catch (err) {
       console.error('Failed to load operator invoices:', err);
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -45,7 +51,7 @@ export const OperatorEarningsInvoicesView: React.FC<OperatorEarningsInvoicesView
 
   useEffect(() => {
     loadInvoices();
-  }, [businessId]);
+  }, [businessId, isDemoUser]);
 
   const handleCopyOneBill = (onebillId: string) => {
     navigator.clipboard.writeText(onebillId);
@@ -135,7 +141,7 @@ export const OperatorEarningsInvoicesView: React.FC<OperatorEarningsInvoicesView
         <div style={{ padding: '18px', backgroundColor: 'var(--card, #ffffff)', borderRadius: '12px', border: '1px solid var(--line, #e2e8f0)' }}>
           <span style={{ fontSize: '12.5px', color: 'var(--mute, #64748b)', fontWeight: 600 }}>Total Bookings Volume</span>
           <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--ink, #0f172a)', marginTop: '6px' }}>
-            PKR {totalGross ? totalGross.toLocaleString() : '45,000'}
+            PKR {totalGross.toLocaleString()}
           </div>
           <span style={{ fontSize: '11.5px', color: '#16A34A', fontWeight: 600 }}>100% Cash / Online stays</span>
         </div>
@@ -230,58 +236,70 @@ export const OperatorEarningsInvoicesView: React.FC<OperatorEarningsInvoicesView
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv) => (
-                <tr key={inv.id} style={{ borderBottom: '1px solid var(--line, #f1f5f9)' }}>
-                  <td style={{ padding: '12px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
-                  <td style={{ padding: '12px 14px' }}>{inv.billing_period}</td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0F766E' }}>
-                      {inv.onebill_consumer_id}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 14px' }}>PKR {Number(inv.total_gross_bookings).toLocaleString()}</td>
-                  <td style={{ padding: '12px 14px', fontWeight: 700, color: '#0F766E' }}>
-                    PKR {Number(inv.total_commission_due).toLocaleString()}
-                  </td>
-                  <td style={{ padding: '12px 14px' }}>
-                    <span
-                      style={{
-                        padding: '3px 10px',
-                        borderRadius: '12px',
-                        fontSize: '11.5px',
-                        fontWeight: 700,
-                        backgroundColor: inv.status === 'paid' ? '#DCFCE7' : '#FEF3C7',
-                        color: inv.status === 'paid' ? '#166534' : '#92400E',
-                      }}
-                    >
-                      {inv.status.toUpperCase()}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 14px', textAlign: 'right' }}>
-                    {inv.status !== 'paid' ? (
-                      <button
-                        onClick={() => setSelectedInvoice(inv)}
-                        style={{
-                          padding: '6px 14px',
-                          backgroundColor: '#0F766E',
-                          color: '#ffffff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '12.5px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Pay Invoice
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: '12.5px', color: '#16A34A', fontWeight: 700 }}>
-                        ✓ Paid
-                      </span>
-                    )}
+              {invoices.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: '36px 14px', textAlign: 'center', color: 'var(--mute, #64748b)' }}>
+                    <Receipt size={32} style={{ margin: '0 auto 8px', opacity: 0.5, display: 'block' }} />
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--ink, #0f172a)' }}>No invoices yet</div>
+                    <div style={{ fontSize: '12.5px', marginTop: '4px' }}>
+                      Monthly commission invoices for {businessName} will appear here after completed guest stays.
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                invoices.map((inv) => (
+                  <tr key={inv.id} style={{ borderBottom: '1px solid var(--line, #f1f5f9)' }}>
+                    <td style={{ padding: '12px 14px', fontWeight: 600 }}>{inv.invoice_number}</td>
+                    <td style={{ padding: '12px 14px' }}>{inv.billing_period}</td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0F766E' }}>
+                        {inv.onebill_consumer_id}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>PKR {Number(inv.total_gross_bookings).toLocaleString()}</td>
+                    <td style={{ padding: '12px 14px', fontWeight: 700, color: '#0F766E' }}>
+                      PKR {Number(inv.total_commission_due).toLocaleString()}
+                    </td>
+                    <td style={{ padding: '12px 14px' }}>
+                      <span
+                        style={{
+                          padding: '3px 10px',
+                          borderRadius: '12px',
+                          fontSize: '11.5px',
+                          fontWeight: 700,
+                          backgroundColor: inv.status === 'paid' ? '#DCFCE7' : '#FEF3C7',
+                          color: inv.status === 'paid' ? '#166534' : '#92400E',
+                        }}
+                      >
+                        {inv.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                      {inv.status !== 'paid' ? (
+                        <button
+                          onClick={() => setSelectedInvoice(inv)}
+                          style={{
+                            padding: '6px 14px',
+                            backgroundColor: '#0F766E',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '12.5px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Pay Invoice
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: '12.5px', color: '#16A34A', fontWeight: 700 }}>
+                          ✓ Paid
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

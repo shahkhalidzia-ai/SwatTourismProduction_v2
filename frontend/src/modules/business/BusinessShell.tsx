@@ -7851,13 +7851,10 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       {activeTab === 'invoices' && (
 
         <OperatorEarningsInvoicesView
-
           businessId={user?.business_profile?.id}
-
           businessName={currentBizName}
-
           primaryType={currentBizType}
-
+          isDemoUser={isDemoAccount}
         />
 
       )}
