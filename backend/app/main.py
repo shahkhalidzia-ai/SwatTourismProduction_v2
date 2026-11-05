@@ -54,10 +54,22 @@ async def lifespan(app: FastAPI):
                     new_booking_cols = [
                         ("assigned_room_number", "VARCHAR(100)"),
                         ("assigned_room_id", "VARCHAR(100)"),
+                        ("stay_status", "VARCHAR(20) DEFAULT 'reserved'"),
+                        ("checked_in_at", "DATETIME"),
+                        ("checked_out_at", "DATETIME"),
                     ]
                     for b_col, b_type in new_booking_cols:
                         if b_col not in booking_cols:
                             sync_conn.exec_driver_sql(f"ALTER TABLE bookings ADD COLUMN {b_col} {b_type};")
+
+                    room_cols = [row[1] for row in sync_conn.exec_driver_sql("PRAGMA table_info(hotel_rooms)").fetchall()]
+                    new_room_cols = [
+                        ("cleaning_status", "VARCHAR(20) DEFAULT 'ready'"),
+                        ("stay_state", "VARCHAR(20) DEFAULT 'vacant'"),
+                    ]
+                    for r_col, r_type in new_room_cols:
+                        if r_col not in room_cols:
+                            sync_conn.exec_driver_sql(f"ALTER TABLE hotel_rooms ADD COLUMN {r_col} {r_type};")
                 await conn.run_sync(auto_migrate_sqlite)
     except Exception as e:
         print(f"[WARN] Database startup sync: {e}", flush=True)

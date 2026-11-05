@@ -251,6 +251,20 @@ export async function collectBookingBalance(bookingId: string): Promise<Booking>
   });
 }
 
+export async function checkInBookingApi(bookingId: string, note?: string): Promise<Booking> {
+  return apiRequest<Booking>(`/bookings/${bookingId}/check-in`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+}
+
+export async function checkOutBookingApi(bookingId: string, note?: string): Promise<Booking> {
+  return apiRequest<Booking>(`/bookings/${bookingId}/check-out`, {
+    method: 'POST',
+    body: JSON.stringify({ note }),
+  });
+}
+
 
 export interface EasypaisaPayPayload {
   mobile_number: string;

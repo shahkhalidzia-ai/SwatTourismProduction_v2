@@ -290,8 +290,14 @@ async def update_hotel_room_status(
     profile: BusinessProfile = Depends(get_current_business_profile),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update physical room status (available, reserved, occupied, cleaning, maintenance)."""
-    return await ListingsService.update_room_status(db, room_id, data.status, data.notes)
+    return await ListingsService.update_room_status(
+        db,
+        room_id,
+        data.status,
+        data.notes,
+        cleaning_status=data.cleaning_status,
+        stay_state=data.stay_state,
+    )
 
 
 @router.post("/{listing_id}/assign-rooms", response_model=List[HotelRoomOut])

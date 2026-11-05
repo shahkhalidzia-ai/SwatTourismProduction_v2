@@ -135,6 +135,41 @@ async def complete_booking(
     return await BookingService.complete_booking(db, booking_id, user_id, action)
 
 
+@router.post("/{booking_id}/check-in", response_model=BookingOut)
+async def check_in_booking(
+    booking_id: uuid.UUID,
+    action: BookingActionRequest = BookingActionRequest(),
+    payload: dict = Depends(require_roles(["business", "authority", "admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Front-desk action: Check-in guest, transition stay to in-house, and set room occupied."""
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.check_in_booking(db, booking_id, user_id, action)
+
+
+@router.post("/{booking_id}/check-out", response_model=BookingOut)
+async def check_out_booking(
+    booking_id: uuid.UUID,
+    action: BookingActionRequest = BookingActionRequest(),
+    payload: dict = Depends(require_roles(["business", "authority", "admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Front-desk action: Check-out guest, release room to housekeeping turnover, complete booking, and invite review."""
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.check_out_booking(db, booking_id, user_id, action)
+
+
+@router.post("/{booking_id}/collect-balance", response_model=BookingOut)
+async def collect_booking_balance(
+    booking_id: uuid.UUID,
+    payload: dict = Depends(require_roles(["business", "authority", "admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Front-desk action: Record payment of remaining balance at reception counter."""
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.collect_balance(db, booking_id, user_id)
+
+
 @router.post("/{booking_id}/decline", response_model=BookingOut)
 async def decline_booking(
     booking_id: uuid.UUID,

@@ -27,7 +27,7 @@ import { AssignRoomModal } from './AssignRoomModal';
 import { PhysicalRoomConfigModal } from './PhysicalRoomConfigModal';
 import { HotelFolioReceiptModal } from './HotelFolioReceiptModal';
 import { getCurrentWeekDays } from '../../utils/currentWeek';
-import { collectBookingBalance } from '../../api/bookings';
+import { collectBookingBalance, checkInBookingApi, checkOutBookingApi } from '../../api/bookings';
 import { apiRequest } from '../../api/client';
 import {
   getPhysicalRoomsForHotel,
@@ -422,6 +422,14 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     try {
       localStorage.setItem('swat_hotel_stay_states', JSON.stringify(updated));
     } catch {}
+
+    // Persist stay transition to backend database API
+    if (booking.id) {
+      checkInBookingApi(booking.id).catch((err) => {
+        console.warn('Backend checkInBookingApi skipped (demo/offline booking):', err);
+      });
+    }
+
     const refreshed = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
     setPhysicalRooms(refreshed);
     window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated'));
@@ -513,6 +521,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
     try {
       localStorage.setItem('swat_hotel_stay_states', JSON.stringify(updated));
     } catch {}
+
+    // Persist stay checkout & turnover to backend database API
+    if (booking.id) {
+      checkOutBookingApi(booking.id).catch((err) => {
+        console.warn('Backend checkOutBookingApi skipped (demo/offline booking):', err);
+      });
+    }
 
     const refreshed = getPhysicalRoomsForHotel(effectiveListingId, safeBusinessName, roomTypes || []);
     const synced = refreshed.map((r) => {

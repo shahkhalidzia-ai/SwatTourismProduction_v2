@@ -243,6 +243,8 @@ class HotelRoomBase(BaseModel):
     category_name: str = "Standard Room"
     bed_setup: Optional[str] = "1 King Bed"
     status: RoomStatusCode = "available"
+    cleaning_status: str = "ready"
+    stay_state: str = "vacant"
     price_item_id: Optional[uuid.UUID] = None
     notes: Optional[str] = None
 
@@ -258,12 +260,16 @@ class HotelRoomUpdate(BaseModel):
     category_name: Optional[str] = None
     bed_setup: Optional[str] = None
     status: Optional[RoomStatusCode] = None
+    cleaning_status: Optional[str] = None
+    stay_state: Optional[str] = None
     price_item_id: Optional[uuid.UUID] = None
     notes: Optional[str] = None
 
 
 class HotelRoomStatusUpdate(BaseModel):
     status: RoomStatusCode
+    cleaning_status: Optional[str] = None
+    stay_state: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -284,6 +290,8 @@ class HotelRoomOut(BaseModel):
     category_name: str
     bed_setup: Optional[str] = None
     status: str
+    cleaning_status: Optional[str] = "ready"
+    stay_state: Optional[str] = "vacant"
     current_booking_id: Optional[uuid.UUID] = None
     current_guest_name: Optional[str] = None
     stay_dates: Optional[str] = None

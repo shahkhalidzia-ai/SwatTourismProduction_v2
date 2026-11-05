@@ -28,14 +28,15 @@ describe('Design System Tokens and Components', () => {
 
   it('ensures each role has navigation items matching the role specifications', () => {
     expect(ROLE_NAV_ITEMS.tourist).toHaveLength(5);
-    expect(ROLE_NAV_ITEMS.business).toHaveLength(5);
+    expect(ROLE_NAV_ITEMS.business).toHaveLength(6);
     expect(ROLE_NAV_ITEMS.community).toHaveLength(4);
-    expect(ROLE_NAV_ITEMS.authority).toHaveLength(6);
+    expect(ROLE_NAV_ITEMS.authority).toHaveLength(7);
+    expect(ROLE_NAV_ITEMS.admin).toHaveLength(7);
 
     expect(ROLE_NAV_ITEMS.tourist.map(i => i.label)).toEqual(['Home', 'Explore', 'Trips', 'Safety', 'Profile']);
-    expect(ROLE_NAV_ITEMS.business.map(i => i.label)).toEqual(['Today', 'Listings', 'Availability', 'Reviews', 'Profile']);
+    expect(ROLE_NAV_ITEMS.business.map(i => i.label)).toEqual(['Today', 'Listings', 'Availability', 'Invoices & Commission', 'Reviews', 'Profile']);
     expect(ROLE_NAV_ITEMS.community.map(i => i.label)).toEqual(['Stories', 'Report', 'Services', 'Profile']);
-    expect(ROLE_NAV_ITEMS.authority.map(i => i.label)).toEqual(['Overview', 'User Management', 'Directory', 'Advisories', 'Approvals', 'Cases']);
-    expect(ROLE_NAV_ITEMS.admin.map(i => i.label)).toEqual(['Overview', 'User Management', 'Directory', 'Approvals', 'Cases & SOS', 'Advisories']);
+    expect(ROLE_NAV_ITEMS.authority.map(i => i.label)).toEqual(['Overview', 'Finances & Commission', 'User Management', 'Directory', 'Advisories', 'Approvals', 'Cases']);
+    expect(ROLE_NAV_ITEMS.admin.map(i => i.label)).toEqual(['Overview', 'Finances & Commission', 'User Management', 'Directory', 'Approvals', 'Cases & SOS', 'Advisories']);
   });
 });

@@ -948,6 +948,8 @@ class ListingsService:
         room_id: uuid.UUID,
         status: str,
         notes: Optional[str] = None,
+        cleaning_status: Optional[str] = None,
+        stay_state: Optional[str] = None,
     ) -> HotelRoom:
         """Update live status of a physical room (available, reserved, occupied, cleaning, maintenance)."""
         stmt = select(HotelRoom).where(HotelRoom.id == room_id)
@@ -957,6 +959,26 @@ class ListingsService:
             raise HTTPException(status_code=404, detail="Hotel room not found")
 
         room.status = status
+        if cleaning_status:
+            room.cleaning_status = cleaning_status
+        elif status == "cleaning":
+            room.cleaning_status = "cleaning"
+        elif status == "available":
+            room.cleaning_status = "ready"
+        elif status == "occupied":
+            room.cleaning_status = "inspected"
+
+        if stay_state:
+            room.stay_state = stay_state
+        elif status == "occupied":
+            room.stay_state = "occupied"
+        elif status == "cleaning":
+            room.stay_state = "turnover"
+        elif status == "available":
+            room.stay_state = "vacant"
+        elif status == "reserved":
+            room.stay_state = "reserved"
+
         if notes is not None:
             room.notes = notes
         room.updated_at = datetime.now(timezone.utc)
@@ -1046,6 +1068,12 @@ class ListingsService:
             raise HTTPException(status_code=404, detail="Hotel room not found")
 
         room.status = to_status
+        if to_status == "cleaning":
+            room.cleaning_status = "cleaning"
+            room.stay_state = "turnover"
+        elif to_status == "available":
+            room.cleaning_status = "ready"
+            room.stay_state = "vacant"
         room.current_booking_id = None
         room.current_guest_name = None
         room.stay_dates = None

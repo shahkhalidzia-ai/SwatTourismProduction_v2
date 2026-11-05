@@ -172,6 +172,8 @@ class HotelRoom(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     category_name: Mapped[str] = mapped_column(String(100), default="Standard Room", nullable=False)
     bed_setup: Mapped[Optional[str]] = mapped_column(String(60), default="1 King Bed", nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="available", nullable=False)
+    cleaning_status: Mapped[str] = mapped_column(String(20), default="ready", nullable=False)
+    stay_state: Mapped[str] = mapped_column(String(20), default="vacant", nullable=False)
     current_booking_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("bookings.id", ondelete="SET NULL"), nullable=True, index=True)
     current_guest_name: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     stay_dates: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
@@ -180,6 +182,8 @@ class HotelRoom(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     __table_args__ = (
         CheckConstraint("status IN ('available', 'reserved', 'occupied', 'cleaning', 'maintenance')", name="check_hotel_room_status"),
+        CheckConstraint("cleaning_status IN ('ready', 'cleaning', 'inspected', 'touch_up')", name="check_hotel_room_cleaning_status"),
+        CheckConstraint("stay_state IN ('vacant', 'reserved', 'occupied', 'turnover')", name="check_hotel_room_stay_state"),
         UniqueConstraint("listing_id", "room_number", name="uq_listing_room_number"),
     )
 

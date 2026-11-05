@@ -35,6 +35,9 @@ class Booking(Base, UUIDPrimaryKeyMixin):
     pickup_time: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
     assigned_room_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     assigned_room_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    stay_status: Mapped[Optional[str]] = mapped_column(String(20), default="reserved", nullable=True)
+    checked_in_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    checked_out_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -57,6 +60,10 @@ class Booking(Base, UUIDPrimaryKeyMixin):
         CheckConstraint(
             "payment_status IN ('unpaid', 'deposit_paid', 'paid', 'refunded')",
             name="check_payment_status",
+        ),
+        CheckConstraint(
+            "stay_status IS NULL OR stay_status IN ('reserved', 'checked_in', 'checked_out')",
+            name="check_stay_status",
         ),
         Index("idx_booking_business_status", "business_id", "status"),
         Index("idx_booking_tourist_status", "tourist_id", "status"),

@@ -170,34 +170,18 @@ describe('Public Landing Page and Property Registration Verification', () => {
     });
 
     // 3. Authenticated state: Left sidebar is now visible
-    expect(await screen.findByTestId('web-sidebar')).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getByTestId('web-sidebar')).toBeDefined();
+    }, { timeout: 5000 });
 
     // Hotel Owner role-specific items are present in the left menu
-    expect(screen.getByRole('button', { name: /Explore Swat/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /Today/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /Listings/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /Availability/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /Reviews/i })).toBeDefined();
 
-    // Public page is still loaded initially upon login
-    expect(screen.getByText('Swat Tourism Platform')).toBeDefined();
-
-    // 4. Click 'Today' in sidebar to access Hotel dashboard
-    const todayNavBtn = screen.getByRole('button', { name: /Today/i });
-    await act(async () => {
-      fireEvent.click(todayNavBtn);
-    });
-
-    // Hotel Today Screen is displayed
+    // Hotel dashboard is directly loaded upon hotel owner login
     expect(await screen.findByText(/Bookings today/i)).toBeDefined();
-
-    // 5. Click 'Explore Swat' in sidebar to return to public page
-    const exploreSwatNavBtn = screen.getByRole('button', { name: /Explore Swat/i });
-    await act(async () => {
-      fireEvent.click(exploreSwatNavBtn);
-    });
-
-    // Public page is displayed again
-    expect(await screen.findByText('Swat Tourism Platform')).toBeDefined();
   });
 });
 

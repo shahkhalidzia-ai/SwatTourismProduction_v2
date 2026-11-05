@@ -18,7 +18,7 @@ from app.modules.bookings.schemas import (
     MockPaymentRequest,
     BusinessBookingSummaryOut,
 )
-from app.modules.listings.models import Listing, PriceItem, Availability
+from app.modules.listings.models import Listing, PriceItem, Availability, HotelRoom
 from app.modules.notifications.service import NotificationService
 from app.modules.communications.dispatcher import CommunicationDispatcher
 from app.modules.trips.models import Trip, TripStop
@@ -696,6 +696,206 @@ class BookingService:
             logger.warning(f"Communications gateway error in complete_booking: {comm_err}")
 
         return updated_booking
+
+    @staticmethod
+    async def check_in_booking(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        user_id: uuid.UUID,
+        action: BookingActionRequest = BookingActionRequest(),
+    ) -> Booking:
+        """Front-desk action: check in a guest, mark room occupied, and persist stay state."""
+        booking = await BookingService.get_booking_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        # Authorize business owner or authority/admin
+        user_q = select(User).where(User.id == user_id)
+        user_res = await db.execute(user_q)
+        current_user = user_res.scalar_one_or_none()
+
+        is_owner = booking.business and booking.business.owner_id == user_id
+        is_elevated = current_user and current_user.role in ("authority", "admin")
+
+        if not (is_owner or is_elevated):
+            raise HTTPException(status_code=403, detail="Not authorized to check in guests for this booking")
+
+        old_stay = booking.stay_status or "reserved"
+        booking.stay_status = "checked_in"
+        now = datetime.now(timezone.utc)
+        booking.checked_in_at = now
+        booking.updated_at = now
+
+        # If assigned room exists, transition room to occupied in database
+        if booking.assigned_room_id:
+            for r_id_str in booking.assigned_room_id.split(","):
+                r_id_str = r_id_str.strip()
+                try:
+                    r_uuid = uuid.UUID(r_id_str)
+                    rm_q = select(HotelRoom).where(HotelRoom.id == r_uuid)
+                except ValueError:
+                    rm_q = select(HotelRoom).where(
+                        HotelRoom.listing_id == booking.listing_id,
+                        HotelRoom.room_number == r_id_str
+                    )
+                rm_res = await db.execute(rm_q)
+                room = rm_res.scalar_one_or_none()
+                if room:
+                    room.status = "occupied"
+                    room.stay_state = "occupied"
+                    room.current_booking_id = booking.id
+                    room.current_guest_name = booking.tourist.full_name if booking.tourist else "Guest"
+                    room.updated_at = now
+
+        history = BookingStatusHistory(
+            id=uuid.uuid4(),
+            booking_id=booking.id,
+            from_status=old_stay,
+            to_status="checked_in",
+            changed_by=user_id,
+            note=action.note or f"Guest checked in at front desk (Room {booking.assigned_room_number or 'unassigned'}).",
+            created_at=now,
+        )
+        db.add(history)
+
+        await db.commit()
+        return await BookingService.get_booking_by_id(db, booking.id)
+
+    @staticmethod
+    async def check_out_booking(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        user_id: uuid.UUID,
+        action: BookingActionRequest = BookingActionRequest(),
+    ) -> Booking:
+        """Front-desk action: check out a guest, release room to cleaning/turnover, complete stay, and trigger post-stay review."""
+        booking = await BookingService.get_booking_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        # Authorize business owner or authority/admin
+        user_q = select(User).where(User.id == user_id)
+        user_res = await db.execute(user_q)
+        current_user = user_res.scalar_one_or_none()
+
+        is_owner = booking.business and booking.business.owner_id == user_id
+        is_elevated = current_user and current_user.role in ("authority", "admin")
+
+        if not (is_owner or is_elevated):
+            raise HTTPException(status_code=403, detail="Not authorized to check out guests for this booking")
+
+        old_stay = booking.stay_status or "checked_in"
+        old_status = booking.status
+        booking.stay_status = "checked_out"
+        booking.status = "completed"
+        now = datetime.now(timezone.utc)
+        booking.checked_out_at = now
+        booking.updated_at = now
+
+        # Release physical room to cleaning in database
+        if booking.assigned_room_id:
+            for r_id_str in booking.assigned_room_id.split(","):
+                r_id_str = r_id_str.strip()
+                try:
+                    r_uuid = uuid.UUID(r_id_str)
+                    rm_q = select(HotelRoom).where(HotelRoom.id == r_uuid)
+                except ValueError:
+                    rm_q = select(HotelRoom).where(
+                        HotelRoom.listing_id == booking.listing_id,
+                        HotelRoom.room_number == r_id_str
+                    )
+                rm_res = await db.execute(rm_q)
+                room = rm_res.scalar_one_or_none()
+                if room:
+                    room.status = "cleaning"
+                    room.cleaning_status = "cleaning"
+                    room.stay_state = "turnover"
+                    room.current_booking_id = None
+                    room.current_guest_name = None
+                    room.last_booking_id = str(booking.id)
+                    room.notes = f"Vacated at {now.strftime('%H:%M')} • Housekeeping Turnover"
+                    room.updated_at = now
+
+        history = BookingStatusHistory(
+            id=uuid.uuid4(),
+            booking_id=booking.id,
+            from_status=old_status,
+            to_status="completed",
+            changed_by=user_id,
+            note=action.note or f"Guest checked out at front desk. Room {booking.assigned_room_number or ''} marked for cleaning.",
+            created_at=now,
+        )
+        db.add(history)
+
+        # Notify tourist to share verified feedback
+        await NotificationService.create_notification(
+            db=db,
+            user_id=booking.tourist_id,
+            type="booking",
+            title=f"Stay Completed ({booking.reference})",
+            body=(
+                f"Thank you for staying at {booking.listing.title}! "
+                "Please leave a review and share your experience with the community."
+            ),
+            related_type="booking",
+            related_id=booking.id,
+        )
+
+        await db.commit()
+        updated_booking = await BookingService.get_booking_by_id(db, booking.id)
+
+        # Dispatch post-stay review invite via Communications Gateway
+        try:
+            await CommunicationDispatcher.dispatch_booking_completed(db, updated_booking)
+        except Exception as comm_err:
+            logger.warning(f"Communications gateway error in check_out_booking: {comm_err}")
+
+        return updated_booking
+
+    @staticmethod
+    async def collect_balance(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> Booking:
+        """Front-desk action: collect remaining booking balance (cash/card) and persist payment in database."""
+        booking = await BookingService.get_booking_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        # Authorize business owner or authority/admin
+        user_q = select(User).where(User.id == user_id)
+        user_res = await db.execute(user_q)
+        current_user = user_res.scalar_one_or_none()
+
+        is_owner = booking.business and booking.business.owner_id == user_id
+        is_elevated = current_user and current_user.role in ("authority", "admin")
+
+        if not (is_owner or is_elevated):
+            raise HTTPException(status_code=403, detail="Not authorized to collect balance for this booking")
+
+        total = float(booking.total_amount or 0.0)
+        previous_deposit = float(booking.deposit_amount or 0.0)
+        collected_now = max(0.0, total - previous_deposit)
+
+        now = datetime.now(timezone.utc)
+        booking.payment_status = "paid"
+        booking.deposit_amount = total
+        booking.updated_at = now
+
+        history = BookingStatusHistory(
+            id=uuid.uuid4(),
+            booking_id=booking.id,
+            from_status=booking.status,
+            to_status="paid",
+            changed_by=user_id,
+            note=f"Front-desk balance collection recorded: PKR {collected_now:,.2f} (Total Paid: PKR {total:,.2f})",
+            created_at=now,
+        )
+        db.add(history)
+
+        await db.commit()
+        return await BookingService.get_booking_by_id(db, booking.id)
 
     @staticmethod
     async def decline_booking(

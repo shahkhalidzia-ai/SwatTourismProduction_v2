@@ -124,6 +124,9 @@ class BookingOut(BaseModel):
     pickup_time: Optional[str] = None
     assigned_room_number: Optional[str] = None
     assigned_room_id: Optional[str] = None
+    stay_status: Optional[str] = "reserved"
+    checked_in_at: Optional[datetime] = None
+    checked_out_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
