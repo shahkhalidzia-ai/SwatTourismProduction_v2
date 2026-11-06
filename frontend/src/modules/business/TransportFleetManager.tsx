@@ -51,6 +51,8 @@ export interface FleetVehicle {
   providerName?: string;
   userId?: string;
   business_id?: string;
+  imageUrl?: string;
+  image_url?: string;
 }
 
 export const DEFAULT_VEHICLE_IDS = new Set([
@@ -70,6 +72,25 @@ export const VEHICLE_CATEGORIES = [
   'Passenger Sedans & Wagons',
 ];
 
+
+export function getVehicleDefaultImage(category?: string, name?: string): string {
+  const c = (category || '').toLowerCase();
+  const n = (name || '').toLowerCase();
+  if (c.includes('jeep') || n.includes('jeep') || n.includes('willys') || n.includes('4x4') || c.includes('4x4')) {
+    return '/images/transport/jeep_4x4_mountain.jpg';
+  }
+  if (c.includes('suv') || n.includes('prado') || n.includes('cruiser') || n.includes('4wd') || c.includes('4wd')) {
+    return '/images/transport/prado_luxury_suv.jpg';
+  }
+  if (c.includes('van') || c.includes('hiace') || n.includes('hiace') || n.includes('cabin') || c.includes('roof')) {
+    return '/images/transport/grand_cabin_hiace.jpg';
+  }
+  if (c.includes('coaster') || c.includes('bus') || n.includes('coaster') || n.includes('saloon')) {
+    return '/images/transport/coaster_saloon_bus.jpg';
+  }
+  return '/images/transport/toyota_passo_car.jpg';
+}
+
 export const DEFAULT_FLEET: FleetVehicle[] = [
   {
     id: 'veh-jeep-1',
@@ -86,6 +107,7 @@ export const DEFAULT_FLEET: FleetVehicle[] = [
     is_active: true,
     is_in_service: true,
     availabilityNote: 'Daily 06:00 AM – 09:00 PM',
+    imageUrl: '/images/transport/jeep_4x4_mountain.jpg',
   },
   {
     id: 'veh-hiace-1',
@@ -102,6 +124,7 @@ export const DEFAULT_FLEET: FleetVehicle[] = [
     is_active: true,
     is_in_service: true,
     availabilityNote: 'Scheduled Morning & Evening Trips',
+    imageUrl: '/images/transport/grand_cabin_hiace.jpg',
   },
   {
     id: 'veh-prado-1',
@@ -118,6 +141,7 @@ export const DEFAULT_FLEET: FleetVehicle[] = [
     is_active: true,
     is_in_service: true,
     availabilityNote: '24/7 VIP On-Call Reservation',
+    imageUrl: '/images/transport/prado_luxury_suv.jpg',
   },
   {
     id: 'veh-coaster-1',
@@ -134,6 +158,7 @@ export const DEFAULT_FLEET: FleetVehicle[] = [
     is_active: true,
     is_in_service: true,
     availabilityNote: 'Advance Group Charter Booking',
+    imageUrl: '/images/transport/coaster_saloon_bus.jpg',
   },
   {
     id: 'veh-brv-1',
@@ -150,6 +175,7 @@ export const DEFAULT_FLEET: FleetVehicle[] = [
     is_active: true,
     is_in_service: false, // Demo off-duty vehicle to showcase toggle
     availabilityNote: 'Scheduled Maintenance / Available Tomorrow',
+    imageUrl: '/images/transport/toyota_passo_car.jpg',
   },
 ];
 
@@ -321,7 +347,18 @@ export function fleetVehicleToListingItem(v: FleetVehicle, providerName?: string
         is_active: v.is_active !== false,
       },
     ],
-    media: [],
+    media: [
+      {
+        id: `media-${v.id}`,
+        owner_type: 'listing',
+        owner_id: `listing-${v.id}`,
+        url: v.imageUrl || v.image_url || getVehicleDefaultImage(v.category, v.name),
+        media_type: 'image',
+        caption: `${v.name} (Reg: ${v.regNumber})`,
+        sort_order: 0,
+        created_at: new Date().toISOString(),
+      },
+    ],
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
@@ -489,6 +526,15 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
         providerId: v.business_id,
         providerName: transportName,
         business_id: v.business_id,
+        imageUrl: (() => {
+          try {
+            if (v.notes && v.notes.startsWith('{')) {
+              const p = JSON.parse(v.notes);
+              if (p.image_url) return p.image_url;
+            }
+          } catch {}
+          return getVehicleDefaultImage(v.vehicle_type, v.model_name);
+        })(),
       }));
 
       setVehicles((prev) => {
@@ -1085,6 +1131,20 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
                   <div>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <img
+                        src={vehicle.imageUrl || vehicle.image_url || getVehicleDefaultImage(vehicle.category, vehicle.name)}
+                        alt={vehicle.name}
+                        style={{
+                          width: '74px',
+                          height: '56px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          border: '1px solid var(--line, #cbd5e1)',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
                     <span
                       style={{
                         fontSize: '11px',
@@ -1125,6 +1185,8 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
                       </span>
                     </div>
                   </div>
+                </div>
+              </div>
 
                   {/* Status Badges */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
