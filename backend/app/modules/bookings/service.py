@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.modules.accounts.models import User, BusinessProfile
-from app.modules.bookings.models import Booking, BookingItem, BookingStatusHistory
+from app.modules.bookings.models import Booking, BookingItem, BookingStatusHistory, BookingPayment
+from app.modules.finance.models import CommissionTransaction, CommissionTier, PartnerCommissionOverride
 from app.modules.bookings.schemas import (
     BookingCreateRequest,
     BookingItemCreateInput,
@@ -404,6 +405,7 @@ class BookingService:
             .options(
                 selectinload(Booking.items).selectinload(BookingItem.price_item),
                 selectinload(Booking.history),
+                selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
                 selectinload(Booking.listing),
@@ -433,6 +435,7 @@ class BookingService:
             .options(
                 selectinload(Booking.items).selectinload(BookingItem.price_item),
                 selectinload(Booking.history),
+                selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
                 selectinload(Booking.listing),
@@ -477,6 +480,7 @@ class BookingService:
             .options(
                 selectinload(Booking.items).selectinload(BookingItem.price_item),
                 selectinload(Booking.history),
+                selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
                 selectinload(Booking.listing),
@@ -517,6 +521,7 @@ class BookingService:
             .options(
                 selectinload(Booking.items).selectinload(BookingItem.price_item),
                 selectinload(Booking.history),
+                selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
                 selectinload(Booking.listing),
@@ -830,6 +835,50 @@ class BookingService:
         )
         db.add(history)
 
+        # Automated Commission Transaction Ledger Hook
+        ct_q = select(CommissionTransaction).where(CommissionTransaction.booking_id == booking.id)
+        ct_res = await db.execute(ct_q)
+        existing_ct = ct_res.scalar_one_or_none()
+        if not existing_ct and booking.business_id:
+            override_q = select(PartnerCommissionOverride).where(
+                PartnerCommissionOverride.business_id == booking.business_id,
+                PartnerCommissionOverride.is_active == True
+            )
+            override_res = await db.execute(override_q)
+            override = override_res.scalar_one_or_none()
+
+            rate = 10.0
+            if override:
+                rate = float(override.custom_rate)
+            else:
+                vertical = getattr(booking.business, "primary_type", "hotel") or "hotel"
+                tier_q = select(CommissionTier).where(CommissionTier.vertical == vertical)
+                tier_res = await db.execute(tier_q)
+                tier = tier_res.scalar_one_or_none()
+                if tier:
+                    rate = float(tier.default_rate)
+
+            gross = float(booking.total_amount or 0.0)
+            comm_amt = round(gross * (rate / 100.0), 2)
+            net_op = round(gross - comm_amt, 2)
+            channel = "stp_escrow" if (booking.deposit_track == "stp_platform" and (booking.deposit_amount or 0) >= gross) else "monthly_1bill"
+
+            comm_txn = CommissionTransaction(
+                id=uuid.uuid4(),
+                booking_id=booking.id,
+                business_id=booking.business_id,
+                vertical=getattr(booking.business, "primary_type", "hotel") or "hotel",
+                booking_reference=booking.reference,
+                gross_amount=gross,
+                commission_rate=rate,
+                commission_amount=comm_amt,
+                net_operator_amount=net_op,
+                settlement_channel=channel,
+                status="pending",
+                created_at=now,
+            )
+            db.add(comm_txn)
+
         # Notify tourist to share verified feedback
         await NotificationService.create_notification(
             db=db,
@@ -860,6 +909,10 @@ class BookingService:
         db: AsyncSession,
         booking_id: uuid.UUID,
         user_id: uuid.UUID,
+        payment_method: str = "cash",
+        voucher_ref: Optional[str] = None,
+        amount: Optional[float] = None,
+        notes: Optional[str] = None,
     ) -> Booking:
         """Front-desk action: collect remaining booking balance (cash/card) and persist payment in database."""
         booking = await BookingService.get_booking_by_id(db, booking_id)
@@ -879,12 +932,33 @@ class BookingService:
 
         total = float(booking.total_amount or 0.0)
         previous_deposit = float(booking.deposit_amount or 0.0)
-        collected_now = max(0.0, total - previous_deposit)
+        already_collected = float(booking.property_collected_amount or 0.0)
+        remaining = max(0.0, total - previous_deposit - already_collected)
+        collected_now = float(amount) if amount is not None else remaining
 
         now = datetime.now(timezone.utc)
+        booking.property_collected_amount = already_collected + collected_now
         booking.payment_status = "paid"
-        booking.deposit_amount = total
         booking.updated_at = now
+
+        # Add payment record in booking_payments ledger
+        pay_entry = BookingPayment(
+            id=uuid.uuid4(),
+            booking_id=booking.id,
+            payment_role="property_balance",
+            collection_stage="during_stay" if (booking.stay_status == "checked_in") else "check_out",
+            track="property_direct",
+            payment_method=payment_method or "cash",
+            funds_custody="hotel_operator",
+            amount=collected_now,
+            currency="PKR",
+            transaction_ref=voucher_ref or f"CASH-{uuid.uuid4().hex[:6].upper()}",
+            verification_status="confirmed",
+            verified_by_user_id=user_id,
+            notes=notes or f"Front-desk counter collection via {payment_method}",
+            created_at=now,
+        )
+        db.add(pay_entry)
 
         history = BookingStatusHistory(
             id=uuid.uuid4(),
@@ -892,11 +966,82 @@ class BookingService:
             from_status=booking.status,
             to_status="paid",
             changed_by=user_id,
-            note=f"Front-desk balance collection recorded: PKR {collected_now:,.2f} (Total Paid: PKR {total:,.2f})",
+            note=f"Front-desk balance collection recorded: PKR {collected_now:,.2f} via {payment_method.upper()} (Total Paid: PKR {total:,.2f})",
             created_at=now,
         )
         db.add(history)
 
+        await db.commit()
+        return await BookingService.get_booking_by_id(db, booking.id)
+
+    @staticmethod
+    async def verify_direct_deposit(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        user_id: uuid.UUID,
+        action: str = "approve",
+        notes: Optional[str] = None,
+    ) -> Booking:
+        """Hotel / Business verifies direct transfer advance deposit submitted by tourist."""
+        booking = await BookingService.get_booking_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        # Authorize business owner or authority/admin
+        user_q = select(User).where(User.id == user_id)
+        user_res = await db.execute(user_q)
+        current_user = user_res.scalar_one_or_none()
+
+        is_owner = booking.business and booking.business.owner_id == user_id
+        is_elevated = current_user and current_user.role in ("authority", "admin")
+
+        if not (is_owner or is_elevated):
+            raise HTTPException(status_code=403, detail="Not authorized to verify direct payments for this booking")
+
+        now = datetime.now(timezone.utc)
+        if action == "approve":
+            booking.payment_status = "deposit_paid"
+            booking.direct_transfer_verified_at = now
+            booking.direct_transfer_verified_by = user_id
+            booking.status = "confirmed"
+
+            # Update associated payment record
+            p_q = select(BookingPayment).where(
+                BookingPayment.booking_id == booking.id,
+                BookingPayment.payment_role == "advance_deposit"
+            )
+            p_res = await db.execute(p_q)
+            pay = p_res.scalar_one_or_none()
+            if pay:
+                pay.verification_status = "confirmed"
+                pay.verified_by_user_id = user_id
+
+            history = BookingStatusHistory(
+                id=uuid.uuid4(),
+                booking_id=booking.id,
+                from_status=booking.status,
+                to_status="confirmed",
+                changed_by=user_id,
+                note=f"Direct advance deposit (TID: {booking.direct_transfer_tid or 'N/A'}) verified and approved by hotel.",
+                created_at=now,
+            )
+            db.add(history)
+        else:
+            booking.payment_status = "unpaid"
+            booking.deposit_amount = 0.0
+
+            history = BookingStatusHistory(
+                id=uuid.uuid4(),
+                booking_id=booking.id,
+                from_status=booking.status,
+                to_status=booking.status,
+                changed_by=user_id,
+                note=f"Direct advance deposit rejected by hotel. Reason: {notes or 'Invalid transfer reference'}",
+                created_at=now,
+            )
+            db.add(history)
+
+        booking.updated_at = now
         await db.commit()
         return await BookingService.get_booking_by_id(db, booking.id)
 
@@ -1341,38 +1486,21 @@ class BookingService:
         db: AsyncSession,
         booking_id: uuid.UUID,
         user_id: uuid.UUID,
+        payment_method: str = "cash",
+        voucher_ref: Optional[str] = None,
+        amount: Optional[float] = None,
+        notes: Optional[str] = None,
     ) -> Booking:
         """Business or Front Desk collects the remaining folio balance for a booking."""
-        booking = await BookingService.get_booking_by_id(db, booking_id)
-        if not booking:
-            raise HTTPException(status_code=404, detail="Booking not found")
-
-        # Verify business ownership, authority or admin
-        if booking.business.owner_id != user_id:
-            user_q = select(User).where(User.id == user_id)
-            user_res = await db.execute(user_q)
-            current_user = user_res.scalar_one_or_none()
-            if not current_user or current_user.role not in ("authority", "admin", "business"):
-                raise HTTPException(status_code=403, detail="Not authorized to collect balance for this booking")
-
-        old_status = booking.status
-        booking.payment_status = "paid"
-        booking.deposit_amount = float(booking.total_amount)
-        booking.updated_at = datetime.now(timezone.utc)
-
-        history = BookingStatusHistory(
-            id=uuid.uuid4(),
-            booking_id=booking.id,
-            from_status=old_status,
-            to_status=old_status,
-            changed_by=user_id,
-            note=f"Remaining balance collected at front desk. Folio settled in full: PKR {booking.total_amount:,.2f}.",
-            created_at=datetime.now(timezone.utc),
+        return await BookingService.collect_balance(
+            db=db,
+            booking_id=booking_id,
+            user_id=user_id,
+            payment_method=payment_method,
+            voucher_ref=voucher_ref,
+            amount=amount,
+            notes=notes
         )
-        db.add(history)
-
-        await db.commit()
-        return await BookingService.get_booking_by_id(db, booking.id)
 
     @staticmethod
     async def pay_entire_trip(
@@ -1545,6 +1673,7 @@ class BookingService:
             .options(
                 selectinload(Booking.items).selectinload(BookingItem.price_item),
                 selectinload(Booking.history),
+                selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
                 selectinload(Booking.listing),
@@ -1570,6 +1699,7 @@ class BookingService:
             .options(
                 selectinload(Booking.items).selectinload(BookingItem.price_item),
                 selectinload(Booking.history),
+                selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
                 selectinload(Booking.listing),

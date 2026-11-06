@@ -87,6 +87,13 @@ class BusinessProfile(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     verified_by: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     rejection_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    direct_payments_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    bank_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    account_title: Mapped[Optional[str]] = mapped_column(String(150), nullable=True)
+    iban: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    easypaisa_account_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    jazzcash_account_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)
+    raast_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     __table_args__ = (
         CheckConstraint("primary_type IN ('hotel', 'restaurant', 'transport', 'guide', 'activity', 'shop')", name="check_business_primary_type"),

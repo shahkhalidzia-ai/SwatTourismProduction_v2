@@ -24,7 +24,10 @@ from app.modules.bookings.schemas import (
     IPNCallbackResponse,
     ClaimBookingsRequest,
     ClaimBookingsResponse,
+    CollectBalanceRequest,
+    VerifyDirectDepositRequest,
 )
+from app.modules.bookings.models import BookingPayment
 from app.modules.bookings.service import BookingService
 from app.modules.bookings.payment_adapter import PaymentGatewayManager, JazzCashPaymentAdapter
 from app.modules.bookings.receipt_service import ReceiptInvoiceService
@@ -165,12 +168,40 @@ async def check_out_booking(
 @router.post("/{booking_id}/collect-balance", response_model=BookingOut)
 async def collect_booking_balance(
     booking_id: uuid.UUID,
+    data: Optional[CollectBalanceRequest] = None,
     payload: dict = Depends(require_roles(["business", "authority", "admin"])),
     db: AsyncSession = Depends(get_db),
 ):
     """Front-desk action: Record payment of remaining balance at reception counter."""
     user_id = uuid.UUID(payload.get("sub"))
-    return await BookingService.collect_balance(db, booking_id, user_id)
+    req = data or CollectBalanceRequest()
+    return await BookingService.collect_balance(
+        db,
+        booking_id,
+        user_id,
+        payment_method=req.payment_method,
+        voucher_ref=req.voucher_ref,
+        amount=req.amount,
+        notes=req.notes
+    )
+
+
+@router.post("/{booking_id}/verify-direct-deposit", response_model=BookingOut)
+async def verify_direct_deposit(
+    booking_id: uuid.UUID,
+    data: VerifyDirectDepositRequest,
+    payload: dict = Depends(require_roles(["business", "authority", "admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Front-desk action: Verify or reject tourist direct advance deposit transfer."""
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.verify_direct_deposit(
+        db,
+        booking_id,
+        user_id,
+        action=data.action,
+        notes=data.notes,
+    )
 
 
 @router.post("/{booking_id}/decline", response_model=BookingOut)
@@ -430,11 +461,42 @@ async def process_unified_checkout(
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported payment mode: {checkout_data.payment_mode}")
 
+    # Determine track and custody
+    track = checkout_data.track or ("property_direct" if provider in ("DIRECT_TRANSFER", "HOTEL_DIRECT", "MEEZAN", "HOTEL_COUNTER") else "stp_platform")
+    booking.deposit_track = track
+    if track == "property_direct":
+        booking.direct_transfer_tid = checkout_data.direct_transfer_tid or txn_id
+        booking.direct_transfer_slip_url = checkout_data.direct_transfer_slip_url
+        custody = "hotel_operator"
+        ver_status = "pending_hotel_approval"
+    else:
+        custody = "stp_escrow"
+        ver_status = "auto_verified"
+
+    # Record payment entry in booking_payments ledger
+    payment_entry = BookingPayment(
+        id=uuid.uuid4(),
+        booking_id=booking.id,
+        payment_role="advance_deposit" if payment_mode != "PAY_AT_HOTEL" else "card_guarantee",
+        collection_stage="booking_online",
+        track=track,
+        payment_method=provider.lower(),
+        funds_custody=custody if payment_mode != "PAY_AT_HOTEL" else "hotel_operator",
+        amount=paid_amount,
+        currency="PKR",
+        transaction_ref=checkout_data.direct_transfer_tid or txn_id or f"TXN-{uuid.uuid4().hex[:8].upper()}",
+        sender_account_masked=checkout_data.mobile_number,
+        receipt_image_url=checkout_data.direct_transfer_slip_url,
+        verification_status=ver_status,
+        notes=checkout_data.notes,
+    )
+    db.add(payment_entry)
+
     # Set booking to confirmed
     booking.status = "confirmed"
 
     # Append payment metadata to special_requests
-    meta_note = f"[{payment_mode_label} | Ref: {txn_id}]"
+    meta_note = f"[{payment_mode_label} | Track: {track.upper()} | Ref: {txn_id}]"
     if checkout_data.notes:
         meta_note += f" - Note: {checkout_data.notes}"
     booking.special_requests = f"{(booking.special_requests or '').strip()} {meta_note}".strip()

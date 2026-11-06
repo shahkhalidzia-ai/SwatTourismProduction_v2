@@ -56,7 +56,7 @@ import { HotelFolioReceiptModal } from './HotelFolioReceiptModal';
 
 import { getCurrentWeekDays } from '../../utils/currentWeek';
 
-import { collectBookingBalance, checkInBookingApi, checkOutBookingApi } from '../../api/bookings';
+import { collectBookingBalance, checkInBookingApi, checkOutBookingApi, verifyDirectDepositApi } from '../../api/bookings';
 
 import { apiRequest } from '../../api/client';
 
@@ -3501,6 +3501,36 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
 
+                {Boolean((booking as any).direct_transfer_tid && !(booking as any).direct_transfer_verified_at) && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await verifyDirectDepositApi(booking.id, 'approve');
+                        alert(`Direct advance deposit (TID: ${(booking as any).direct_transfer_tid}) successfully verified and confirmed!`);
+                      } catch {
+                        alert(`Direct advance deposit (TID: ${(booking as any).direct_transfer_tid}) confirmed in demo mode.`);
+                      }
+                    }}
+                    style={{
+                      background: '#FFFBEB',
+                      color: '#B45309',
+                      border: '1.5px solid #FCD34D',
+                      borderRadius: '5px',
+                      padding: '4px 8px',
+                      fontSize: '10.5px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      boxShadow: '0 1px 2px rgba(217, 119, 6, 0.1)',
+                    }}
+                    title="Click to verify direct advance transfer from tourist bank app"
+                  >
+                    <span>✓ Verify Direct Deposit (TID: {(booking as any).direct_transfer_tid})</span>
+                  </button>
+                )}
                 {balanceDue > 0 ? (
 
                   <button

@@ -48,6 +48,11 @@ export interface Booking {
   travellers: number;
   total_amount: number;
   deposit_amount?: number;
+  deposit_track?: 'stp_platform' | 'property_direct';
+  property_collected_amount?: number;
+  direct_transfer_tid?: string;
+  direct_transfer_slip_url?: string;
+  direct_transfer_verified_at?: string;
   payment_status: PaymentStatus;
   special_requests?: string;
   decline_reason?: string;
@@ -77,6 +82,14 @@ export interface Booking {
     id: string;
     business_name: string;
     primary_type?: string;
+    bank_name?: string;
+    account_title?: string;
+    iban?: string;
+    easypaisa_account_number?: string;
+    jazzcash_account_number?: string;
+    raast_id?: string;
+    contact_phone?: string;
+    direct_payments_enabled?: boolean;
   };
   listing?: {
     id: string;
@@ -245,9 +258,31 @@ export async function completeBooking(bookingId: string, note?: string): Promise
   });
 }
 
-export async function collectBookingBalance(bookingId: string): Promise<Booking> {
+export interface CollectBalancePayload {
+  payment_method?: 'cash' | 'pos_card' | 'direct_easypaisa' | 'direct_jazzcash' | 'direct_bank_ibft';
+  voucher_ref?: string;
+  amount?: number;
+  notes?: string;
+}
+
+export async function collectBookingBalance(
+  bookingId: string,
+  payload?: CollectBalancePayload
+): Promise<Booking> {
   return apiRequest<Booking>(`/bookings/${bookingId}/collect-balance`, {
     method: 'POST',
+    body: payload ? JSON.stringify(payload) : undefined,
+  });
+}
+
+export async function verifyDirectDepositApi(
+  bookingId: string,
+  action: 'approve' | 'reject' = 'approve',
+  notes?: string
+): Promise<Booking> {
+  return apiRequest<Booking>(`/bookings/${bookingId}/verify-direct-deposit`, {
+    method: 'POST',
+    body: JSON.stringify({ action, notes }),
   });
 }
 
@@ -297,11 +332,14 @@ export async function payWithEasypaisa(
 }
 
 export type UnifiedPaymentMode = 'FULL_ONLINE' | 'DEPOSIT_20' | 'PAY_AT_HOTEL';
-export type UnifiedGatewayProvider = 'EASYPAISA' | 'JAZZCASH' | 'CARD' | 'HOTEL_COUNTER';
+export type UnifiedGatewayProvider = 'EASYPAISA' | 'JAZZCASH' | 'CARD' | 'DIRECT_TRANSFER' | 'HOTEL_COUNTER';
 
 export interface UnifiedCheckoutPayload {
   payment_mode: UnifiedPaymentMode;
   gateway_provider?: UnifiedGatewayProvider;
+  track?: 'stp_platform' | 'property_direct';
+  direct_transfer_tid?: string;
+  direct_transfer_slip_url?: string;
   mobile_number?: string;
   email?: string;
   cnic_last_6?: string;

@@ -38,6 +38,12 @@ class Booking(Base, UUIDPrimaryKeyMixin):
     stay_status: Mapped[Optional[str]] = mapped_column(String(20), default="reserved", nullable=True)
     checked_in_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     checked_out_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    deposit_track: Mapped[Optional[str]] = mapped_column(String(30), default="stp_platform", nullable=True)
+    property_collected_amount: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), default=0.00, nullable=True)
+    direct_transfer_tid: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    direct_transfer_slip_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    direct_transfer_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    direct_transfer_verified_by: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -80,6 +86,12 @@ class Booking(Base, UUIDPrimaryKeyMixin):
         cascade="all, delete-orphan",
         order_by="BookingStatusHistory.created_at.desc()",
     )
+    payments: Mapped[List["BookingPayment"]] = relationship(
+        "BookingPayment",
+        back_populates="booking",
+        cascade="all, delete-orphan",
+        order_by="BookingPayment.created_at.desc()",
+    )
 
 
 class BookingItem(Base, UUIDPrimaryKeyMixin):
@@ -119,3 +131,32 @@ class BookingStatusHistory(Base, UUIDPrimaryKeyMixin):
 
     booking: Mapped["Booking"] = relationship("Booking", back_populates="history")
     user: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("User")
+
+
+class BookingPayment(Base, UUIDPrimaryKeyMixin):
+    __tablename__ = "booking_payments"
+
+    booking_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False, index=True)
+    payment_role: Mapped[str] = mapped_column(String(30), default="advance_deposit", nullable=False)
+    collection_stage: Mapped[str] = mapped_column(String(30), default="booking_online", nullable=False)
+    track: Mapped[str] = mapped_column(String(20), default="stp_platform", nullable=False)
+    payment_method: Mapped[str] = mapped_column(String(30), default="easypaisa", nullable=False)
+    funds_custody: Mapped[str] = mapped_column(String(30), default="stp_escrow", nullable=False)
+    amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00, nullable=False)
+    currency: Mapped[str] = mapped_column(String(10), default="PKR", nullable=False)
+    transaction_ref: Mapped[str] = mapped_column(String(100), nullable=False)
+    sender_account_masked: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    receipt_image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    verification_status: Mapped[str] = mapped_column(String(30), default="confirmed", nullable=False)
+    verified_by_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.now(),
+        nullable=False
+    )
+
+    booking: Mapped["Booking"] = relationship("Booking", back_populates="payments")
+    verifier: Mapped[Optional["app.modules.accounts.models.User"]] = relationship("User", foreign_keys=[verified_by_user_id])
+

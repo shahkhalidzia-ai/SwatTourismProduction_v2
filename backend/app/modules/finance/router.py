@@ -27,7 +27,7 @@ from app.modules.finance.schemas import (
     FinancialOverviewStats,
 )
 from app.modules.accounts.models import BusinessProfile
-from app.modules.bookings.models import Booking
+from app.modules.bookings.models import Booking, BookingPayment
 
 router = APIRouter(prefix="/finance", tags=["finance"])
 
@@ -486,18 +486,64 @@ async def generate_monthly_invoices(
         inv_num = f"STP-INV-{billing_period}-{secrets.token_hex(3).upper()}"
         onebill_id = f"1002{secrets.randbelow(900000000000) + 100000000000}"
 
-        inv = MonthlyInvoice(
-            invoice_number=inv_num,
-            business_id=biz.id,
-            business_name=biz.business_name,
-            billing_period=billing_period,
-            total_gross_bookings=gross_total,
-            total_commission_due=commission_due,
-            onebill_consumer_id=onebill_id,
-            status="issued",
-            due_date=f"{billing_period}-15",
-            issued_at=datetime.now(timezone.utc),
-        )
+        # Universal Net Settlement Engine
+        b_ids = [b.id for b in bookings]
+        escrow_advances = 0.0
+        if b_ids:
+            p_res = await db.execute(
+                select(func.coalesce(func.sum(BookingPayment.amount), 0.0)).where(
+                    BookingPayment.booking_id.in_(b_ids),
+                    BookingPayment.funds_custody == "stp_escrow"
+                )
+            )
+            escrow_advances = float(p_res.scalar() or 0.0)
+
+        net_balance = escrow_advances - commission_due
+
+        if net_balance > 0:
+            # STP holds more funds than commission due -> Settle invoice via escrow, queue Raast payout
+            inv = MonthlyInvoice(
+                invoice_number=inv_num,
+                business_id=biz.id,
+                business_name=biz.business_name,
+                billing_period=billing_period,
+                total_gross_bookings=gross_total,
+                total_commission_due=commission_due,
+                onebill_consumer_id=onebill_id,
+                status="paid",
+                paid_at=datetime.now(timezone.utc),
+                payment_reference=f"ESCROW-RECON-{secrets.token_hex(3).upper()}",
+                due_date=f"{billing_period}-15",
+                issued_at=datetime.now(timezone.utc),
+            )
+            # Queue Net Payout via SBP Raast for remaining surplus
+            payout_ref = f"RAAST-NET-{secrets.token_hex(4).upper()}"
+            op_payout = OperatorPayout(
+                payout_ref=payout_ref,
+                business_id=biz.id,
+                business_name=biz.business_name,
+                amount=round(net_balance, 2),
+                payout_channel="raast",
+                account_number_or_raast=getattr(biz, "raast_id", None) or getattr(biz, "contact_phone", None) or "03459921001",
+                status="pending_approval",
+                notes=f"Net {billing_period} surplus payout (Escrow Advances: PKR {escrow_advances:,.2f} minus Commission: PKR {commission_due:,.2f})"
+            )
+            db.add(op_payout)
+        else:
+            # Deficit: Hotel collected mostly cash/direct -> issue 1Bill invoice for remaining net commission
+            effective_due = round(abs(net_balance), 2) if escrow_advances > 0 else commission_due
+            inv = MonthlyInvoice(
+                invoice_number=inv_num,
+                business_id=biz.id,
+                business_name=biz.business_name,
+                billing_period=billing_period,
+                total_gross_bookings=gross_total,
+                total_commission_due=effective_due,
+                onebill_consumer_id=onebill_id,
+                status="issued",
+                due_date=f"{billing_period}-15",
+                issued_at=datetime.now(timezone.utc),
+            )
         db.add(inv)
         created_invoices.append(inv)
 

@@ -87,6 +87,34 @@ class BookingBriefBusiness(BaseModel):
     id: uuid.UUID
     business_name: Optional[str] = None
     primary_type: Optional[str] = None
+    bank_name: Optional[str] = None
+    account_title: Optional[str] = None
+    iban: Optional[str] = None
+    easypaisa_account_number: Optional[str] = None
+    jazzcash_account_number: Optional[str] = None
+    raast_id: Optional[str] = None
+    contact_phone: Optional[str] = None
+    direct_payments_enabled: Optional[bool] = True
+
+
+class BookingPaymentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    booking_id: uuid.UUID
+    payment_role: str
+    collection_stage: str
+    track: str
+    payment_method: str
+    funds_custody: str
+    amount: float
+    currency: str = "PKR"
+    transaction_ref: str
+    sender_account_masked: Optional[str] = None
+    receipt_image_url: Optional[str] = None
+    verification_status: str
+    notes: Optional[str] = None
+    created_at: datetime
 
 
 class BookingBriefListing(BaseModel):
@@ -112,6 +140,11 @@ class BookingOut(BaseModel):
     travellers: int
     total_amount: float
     deposit_amount: Optional[float] = None
+    deposit_track: Optional[str] = "stp_platform"
+    property_collected_amount: Optional[float] = 0.00
+    direct_transfer_tid: Optional[str] = None
+    direct_transfer_slip_url: Optional[str] = None
+    direct_transfer_verified_at: Optional[datetime] = None
     payment_status: str
     special_requests: Optional[str] = None
     decline_reason: Optional[str] = None
@@ -135,6 +168,7 @@ class BookingOut(BaseModel):
 
     items: List[BookingItemOut] = []
     history: List[BookingStatusHistoryOut] = []
+    payments: List[BookingPaymentOut] = []
     tourist: Optional[BookingBriefTourist] = None
     business: Optional[BookingBriefBusiness] = None
     listing: Optional[BookingBriefListing] = None
@@ -225,12 +259,27 @@ class UnifiedCheckoutRequest(BaseModel):
     )
     gateway_provider: str = Field(
         "EASYPAISA",
-        description="'EASYPAISA', 'JAZZCASH', 'CARD', or 'HOTEL_COUNTER'"
+        description="'EASYPAISA', 'JAZZCASH', 'CARD', 'DIRECT_TRANSFER', or 'HOTEL_COUNTER'"
     )
+    track: Optional[str] = Field("stp_platform", description="'stp_platform' or 'property_direct'")
+    direct_transfer_tid: Optional[str] = Field(None, description="Transaction ID when transferring directly to hotel")
+    direct_transfer_slip_url: Optional[str] = Field(None, description="Optional payment proof slip URL")
     mobile_number: Optional[str] = Field(None, description="Mobile wallet number e.g. 03451234567")
     email: Optional[str] = Field(None, description="Tourist notification email")
     cnic_last_6: Optional[str] = Field(None, description="CNIC digits for JazzCash validation")
     notes: Optional[str] = Field(None, description="Special guarantee instructions")
+
+
+class CollectBalanceRequest(BaseModel):
+    payment_method: str = Field("cash", description="'cash', 'pos_card', 'direct_easypaisa', 'direct_jazzcash', 'direct_bank_ibft'")
+    voucher_ref: Optional[str] = Field(None, description="Cashier receipt voucher or bank transfer ref")
+    amount: Optional[float] = Field(None, description="Optional custom amount collected")
+    notes: Optional[str] = Field(None, description="Cashier counter notes")
+
+
+class VerifyDirectDepositRequest(BaseModel):
+    action: str = Field("approve", description="'approve' or 'reject'")
+    notes: Optional[str] = Field(None, description="Verification review notes")
 
 
 class UnifiedCheckoutResponse(BaseModel):
