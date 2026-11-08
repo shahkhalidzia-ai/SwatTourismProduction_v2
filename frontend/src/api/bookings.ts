@@ -35,6 +35,24 @@ export interface BookingHistory {
   created_at: string;
 }
 
+export interface BookingPaymentItem {
+  id: string;
+  booking_id: string;
+  payment_role: string;
+  collection_stage: string;
+  track: string;
+  payment_method: string;
+  funds_custody: string;
+  amount: number;
+  currency: string;
+  transaction_ref: string;
+  sender_account_masked?: string;
+  receipt_image_url?: string;
+  verification_status: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface Booking {
   id: string;
   reference: string;
@@ -71,6 +89,7 @@ export interface Booking {
   updated_at: string;
   items: BookingItem[];
   history: BookingHistory[];
+  payments?: BookingPaymentItem[];
   tourist?: {
     id: string;
     full_name: string;
@@ -403,5 +422,16 @@ export async function claimBookingsApi(
   return apiRequest<ClaimBookingsResponse>('/bookings/claim', {
     method: 'POST',
     body: JSON.stringify(payload),
+  });
+}
+
+
+export async function uploadPaymentProofApi(
+  bookingId: string,
+  formData: FormData
+): Promise<Booking> {
+  return apiRequest<Booking>(`/bookings/${bookingId}/upload-payment-proof`, {
+    method: 'POST',
+    body: formData,
   });
 }

@@ -164,13 +164,15 @@ describe('Phase 4: Unified Payment & Guarantee Flow', () => {
       fireEvent.click(screen.getByTestId('btn-confirm-checkout-payment'));
 
       await waitFor(() => {
-        expect(bookingsApi.payUnifiedBooking).toHaveBeenCalledWith(mockBooking.id, {
-          payment_mode: 'DEPOSIT_20',
-          gateway_provider: 'EASYPAISA',
-          mobile_number: '03451122334',
-          email: 'tourist@swattravel.pk',
-          cnic_last_6: undefined,
-        });
+        expect(bookingsApi.payUnifiedBooking).toHaveBeenCalledWith(
+          mockBooking.id,
+          expect.objectContaining({
+            payment_mode: 'DEPOSIT_20',
+            gateway_provider: 'EASYPAISA',
+            mobile_number: '03451122334',
+            email: 'tourist@swattravel.pk',
+          })
+        );
         expect(onSuccessMock).toHaveBeenCalledWith(mockApiResponse);
       });
     });

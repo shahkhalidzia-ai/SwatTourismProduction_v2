@@ -1,3 +1,4 @@
+import { PaymentProofUploadModal } from '../../components/PaymentProofUploadModal';
 import React, { useState, useMemo } from 'react';
 import type { Booking, CancellationPreview, BookingStatus } from '../../api/bookings';
 import * as bookingsApi from '../../api/bookings';
@@ -22,6 +23,7 @@ import {
   Printer,
   Download,
   Copy,
+  UploadCloud,
   Star,
   Info,
   ArrowRight,
@@ -35,6 +37,7 @@ export interface MyBookingsViewProps {
   onRateBooking?: (booking: Booking) => void;
   onCompleteBooking?: (bookingId: string) => Promise<void>;
   onExploreServices?: () => void;
+  onBookingUpdated?: (booking: Booking) => void;
   onOpenAuth?: (mode?: 'login' | 'register') => void;
   isGuest?: boolean;
 }
@@ -51,6 +54,7 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
   onCompleteBooking,
   onExploreServices,
   onOpenAuth,
+  onBookingUpdated,
   isGuest = false,
 }) => {
   const effectiveIsGuest = isGuest || (typeof window !== 'undefined' && !localStorage.getItem('swat_token'));
@@ -68,6 +72,7 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
 
   // Voucher Modal state
   const [voucherBooking, setVoucherBooking] = useState<Booking | null>(null);
+  const [uploadProofBooking, setUploadProofBooking] = useState<Booking | null>(null);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
 
   // Helper to determine service category
@@ -1167,6 +1172,35 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
                     </Button>
                   )}
 
+                  {/* Upload / View Payment Proof for Direct Transfer or Pending */}
+                  {(b.deposit_track === 'property_direct' || Boolean(b.direct_transfer_tid) || b.payment_status === 'deposit_paid' || (b.payment_status === 'unpaid' && (b.status === 'accepted' || b.status === 'confirmed'))) && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setUploadProofBooking(b)}
+                      data-testid={`btn-proof-${b.reference || b.id}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        color: b.direct_transfer_verified_at ? '#059669' : '#d97706',
+                        borderColor: b.direct_transfer_verified_at ? '#10b981' : '#f59e0b',
+                        backgroundColor: b.direct_transfer_verified_at ? '#ecfdf5' : '#fffbeb',
+                      }}
+                    >
+                      <UploadCloud size={13} />
+                      <span>
+                        {b.direct_transfer_verified_at
+                          ? 'Slip Verified ✓'
+                          : b.direct_transfer_slip_url
+                          ? 'Slip Uploaded ⏳'
+                          : 'Upload Slip / TID'}
+                      </span>
+                    </Button>
+                  )}
+
                   {/* Pay with SwatPay for Accepted/Confirmed Unpaid */}
                   {onPayBooking && (b.status === 'accepted' || b.status === 'confirmed') && b.payment_status === 'unpaid' && (
                     <Button
@@ -1737,6 +1771,21 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
           </div>
         </div>
       )}
-    </div>
+    
+      {/* Proof of Payment Upload Modal */}
+      {uploadProofBooking && (
+        <PaymentProofUploadModal
+          isOpen={Boolean(uploadProofBooking)}
+          onClose={() => setUploadProofBooking(null)}
+          booking={uploadProofBooking}
+          onSuccess={(updated) => {
+            setUploadProofBooking(null);
+            if (onBookingUpdated) {
+              onBookingUpdated(updated);
+            }
+          }}
+        />
+      )}
+</div>
   );
 };

@@ -25,6 +25,7 @@ import app.modules.finance.models  # ensure models are registered with Base.meta
 async def lifespan(app: FastAPI):
     # Ensure upload directory exists
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    os.makedirs(os.path.join(settings.UPLOAD_DIR, "payment_proofs"), exist_ok=True)
 
     # Ensure database schema and columns are synchronized
     try:

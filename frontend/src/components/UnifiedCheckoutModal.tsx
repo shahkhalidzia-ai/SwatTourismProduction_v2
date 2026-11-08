@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   X,
   ShieldCheck,
@@ -8,10 +8,14 @@ import {
   ArrowRight,
   Landmark,
   Building,
+  UploadCloud,
+  FileCheck,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '../design/Button';
 import {
   payUnifiedBooking,
+  uploadPaymentProofApi,
   type UnifiedPaymentMode,
   type UnifiedGatewayProvider,
   type UnifiedCheckoutPayload,
@@ -55,6 +59,9 @@ export const UnifiedCheckoutModal: React.FC<UnifiedCheckoutModalProps> = ({
   const [selectedMode, setSelectedMode] = useState<UnifiedPaymentMode>('DEPOSIT_20');
   const [gatewayProvider, setGatewayProvider] = useState<UnifiedGatewayProvider>('EASYPAISA');
   const [directTid, setDirectTid] = useState<string>('');
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mobileNumber, setMobileNumber] = useState<string>(booking?.guest_phone || '03001234567');
   const [email, setEmail] = useState<string>(booking?.guest_email || 'tourist@swat.gov.pk');
   const [cnicLast6, setCnicLast6] = useState<string>('123456');
@@ -100,6 +107,20 @@ export const UnifiedCheckoutModal: React.FC<UnifiedCheckoutModalProps> = ({
       };
 
       const res = await payUnifiedBooking(booking.id, payload);
+      if (isDirect && proofFile) {
+        const formData = new FormData();
+        formData.append('file', proofFile);
+        formData.append('payment_medium', 'bank_transfer');
+        formData.append('amount_paid', String(depositAmount));
+        formData.append('transaction_ref', directTid.trim() || `TID-${Date.now().toString().slice(-6)}`);
+        formData.append('sender_account', mobileNumber || 'Tourist Mobile');
+        formData.append('transfer_timestamp', new Date().toISOString().slice(0, 16).replace('T', ' '));
+        try {
+          await uploadPaymentProofApi(booking.id, formData);
+        } catch (proofErr) {
+          console.warn('Proof slip upload deferred:', proofErr);
+        }
+      }
       setLoading(false);
       onSuccess(res);
     } catch (err: any) {
@@ -457,6 +478,86 @@ export const UnifiedCheckoutModal: React.FC<UnifiedCheckoutModalProps> = ({
                 <span style={{ fontSize: '11px', color: '#64748b', marginTop: '3px', display: 'block' }}>
                   The hotel front-desk will verify this transaction ID upon receiving your booking request.
                 </span>
+              </div>
+
+              {/* Optional Payment Slip Attachment */}
+              <div style={{ marginTop: '8px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#78350f', marginBottom: '5px' }}>
+                  Attach Transfer Slip Screenshot / PDF (Optional now, can also upload from My Bookings):
+                </label>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setProofFile(f);
+                      if (f.type.startsWith('image/')) {
+                        setProofPreview(URL.createObjectURL(f));
+                      } else {
+                        setProofPreview(null);
+                      }
+                    }
+                  }}
+                  data-testid="input-direct-proof-file"
+                />
+                {!proofFile ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1.5px dashed #f59e0b',
+                      borderRadius: '8px',
+                      background: '#ffffff',
+                      color: '#b45309',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <UploadCloud size={16} /> Click to Attach Screenshot Slip
+                  </button>
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 12px',
+                      background: '#ffffff',
+                      borderRadius: '8px',
+                      border: '1px solid #fde68a',
+                    }}
+                  >
+                    {proofPreview ? (
+                      <img src={proofPreview} alt="Proof" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px' }} />
+                    ) : (
+                      <FileCheck size={24} color="#059669" />
+                    )}
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#0f172a', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {proofFile.name} ({(proofFile.size / 1024).toFixed(0)} KB)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProofFile(null);
+                        setProofPreview(null);
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '4px' }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (

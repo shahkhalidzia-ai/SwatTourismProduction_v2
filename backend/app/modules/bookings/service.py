@@ -1,10 +1,14 @@
+from app.core.config import settings
+import os
+import re
+import time
 import logging
 import secrets
 import string
 import uuid
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Tuple
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, UploadFile
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -975,6 +979,139 @@ class BookingService:
         return await BookingService.get_booking_by_id(db, booking.id)
 
     @staticmethod
+    async def upload_payment_proof(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        user_id: uuid.UUID,
+        file: UploadFile,
+        payment_medium: str,
+        amount_paid: float,
+        transaction_ref: str,
+        sender_account: str,
+        transfer_timestamp: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> Booking:
+        """
+        Handle tourist payment proof slip upload for direct hotel transfers.
+        Saves file to settings.UPLOAD_DIR/payment_proofs, records transaction in booking_payments,
+        updates booking deposit status and history, ready for hotel front-desk verification.
+        """
+        booking = await BookingService.get_booking_by_id(db, booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+
+        # Verify access: tourist who owns the booking or business/admin
+        user_q = select(User).where(User.id == user_id)
+        user_res = await db.execute(user_q)
+        current_user = user_res.scalar_one_or_none()
+
+        is_tourist = booking.tourist_id == user_id
+        is_business = booking.business and booking.business.owner_id == user_id
+        is_elevated = current_user and current_user.role in ("authority", "admin")
+
+        if not (is_tourist or is_business or is_elevated):
+            raise HTTPException(status_code=403, detail="Not authorized to submit payment proof for this booking")
+
+        # Validate file
+        ALLOWED_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".pdf"}
+        file_ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
+        if file_ext not in ALLOWED_EXTS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid file type '{file_ext}'. Allowed formats: PNG, JPG, JPEG, WEBP, PDF."
+            )
+
+        # Ensure upload destination directory exists
+        upload_dir = os.path.join(settings.UPLOAD_DIR, "payment_proofs")
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Generate unique safe file name
+        timestamp_prefix = int(time.time())
+        safe_base = re.sub(r'[^a-zA-Z0-9_\-.]', '_', os.path.basename(file.filename or "proof"))
+        unique_filename = f"{booking_id}_{timestamp_prefix}_{safe_base}"
+        dest_path = os.path.join(upload_dir, unique_filename)
+
+        # Save uploaded file
+        try:
+            contents = await file.read()
+            with open(dest_path, "wb") as f_out:
+                f_out.write(contents)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to save payment proof file: {str(e)}")
+
+        # Construct public static URL
+        receipt_url = f"/uploads/payment_proofs/{unique_filename}"
+        now = datetime.now(timezone.utc)
+
+        # Update Booking details
+        booking.deposit_track = "property_direct"
+        booking.deposit_amount = amount_paid
+        booking.direct_transfer_tid = transaction_ref.strip()
+        booking.direct_transfer_slip_url = receipt_url
+        booking.direct_transfer_verified_at = None
+        booking.direct_transfer_verified_by = None
+        booking.payment_status = "deposit_paid"
+        if booking.status in ("requested", "accepted"):
+            booking.status = "confirmed"
+
+        # Check existing booking_payments for advance_deposit
+        p_q = select(BookingPayment).where(
+            BookingPayment.booking_id == booking.id,
+            BookingPayment.payment_role == "advance_deposit"
+        )
+        p_res = await db.execute(p_q)
+        pay_entry = p_res.scalar_one_or_none()
+
+        time_note = f"[Transferred: {transfer_timestamp}] " if transfer_timestamp else ""
+        full_note = f"{time_note}{notes or ''}".strip()
+
+        if pay_entry:
+            pay_entry.track = "property_direct"
+            pay_entry.payment_method = payment_medium.lower()
+            pay_entry.funds_custody = "hotel_operator"
+            pay_entry.amount = amount_paid
+            pay_entry.transaction_ref = transaction_ref.strip()
+            pay_entry.sender_account_masked = sender_account.strip()
+            pay_entry.receipt_image_url = receipt_url
+            pay_entry.verification_status = "pending_hotel_approval"
+            pay_entry.notes = full_note or pay_entry.notes
+        else:
+            pay_entry = BookingPayment(
+                id=uuid.uuid4(),
+                booking_id=booking.id,
+                payment_role="advance_deposit",
+                collection_stage="booking_online",
+                track="property_direct",
+                payment_method=payment_medium.lower(),
+                funds_custody="hotel_operator",
+                amount=amount_paid,
+                currency="PKR",
+                transaction_ref=transaction_ref.strip(),
+                sender_account_masked=sender_account.strip(),
+                receipt_image_url=receipt_url,
+                verification_status="pending_hotel_approval",
+                notes=full_note or None,
+                created_at=now,
+            )
+            db.add(pay_entry)
+
+        # Add BookingStatusHistory entry
+        history = BookingStatusHistory(
+            id=uuid.uuid4(),
+            booking_id=booking.id,
+            from_status=booking.status,
+            to_status=booking.status,
+            changed_by=user_id,
+            note=f"Payment proof slip uploaded: {payment_medium.upper()} TID {transaction_ref.strip()} (PKR {amount_paid:,.2f}) pending front-desk verification.",
+            created_at=now,
+        )
+        db.add(history)
+
+        booking.updated_at = now
+        await db.commit()
+        return await BookingService.get_booking_by_id(db, booking_id)
+
+    @staticmethod
     async def verify_direct_deposit(
         db: AsyncSession,
         booking_id: uuid.UUID,
@@ -1029,6 +1166,19 @@ class BookingService:
         else:
             booking.payment_status = "unpaid"
             booking.deposit_amount = 0.0
+
+            # Update associated payment record
+            p_q = select(BookingPayment).where(
+                BookingPayment.booking_id == booking.id,
+                BookingPayment.payment_role == "advance_deposit"
+            )
+            p_res = await db.execute(p_q)
+            pay = p_res.scalar_one_or_none()
+            if pay:
+                pay.verification_status = "rejected"
+                pay.verified_by_user_id = user_id
+                if notes:
+                    pay.notes = f"{pay.notes or ''} [Rejected: {notes}]".strip()
 
             history = BookingStatusHistory(
                 id=uuid.uuid4(),

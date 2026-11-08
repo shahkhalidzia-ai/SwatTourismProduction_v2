@@ -23,8 +23,9 @@ export async function apiRequest<T>(
   const BASE_URL = getBaseUrl();
   const token = typeof window !== 'undefined' ? localStorage.getItem('swat_token') : null;
 
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };

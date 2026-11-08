@@ -13061,6 +13061,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             onPayBooking={handlePaySingleBooking}
 
             onRateBooking={(b) => setReviewModal({ isOpen: true, booking: b })}
+            onBookingUpdated={(updated) => {
+              setMyBookings((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)));
+              showToast('Payment proof uploaded successfully! Awaiting hotel verification.');
+            }}
 
             onCompleteBooking={async (bookingId) => {
 

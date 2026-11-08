@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, File, UploadFile, Form
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -183,6 +183,39 @@ async def collect_booking_balance(
         voucher_ref=req.voucher_ref,
         amount=req.amount,
         notes=req.notes
+    )
+
+
+@router.post("/{booking_id}/upload-payment-proof", response_model=BookingOut)
+async def upload_payment_proof(
+    booking_id: uuid.UUID,
+    file: UploadFile = File(...),
+    payment_medium: str = Form(...),
+    amount_paid: float = Form(...),
+    transaction_ref: str = Form(...),
+    sender_account: str = Form(...),
+    transfer_timestamp: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Tourist Proof of Payment Submission (Multipart Form-Data).
+    Receives proof screenshot / PDF slip, captures TID, amount, medium, sender account/mobile,
+    and updates booking & records in booking_payments with status 'pending_hotel_approval'.
+    """
+    user_id = uuid.UUID(payload.get("sub"))
+    return await BookingService.upload_payment_proof(
+        db,
+        booking_id=booking_id,
+        user_id=user_id,
+        file=file,
+        payment_medium=payment_medium,
+        amount_paid=amount_paid,
+        transaction_ref=transaction_ref,
+        sender_account=sender_account,
+        transfer_timestamp=transfer_timestamp,
+        notes=notes,
     )
 
 
