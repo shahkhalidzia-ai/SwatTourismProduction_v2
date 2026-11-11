@@ -46,6 +46,9 @@ the touris should be able to view all the transport services and compnies provid
 tourist should tell his Origine city and destination is swat. tourist should be able to view all the trans port services to swat , timing and
 ticket price.
 ===
+on transport , restaurant, Activiteis and festival provider,  when login, he should be able to teh relvant business related tabs, currently all the tabs displayed are related to hotel. 
+Please provide the speicfi busnses related screens to each business. create a promt and approve
+===
 Done:
 •	Tourist Lifecycle: Full registration, profile personalization, origin tracking, group trip builder, destination bookmarks, booking history, post-stay reviews, citizen complaint submissions.
 •	Itinerary & Trip Planning: Multi-day trip planner, budget estimation, interest filters, distance/travel time calculations, **hotel & specific room selection per day**, activity attachments.
@@ -68,6 +71,84 @@ Complete rollbase implementaion
 Make the system configura able/ all distination, Transport, and other features should be configureable
 Notifications and Emails
 Mobile apps for all types of users
+application should work as in offline mood
+add functions for Tourism companies
 Reports and Analytics of the whole system
+Tour De swat.
+booking.com
+Deals from hotels and restaurant/transport management
+====
+WhatsApp Messages: http://localhost:8090/api/v1/communications/whatsapp/logs
+Emails: http://localhost:8090/api/v1/communications/email/logs
+====================
+i need the AI agen shoud create plan according to hotel,s transport, 
+restaurant existing in application data base, if it doesnot find suitable hotel,
+ transport, guide and restaurant, then it should search externally
+====
+Main master landin page desging
+when user is not logd in scenario handliing
+instan booking
+adding functions to Business cards
+Bug fixing in hotel booking flow
+==
+revewing the main master landing page , to make more elegant, user friendly, and attractive, informative for the user
+===
+Today 29-10-26:
+Issues fixing and gape analysis fixing on Tourist and Hotel/Business module
+Booking cancellation
+Booking UI changes.
+when url is browsed. by default sara user is loged, which should not be.no user should be loged in.
+when user is not loged in  and the guest book a room, what is the suggested  flow should be implemented. create prompt and let me ask to proceed
+Redesing the availablity screen on hotel portal.
+Hide the "Manage room types" button from availablity screen. 
+====
+complete the tourist  hotel booking flow, with email, whatsapp confirmationa and payment confirmation from both side tourist and hotel .
+Pleas give me  a complete gape analysis and plan for the Touris booking flow, that will cover, check availablity, booking,confirmation of the booking ussing swat tourism plat ,whats app, 
+email both at hotel end and tourist end,rooms statsu change, payments process completion, completion of the whole flow and reviews .
+===
+02/11/2026
+1-change the designe to grid view instead of card view, on hotel today , booking requests.
+2-Database Migration for Physical Rooms & Inventory Persistence 
+3-Interactive Availability & Multi-Night Date Picker
+4- Unified Payment & Guarantee Flow
+===
+03/11/2026
+whats app and email integration,
+user profile update.
+Hotels card redesign on main landing page
+fixing room reservation flow issues.
+04/11/2026
+
+whatsapp and email integration,
+when hotel user is login . hide the explore swat left menue item. 
+Adding Finance/invoice, commision module to STP
+Added touris review module
+05/11/2026
+Fix issues of hotel registration
+executed db persistance gape analysis. prompt
+change the landing page Card desgine.
+==
+Shah.khalid@f3tech.com/Password123
+hassan@swat.pk/Password123
+anas@swat.pk/
+===
+06/11/2026
+working on gapes in  payments and invoices
+==
+10/11/2026
+code archetecute oveview and understanding
+===
+11/11/2026
+Payments process testing. and issue fixing
+adding the delete option on my bookings. form
+
+
+this week:
+
+Added whats app Email( will discuss with Haider ali bajwa)
+and finance invoicing,
+UI issue fixing
+
+
 
 

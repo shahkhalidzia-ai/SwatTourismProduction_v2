@@ -158,6 +158,8 @@ import {
 
   completeBooking,
 
+  deleteAllMyBookingsApi,
+
   type Booking,
 
 } from '../../api/bookings';
@@ -13064,6 +13066,38 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
             onBookingUpdated={(updated) => {
               setMyBookings((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)));
               showToast('Payment proof uploaded successfully! Awaiting hotel verification.');
+            }}
+
+            onDeleteAllBookings={async () => {
+              const hasToken = typeof window !== 'undefined' && Boolean(localStorage.getItem('swat_token'));
+              if (user && hasToken) {
+                await deleteAllMyBookingsApi();
+              }
+              try {
+                const deletedIds = new Set(myBookings.flatMap((b) => [b.id, b.reference].filter(Boolean)));
+                localStorage.removeItem('swat_local_bookings');
+                localStorage.removeItem('swat_ride_orders');
+                localStorage.removeItem('swat_intercity_bookings');
+                const rawRooms = localStorage.getItem('swat_hotel_physical_rooms');
+                if (rawRooms) {
+                  const parsedRooms = JSON.parse(rawRooms);
+                  for (const key of Object.keys(parsedRooms)) {
+                    if (Array.isArray(parsedRooms[key])) {
+                      parsedRooms[key] = parsedRooms[key].map((r: any) =>
+                        deletedIds.has(r.current_booking_id) || deletedIds.has(r.last_booking_id)
+                          ? { ...r, status: 'available', stay_state: 'vacant', cleaning_status: 'ready', current_booking_id: undefined, current_guest_name: undefined, stay_dates: undefined, last_booking_id: undefined }
+                          : r
+                      );
+                    }
+                  }
+                  localStorage.setItem('swat_hotel_physical_rooms', JSON.stringify(parsedRooms));
+                  window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated', { detail: parsedRooms }));
+                }
+                window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: [] }));
+                window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: [] }));
+              } catch {}
+              setMyBookings([]);
+              showToast('All your bookings have been deleted.');
             }}
 
             onCompleteBooking={async (bookingId) => {

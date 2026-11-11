@@ -844,6 +844,76 @@ class ListingsService:
         if not rooms and auto_seed:
             rooms = await cls.seed_default_rooms(db, listing_id)
 
+        # Reconcile stale/orphaned reserved or occupied rooms whose bookings are missing or already concluded
+        active_assigned = [r for r in rooms if r.status in ("reserved", "occupied")]
+        if active_assigned:
+            from app.modules.bookings.models import Booking
+            booking_uuids = [r.current_booking_id for r in active_assigned if r.current_booking_id]
+            last_refs = [r.last_booking_id for r in active_assigned if not r.current_booking_id and r.last_booking_id]
+            last_uuids = []
+            for ref in last_refs:
+                try:
+                    last_uuids.append(uuid.UUID(ref))
+                except ValueError:
+                    pass
+
+            all_lookup_uuids = list(set(booking_uuids + last_uuids))
+            bookings_by_id = {}
+            bookings_by_ref = {}
+            if all_lookup_uuids:
+                b_stmt = select(Booking).where(Booking.id.in_(all_lookup_uuids))
+                for b in (await db.execute(b_stmt)).scalars().all():
+                    bookings_by_id[b.id] = b
+            if last_refs:
+                r_stmt = select(Booking).where(Booking.reference.in_(last_refs))
+                for b in (await db.execute(r_stmt)).scalars().all():
+                    bookings_by_ref[b.reference] = b
+
+            dirty = False
+            now = datetime.now(timezone.utc)
+            for r in active_assigned:
+                should_release = False
+                if r.current_booking_id:
+                    linked = bookings_by_id.get(r.current_booking_id)
+                    should_release = (
+                        linked is None
+                        or linked.status in ("completed", "cancelled", "declined", "no_show")
+                        or linked.stay_status == "checked_out"
+                    )
+                elif r.last_booking_id:
+                    linked = bookings_by_ref.get(r.last_booking_id)
+                    if not linked:
+                        try:
+                            l_uuid = uuid.UUID(r.last_booking_id)
+                            linked = bookings_by_id.get(l_uuid)
+                            if linked is None:
+                                should_release = True
+                        except ValueError:
+                            # Non-UUID guest/manual reference (e.g. SWT-BK-...): keep unless matched in DB as finished
+                            pass
+                    if linked and (
+                        linked.status in ("completed", "cancelled", "declined", "no_show")
+                        or linked.stay_status == "checked_out"
+                    ):
+                        should_release = True
+                else:
+                    should_release = True
+
+                if should_release:
+                    r.status = "available"
+                    r.stay_state = "vacant"
+                    r.cleaning_status = "ready"
+                    r.current_booking_id = None
+                    r.current_guest_name = None
+                    r.stay_dates = None
+                    r.updated_at = now
+                    dirty = True
+
+            if dirty:
+                await db.commit()
+                for r in active_assigned:
+                    await db.refresh(r)
+
         return rooms
 
     @classmethod
@@ -980,6 +1050,9 @@ class ListingsService:
             room.stay_state = "turnover"
         elif status == "available":
             room.stay_state = "vacant"
+            room.current_booking_id = None
+            room.current_guest_name = None
+            room.stay_dates = None
         elif status == "reserved":
             room.stay_state = "reserved"
 
@@ -1028,6 +1101,7 @@ class ListingsService:
 
             if is_target:
                 room.status = "reserved"
+                room.stay_state = "reserved"
                 room.current_booking_id = booking_uuid
                 room.current_guest_name = guest_name or room.current_guest_name
                 room.stay_dates = stay_dates or room.stay_dates

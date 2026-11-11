@@ -27,6 +27,7 @@ import {
   Star,
   Info,
   ArrowRight,
+  Trash2,
 } from 'lucide-react';
 
 export interface MyBookingsViewProps {
@@ -36,6 +37,7 @@ export interface MyBookingsViewProps {
   onPayBooking?: (bookingId: string) => void;
   onRateBooking?: (booking: Booking) => void;
   onCompleteBooking?: (bookingId: string) => Promise<void>;
+  onDeleteAllBookings?: () => Promise<void>;
   onExploreServices?: () => void;
   onBookingUpdated?: (booking: Booking) => void;
   onOpenAuth?: (mode?: 'login' | 'register') => void;
@@ -52,6 +54,7 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
   onPayBooking,
   onRateBooking,
   onCompleteBooking,
+  onDeleteAllBookings,
   onExploreServices,
   onOpenAuth,
   onBookingUpdated,
@@ -74,6 +77,54 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
   const [voucherBooking, setVoucherBooking] = useState<Booking | null>(null);
   const [uploadProofBooking, setUploadProofBooking] = useState<Booking | null>(null);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
+
+  // Delete All Bookings Confirmation Modal state
+  const [confirmDeleteAllOpen, setConfirmDeleteAllOpen] = useState<boolean>(false);
+  const [isDeletingAll, setIsDeletingAll] = useState<boolean>(false);
+  const [deleteAllError, setDeleteAllError] = useState<string | null>(null);
+
+  const handleConfirmDeleteAll = async () => {
+    setIsDeletingAll(true);
+    setDeleteAllError(null);
+    try {
+      if (onDeleteAllBookings) {
+        await onDeleteAllBookings();
+      } else {
+        if (!effectiveIsGuest) {
+          await bookingsApi.deleteAllMyBookingsApi();
+        }
+        try {
+          localStorage.removeItem('swat_local_bookings');
+          localStorage.removeItem('swat_ride_orders');
+          localStorage.removeItem('swat_intercity_bookings');
+          // Release any locally cached physical rooms associated with deleted bookings
+          const rawRooms = localStorage.getItem('swat_hotel_physical_rooms');
+          if (rawRooms) {
+            const parsedRooms = JSON.parse(rawRooms);
+            const deletedIds = new Set(bookings.flatMap((b) => [b.id, b.reference].filter(Boolean)));
+            for (const key of Object.keys(parsedRooms)) {
+              if (Array.isArray(parsedRooms[key])) {
+                parsedRooms[key] = parsedRooms[key].map((r: any) =>
+                  deletedIds.has(r.current_booking_id) || deletedIds.has(r.last_booking_id)
+                    ? { ...r, status: 'available', stay_state: 'vacant', cleaning_status: 'ready', current_booking_id: undefined, current_guest_name: undefined, stay_dates: undefined, last_booking_id: undefined }
+                    : r
+                );
+              }
+            }
+            localStorage.setItem('swat_hotel_physical_rooms', JSON.stringify(parsedRooms));
+            window.dispatchEvent(new CustomEvent('swat_physical_rooms_updated', { detail: parsedRooms }));
+          }
+          window.dispatchEvent(new CustomEvent('swat_bookings_updated', { detail: [] }));
+          window.dispatchEvent(new CustomEvent('swat_ride_orders_updated', { detail: [] }));
+        } catch {}
+      }
+      setConfirmDeleteAllOpen(false);
+    } catch (err: any) {
+      setDeleteAllError(err?.message || 'Failed to delete your bookings. Please try again.');
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
 
   // Helper to determine service category
   const getServiceType = (b: Booking): 'hotel' | 'transport' | 'activity' | 'guide' => {
@@ -519,26 +570,54 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
             </p>
           </div>
 
-          {onExploreServices && (
-            <Button
-              variant="accent"
-              size="sm"
-              onClick={onExploreServices}
-              data-testid="btn-explore-more-services"
-              style={{
-                borderRadius: '20px',
-                padding: '6px 14px',
-                fontWeight: 700,
-                fontSize: '12px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
-            >
-              <span>Explore Services</span>
-              <ArrowRight size={13} />
-            </Button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {bookings.length > 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setDeleteAllError(null);
+                  setConfirmDeleteAllOpen(true);
+                }}
+                data-testid="btn-delete-all-bookings"
+                style={{
+                  borderRadius: '20px',
+                  padding: '6px 14px',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                  borderColor: 'rgba(252, 165, 165, 0.65)',
+                  color: '#FFFFFF',
+                }}
+              >
+                <Trash2 size={13} />
+                <span>Delete All Bookings</span>
+              </Button>
+            )}
+            {onExploreServices && (
+              <Button
+                variant="accent"
+                size="sm"
+                onClick={onExploreServices}
+                data-testid="btn-explore-more-services"
+                style={{
+                  borderRadius: '20px',
+                  padding: '6px 14px',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <span>Explore Services</span>
+                <ArrowRight size={13} />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Guest Session Notice */}
@@ -1785,6 +1864,110 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
             }
           }}
         />
+      )}
+
+      {/* Delete All Bookings Confirmation Modal */}
+      {confirmDeleteAllOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.68)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1200,
+            padding: '16px',
+          }}
+          data-testid="modal-confirm-delete-all-bookings"
+        >
+          <div
+            style={{
+              backgroundColor: 'var(--card)',
+              borderRadius: '16px',
+              border: '1px solid var(--line)',
+              maxWidth: '440px',
+              width: '100%',
+              padding: '24px',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.28)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.14)',
+                  color: '#DC2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--ink)' }}>
+                  Delete All Your Bookings?
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--mute)' }}>
+                  This will remove all {bookings.length} booking(s) linked to your account.
+                </p>
+              </div>
+            </div>
+
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5 }}>
+              Any active room reservations will be released back to availability and all associated items, history, and payment records for your bookings will be permanently removed. This action cannot be undone.
+            </p>
+
+            {deleteAllError && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                  color: '#B91C1C',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
+              >
+                {deleteAllError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '6px' }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={isDeletingAll}
+                onClick={() => setConfirmDeleteAllOpen(false)}
+                data-testid="btn-cancel-delete-all-bookings"
+              >
+                Keep Bookings
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={isDeletingAll}
+                onClick={handleConfirmDeleteAll}
+                data-testid="btn-confirm-delete-all-bookings"
+                style={{
+                  backgroundColor: '#DC2626',
+                  borderColor: '#DC2626',
+                  color: '#FFFFFF',
+                }}
+              >
+                {isDeletingAll ? 'Deleting...' : 'Yes, Delete All'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 </div>
   );

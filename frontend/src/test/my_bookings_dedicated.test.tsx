@@ -428,4 +428,34 @@ describe('Dedicated My Bookings Page and Workflow', () => {
       expect(screen.getByText(/VERIFIED KP DIGITAL PASS #SWT-HOTEL-101/i)).toBeInTheDocument();
     });
   });
+
+  it('8. Renders Delete All Bookings button, confirms deletion, and invokes onDeleteAllBookings', async () => {
+    const onDeleteAllSpy = vi.fn().mockResolvedValueOnce(undefined);
+    render(
+      <MyBookingsView
+        bookings={sampleBookings}
+        onCancelBooking={vi.fn()}
+        onWithdrawBooking={vi.fn()}
+        onDeleteAllBookings={onDeleteAllSpy}
+      />
+    );
+
+    const deleteAllBtn = screen.getByTestId('btn-delete-all-bookings');
+    expect(deleteAllBtn).toHaveTextContent('Delete All Bookings');
+    fireEvent.click(deleteAllBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('modal-confirm-delete-all-bookings')).toBeInTheDocument();
+      expect(screen.getByText('Delete All Your Bookings?')).toBeInTheDocument();
+    });
+
+    const confirmDeleteBtn = screen.getByTestId('btn-confirm-delete-all-bookings');
+    await act(async () => {
+      fireEvent.click(confirmDeleteBtn);
+    });
+
+    await waitFor(() => {
+      expect(onDeleteAllSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });

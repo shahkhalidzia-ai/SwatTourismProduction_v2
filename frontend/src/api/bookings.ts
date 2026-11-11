@@ -435,3 +435,14 @@ export async function uploadPaymentProofApi(
     body: formData,
   });
 }
+
+export interface DeleteAllBookingsResponse {
+  deleted_count: number;
+  message: string;
+}
+
+export async function deleteAllMyBookingsApi(): Promise<DeleteAllBookingsResponse> {
+  return apiRequest<DeleteAllBookingsResponse>('/bookings/my-bookings', {
+    method: 'DELETE',
+  });
+}

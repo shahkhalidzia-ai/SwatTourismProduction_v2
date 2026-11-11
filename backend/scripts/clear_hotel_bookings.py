@@ -57,6 +57,20 @@ def clear_hotel_bookings():
     notifs_deleted = cur.rowcount
     print(f"[OK] Deleted {notifs_deleted} notifications.")
 
+    # 4b. Release any physical hotel_rooms linked to these bookings or orphaned
+    cur.execute(f"""
+        UPDATE hotel_rooms
+        SET status = 'available',
+            stay_state = 'vacant',
+            cleaning_status = 'ready',
+            current_booking_id = NULL,
+            current_guest_name = NULL,
+            stay_dates = NULL
+        WHERE current_booking_id IN ({placeholders})
+           OR status IN ('reserved', 'occupied')
+    """, hotel_ids)
+    print(f"[OK] Reset {cur.rowcount} physical hotel_rooms back to available.")
+
     # 5. Delete bookings
     cur.execute(f"DELETE FROM bookings WHERE id IN ({placeholders})", hotel_ids)
     bookings_deleted = cur.rowcount

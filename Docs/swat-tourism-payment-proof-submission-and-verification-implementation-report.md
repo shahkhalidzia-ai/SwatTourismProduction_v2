@@ -154,3 +154,4 @@ When a tourist pays a hotel directly via Track 2:
 - `frontend/src/modules/tourist/TouristShell.tsx`: Booking sync handler.
 - `frontend/src/test/payment_proof_components.test.tsx`: Vitest component tests.
 - `frontend/src/test/phase4_unified_payment_and_voucher.test.tsx`: Regression test.
+

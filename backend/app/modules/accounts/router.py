@@ -260,17 +260,6 @@ async def demo_login(role: str, db: AsyncSession = Depends(get_db)):
         user.demo_role = role
         await db.commit()
 
-    if role == "tourist" and user:
-        from app.modules.bookings.models import Booking
-        b_res = await db.execute(select(Booking).where(Booking.tourist_id == user.id, Booking.status == "completed"))
-        if not b_res.scalars().first():
-            any_b = await db.execute(select(Booking).where(Booking.tourist_id == user.id).order_by(Booking.created_at.desc()))
-            first_b = any_b.scalars().first()
-            if first_b:
-                first_b.status = "completed"
-                first_b.payment_status = "paid"
-                await db.commit()
-
     user_out = AccountService.user_to_user_out(user)
     access_token = create_access_token(subject=str(user.id), role=user.role)
     refresh_token = create_refresh_token(subject=str(user.id))

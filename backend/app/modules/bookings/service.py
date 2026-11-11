@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, date, timedelta, timezone
 from typing import List, Optional, Tuple
 from fastapi import HTTPException, status, UploadFile
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func, and_, or_, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -671,7 +671,13 @@ class BookingService:
 
         old_status = booking.status
         booking.status = "completed"
+        if booking.stay_status != "checked_out":
+            booking.stay_status = "checked_out"
         booking.updated_at = datetime.now(timezone.utc)
+
+        await BookingService._release_rooms_for_booking(
+            db, booking, to_status="cleaning" if old_status == "confirmed" and booking.checked_in_at else "available"
+        )
 
         history = BookingStatusHistory(
             id=uuid.uuid4(),
@@ -1229,6 +1235,7 @@ class BookingService:
 
         # Restore reserved units in availability
         await BookingService._restore_units_booked(db, booking)
+        await BookingService._release_rooms_for_booking(db, booking, to_status="available")
 
         # Status history
         history = BookingStatusHistory(
@@ -1316,6 +1323,7 @@ class BookingService:
         booking.updated_at = datetime.now(timezone.utc)
 
         await BookingService._restore_units_booked(db, booking)
+        await BookingService._release_rooms_for_booking(db, booking, to_status="available")
 
         history = BookingStatusHistory(
             id=uuid.uuid4(),
@@ -1386,6 +1394,7 @@ class BookingService:
         # Restore units if was requested, accepted, or confirmed
         if old_status in ("requested", "accepted", "confirmed"):
             await BookingService._restore_units_booked(db, booking)
+        await BookingService._release_rooms_for_booking(db, booking, to_status="available")
 
         # Status history
         history = BookingStatusHistory(
@@ -1513,6 +1522,7 @@ class BookingService:
 
         if old_status in ("requested", "accepted", "confirmed"):
             await BookingService._restore_units_booked(db, booking)
+        await BookingService._release_rooms_for_booking(db, booking, to_status="available")
 
         history = BookingStatusHistory(
             id=uuid.uuid4(),
@@ -1876,4 +1886,112 @@ class BookingService:
             bookings=booking_outs,
             message=f"Successfully claimed {len(claimed_refs)} guest bookings into your verified account profile.",
         )
+
+    @staticmethod
+    async def delete_all_tourist_bookings(
+        db: AsyncSession,
+        tourist_id: uuid.UUID,
+    ) -> int:
+        """Permanently delete all bookings belonging to the authenticated tourist."""
+        q = (
+            select(Booking)
+            .options(selectinload(Booking.items).selectinload(BookingItem.price_item))
+            .where(Booking.tourist_id == tourist_id)
+        )
+        bookings = list((await db.execute(q)).scalars().all())
+        if not bookings:
+            return 0
+
+        booking_ids = [b.id for b in bookings]
+
+        # Restore reserved availability counts for active bookings
+        for b in bookings:
+            if b.status in ("requested", "accepted", "confirmed"):
+                await BookingService._restore_units_booked(db, b)
+
+        # Release any physical hotel rooms linked to these bookings (by ID, assigned_room_id, or reference)
+        booking_refs_and_ids = [str(bid) for bid in booking_ids] + [b.reference for b in bookings if b.reference]
+        for b in bookings:
+            await BookingService._release_rooms_for_booking(db, b, to_status="available")
+
+        extra_rooms_q = select(HotelRoom).where(
+            or_(
+                HotelRoom.current_booking_id.in_(booking_ids),
+                HotelRoom.last_booking_id.in_(booking_refs_and_ids),
+            )
+        )
+        extra_rooms = list((await db.execute(extra_rooms_q)).scalars().all())
+        now = datetime.now(timezone.utc)
+        for room in extra_rooms:
+            room.current_booking_id = None
+            room.current_guest_name = None
+            room.stay_dates = None
+            room.last_booking_id = None
+            room.status = "available"
+            room.stay_state = "vacant"
+            room.cleaning_status = "ready"
+            room.updated_at = now
+
+        # Detach finance ledger references cleanly before deleting bookings
+        await db.execute(
+            update(CommissionTransaction)
+            .where(CommissionTransaction.booking_id.in_(booking_ids))
+            .values(booking_id=None)
+        )
+
+        # Delete child rows and bookings directly via bulk SQL statements
+        from app.modules.reviews.models import Review
+        await db.execute(delete(Review).where(Review.booking_id.in_(booking_ids)))
+        await db.execute(delete(BookingPayment).where(BookingPayment.booking_id.in_(booking_ids)))
+        await db.execute(delete(BookingStatusHistory).where(BookingStatusHistory.booking_id.in_(booking_ids)))
+        await db.execute(delete(BookingItem).where(BookingItem.booking_id.in_(booking_ids)))
+        await db.execute(delete(Booking).where(Booking.id.in_(booking_ids)))
+
+        await db.commit()
+        return len(bookings)
+
+    @staticmethod
+    async def _release_rooms_for_booking(
+        db: AsyncSession,
+        booking: Booking,
+        to_status: str = "available",
+    ) -> None:
+        """Release any physical HotelRoom records assigned to a booking back to available or cleaning."""
+        now = datetime.now(timezone.utc)
+        rm_stmt = select(HotelRoom).where(HotelRoom.current_booking_id == booking.id)
+        rooms = list((await db.execute(rm_stmt)).scalars().all())
+
+        # Also check assigned_room_id list if current_booking_id wasn't set
+        if not rooms and booking.assigned_room_id:
+            for r_id_str in booking.assigned_room_id.split(","):
+                r_id_str = r_id_str.strip()
+                if not r_id_str:
+                    continue
+                try:
+                    r_uuid = uuid.UUID(r_id_str)
+                    q = select(HotelRoom).where(HotelRoom.id == r_uuid)
+                except ValueError:
+                    q = select(HotelRoom).where(
+                        HotelRoom.listing_id == booking.listing_id,
+                        HotelRoom.room_number == r_id_str,
+                    )
+                rm = (await db.execute(q)).scalar_one_or_none()
+                if rm:
+                    rooms.append(rm)
+
+        for room in rooms:
+            room.status = to_status
+            if to_status == "cleaning":
+                room.cleaning_status = "cleaning"
+                room.stay_state = "turnover"
+            else:
+                room.cleaning_status = "ready"
+                room.stay_state = "vacant"
+            room.current_booking_id = None
+            room.current_guest_name = None
+            room.stay_dates = None
+            room.last_booking_id = str(booking.id)
+            room.updated_at = now
+
+
 

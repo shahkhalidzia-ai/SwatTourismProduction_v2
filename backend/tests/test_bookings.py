@@ -418,3 +418,214 @@ async def test_tourist_request_cancellation_and_host_accept(async_client: AsyncC
     assert final_data["cancelled_by"] == "tourist"
     assert final_data["cancellation_requested"] is False
 
+
+@pytest.mark.asyncio
+async def test_tourist_delete_all_my_bookings(async_client: AsyncClient):
+    biz_token = await register_user(async_client, "biz_del_all@test.com", "business")
+    listing = await create_published_listing_with_item(async_client, biz_token, default_units=3)
+    price_item_id = listing["price_items"][0]["id"]
+
+    tourist_a_token = await register_user(async_client, "tourist_a_del@test.com", "tourist")
+    tourist_b_token = await register_user(async_client, "tourist_b_keep@test.com", "tourist")
+    headers_a = {"Authorization": f"Bearer {tourist_a_token}"}
+    headers_b = {"Authorization": f"Bearer {tourist_b_token}"}
+
+    start = date.today() + timedelta(days=30)
+    payload = {
+        "listing_id": listing["id"],
+        "start_date": str(start),
+        "end_date": str(start + timedelta(days=1)),
+        "travellers": 2,
+        "items": [{"price_item_id": price_item_id, "quantity": 1}],
+    }
+
+    # Tourist A creates 2 bookings, Tourist B creates 1 booking
+    res_a1 = await async_client.post("/api/v1/bookings/request", json=payload, headers=headers_a)
+    assert res_a1.status_code == 201
+    res_a2 = await async_client.post("/api/v1/bookings/request", json=payload, headers=headers_a)
+    assert res_a2.status_code == 201
+    res_b = await async_client.post("/api/v1/bookings/request", json=payload, headers=headers_b)
+    assert res_b.status_code == 201
+
+    # Tourist A deletes all of their own bookings
+    del_res = await async_client.delete("/api/v1/bookings/my-bookings", headers=headers_a)
+    assert del_res.status_code == 200
+    assert del_res.json()["deleted_count"] == 2
+
+    # Tourist A now has 0 bookings
+    list_a = await async_client.get("/api/v1/bookings/my-bookings", headers=headers_a)
+    assert list_a.status_code == 200
+    assert len(list_a.json()) == 0
+
+    # Tourist B's booking remains untouched
+    list_b = await async_client.get("/api/v1/bookings/my-bookings", headers=headers_b)
+    assert list_b.status_code == 200
+    assert len(list_b.json()) == 1
+
+
+@pytest.mark.asyncio
+async def test_demo_login_tourist_preserves_accepted_booking_status(async_client: AsyncClient):
+    """Switching back to Sara Swati demo tourist must NOT overwrite accepted/unpaid bookings to completed/paid."""
+    hotel_res = await async_client.post("/api/v1/auth/demo-login/business")
+    assert hotel_res.status_code == 200
+    hotel_token = hotel_res.json()["access_token"]
+    hotel_headers = {"Authorization": f"Bearer {hotel_token}"}
+
+    listing = await create_published_listing_with_item(async_client, hotel_token, default_units=3)
+    price_item_id = listing["price_items"][0]["id"]
+
+    t_res = await async_client.post("/api/v1/auth/demo-login/tourist")
+    assert t_res.status_code == 200
+    t_token = t_res.json()["access_token"]
+    t_headers = {"Authorization": f"Bearer {t_token}"}
+
+    start = date.today() + timedelta(days=15)
+    bk_res = await async_client.post(
+        "/api/v1/bookings/request",
+        json={
+            "listing_id": listing["id"],
+            "start_date": str(start),
+            "end_date": str(start + timedelta(days=1)),
+            "travellers": 2,
+            "items": [{"price_item_id": price_item_id, "quantity": 1}],
+        },
+        headers=t_headers,
+    )
+    assert bk_res.status_code == 201
+    booking_id = bk_res.json()["id"]
+
+    # Hotel accepts the request
+    acc_res = await async_client.post(f"/api/v1/bookings/{booking_id}/accept", headers=hotel_headers)
+    assert acc_res.status_code == 200
+    assert acc_res.json()["status"] == "accepted"
+
+    # Switch back to Tourist via demo-login/tourist
+    t_res2 = await async_client.post("/api/v1/auth/demo-login/tourist")
+    assert t_res2.status_code == 200
+    t_headers2 = {"Authorization": f"Bearer {t_res2.json()['access_token']}"}
+
+    my_res = await async_client.get("/api/v1/bookings/my-bookings", headers=t_headers2)
+    assert my_res.status_code == 200
+    target = next((b for b in my_res.json() if b["id"] == booking_id), None)
+    assert target is not None
+    assert target["status"] == "accepted"
+    assert target["payment_status"] == "unpaid"
+
+
+@pytest.mark.asyncio
+async def test_room_rack_releases_rooms_on_complete_and_reconciles_orphans(async_client: AsyncClient):
+    """Completing or deleting a booking must release assigned physical rooms back to available."""
+    hotel_res = await async_client.post("/api/v1/auth/demo-login/business")
+    assert hotel_res.status_code == 200
+    hotel_token = hotel_res.json()["access_token"]
+    hotel_headers = {"Authorization": f"Bearer {hotel_token}"}
+
+    listing = await create_published_listing_with_item(async_client, hotel_token, default_units=3)
+    listing_id = listing["id"]
+    price_item_id = listing["price_items"][0]["id"]
+
+    # Seed/fetch physical rooms for listing
+    rooms_res = await async_client.get(f"/api/v1/listings/{listing_id}/rooms", headers=hotel_headers)
+    assert rooms_res.status_code == 200
+    rooms = rooms_res.json()
+    assert len(rooms) > 0
+    first_room_id = rooms[0]["id"]
+
+    t_res = await async_client.post("/api/v1/auth/demo-login/tourist")
+    t_headers = {"Authorization": f"Bearer {t_res.json()['access_token']}"}
+
+    start = date.today() + timedelta(days=20)
+    bk_res = await async_client.post(
+        "/api/v1/bookings/request",
+        json={
+            "listing_id": listing_id,
+            "start_date": str(start),
+            "end_date": str(start + timedelta(days=1)),
+            "travellers": 1,
+            "items": [{"price_item_id": price_item_id, "quantity": 1}],
+        },
+        headers=t_headers,
+    )
+    assert bk_res.status_code == 201
+    booking_id = bk_res.json()["id"]
+
+    # Accept booking & assign physical room
+    assert (await async_client.post(f"/api/v1/bookings/{booking_id}/accept", headers=hotel_headers)).status_code == 200
+    assign_res = await async_client.post(
+        f"/api/v1/listings/{listing_id}/assign-rooms",
+        json={"room_ids": [first_room_id], "booking_id": booking_id, "guest_name": "Sara Swati"},
+        headers=hotel_headers,
+    )
+    assert assign_res.status_code == 200
+    assigned_room = next(r for r in assign_res.json() if r["id"] == first_room_id)
+    assert assigned_room["status"] == "reserved"
+
+    # Complete booking -> physical room must be released back to available
+    comp_res = await async_client.post(f"/api/v1/bookings/{booking_id}/complete", headers=hotel_headers)
+    assert comp_res.status_code == 200
+    assert comp_res.json()["status"] == "completed"
+
+    rooms_after = (await async_client.get(f"/api/v1/listings/{listing_id}/rooms", headers=hotel_headers)).json()
+    released_room = next(r for r in rooms_after if r["id"] == first_room_id)
+    assert released_room["status"] == "available"
+    assert released_room["current_booking_id"] is None
+
+
+@pytest.mark.asyncio
+async def test_room_rack_releases_rooms_when_booking_is_deleted(async_client: AsyncClient):
+    """Deleting tourist bookings (for testing/cleanup) must immediately release assigned physical rooms."""
+    hotel_res = await async_client.post("/api/v1/auth/demo-login/business")
+    hotel_token = hotel_res.json()["access_token"]
+    hotel_headers = {"Authorization": f"Bearer {hotel_token}"}
+
+    listing = await create_published_listing_with_item(async_client, hotel_token, default_units=3)
+    listing_id = listing["id"]
+    price_item_id = listing["price_items"][0]["id"]
+
+    rooms = (await async_client.get(f"/api/v1/listings/{listing_id}/rooms", headers=hotel_headers)).json()
+    room_id = rooms[0]["id"]
+
+    t_token = await register_user(async_client, "tourist_del_room_rel@test.com", "tourist")
+    t_headers = {"Authorization": f"Bearer {t_token}"}
+
+    start = date.today() + timedelta(days=25)
+    bk_res = await async_client.post(
+        "/api/v1/bookings/request",
+        json={
+            "listing_id": listing_id,
+            "start_date": str(start),
+            "end_date": str(start + timedelta(days=1)),
+            "travellers": 1,
+            "items": [{"price_item_id": price_item_id, "quantity": 1}],
+        },
+        headers=t_headers,
+    )
+    assert bk_res.status_code == 201
+    booking_id = bk_res.json()["id"]
+
+    # Assign room -> reserved
+    assert (await async_client.post(f"/api/v1/bookings/{booking_id}/accept", headers=hotel_headers)).status_code == 200
+    assign_res = await async_client.post(
+        f"/api/v1/listings/{listing_id}/assign-rooms",
+        json={"room_ids": [room_id], "booking_id": booking_id, "guest_name": "Test Guest"},
+        headers=hotel_headers,
+    )
+    assert assign_res.status_code == 200
+    assert next(r for r in assign_res.json() if r["id"] == room_id)["status"] == "reserved"
+
+    # Tourist deletes all their bookings -> room must be released back to available
+    del_res = await async_client.delete("/api/v1/bookings/my-bookings", headers=t_headers)
+    assert del_res.status_code == 200
+    assert del_res.json()["deleted_count"] == 1
+
+    rooms_after = (await async_client.get(f"/api/v1/listings/{listing_id}/rooms", headers=hotel_headers)).json()
+    released = next(r for r in rooms_after if r["id"] == room_id)
+    assert released["status"] == "available"
+    assert released["stay_state"] == "vacant"
+    assert released["current_booking_id"] is None
+    assert released["last_booking_id"] is None
+
+
+
+
+

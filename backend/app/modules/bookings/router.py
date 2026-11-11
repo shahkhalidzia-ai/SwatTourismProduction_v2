@@ -74,6 +74,21 @@ async def get_my_bookings(
     return await BookingService.get_tourist_bookings(db, user_id)
 
 
+@router.delete("/my-bookings")
+@router.delete("/my")
+async def delete_all_my_bookings(
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete all bookings belonging to the authenticated tourist."""
+    user_id = uuid.UUID(payload.get("sub"))
+    deleted_count = await BookingService.delete_all_tourist_bookings(db, user_id)
+    return {
+        "deleted_count": deleted_count,
+        "message": f"Successfully deleted {deleted_count} booking(s).",
+    }
+
+
 @router.get("/business-bookings", response_model=List[BookingOut])
 async def get_business_bookings(
     status_filter: Optional[str] = Query(None, alias="status"),
