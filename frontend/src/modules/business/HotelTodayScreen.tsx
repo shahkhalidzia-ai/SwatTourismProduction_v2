@@ -345,7 +345,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   const [localStatusMap, setLocalStatusMap] = useState<Record<string, string>>({});
 
-  
+
 
   // Physical Rooms state
 
@@ -604,7 +604,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
       }
 
-    } catch {}
+    } catch { }
 
 
 
@@ -650,7 +650,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
       }
 
-    } catch {}
+    } catch { }
 
 
 
@@ -710,7 +710,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
         if (raw) setCollectedBalanceMap(JSON.parse(raw));
 
-      } catch {}
+      } catch { }
 
     };
 
@@ -754,7 +754,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
       localStorage.setItem('swat_hotel_collected_balances', JSON.stringify(updated));
 
-    } catch {}
+    } catch { }
 
 
 
@@ -828,7 +828,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
       }
 
-    } catch {}
+    } catch { }
 
 
 
@@ -868,7 +868,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
       localStorage.setItem('swat_hotel_stay_states', JSON.stringify(updated));
 
-    } catch {}
+    } catch { }
 
 
 
@@ -1066,7 +1066,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
       localStorage.setItem('swat_hotel_stay_states', JSON.stringify(updated));
 
-    } catch {}
+    } catch { }
 
 
 
@@ -1108,23 +1108,23 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
         ? {
 
-            ...r,
+          ...r,
 
-            status: 'cleaning' as const,
+          status: 'cleaning' as const,
 
-            notes: 'Vacated by guest • Ready for clean',
+          notes: 'Vacated by guest • Ready for clean',
 
-            current_booking_id: undefined,
+          current_booking_id: undefined,
 
-            current_guest_name: undefined,
+          current_guest_name: undefined,
 
-            stay_dates: undefined,
+          stay_dates: undefined,
 
-            last_booking_id: key,
+          last_booking_id: key,
 
-            updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
 
-          }
+        }
 
         : r;
 
@@ -1915,13 +1915,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
             : isCancellationRequested
 
-            ? '1.5px solid #F87171'
+              ? '1.5px solid #F87171'
 
-            : isPendingOrRequested
+              : isPendingOrRequested
 
-            ? '1.5px solid #FCD34D'
+                ? '1.5px solid #FCD34D'
 
-            : '1px solid #E2E8F0',
+                : '1px solid #E2E8F0',
 
           borderLeft: isCancelled
 
@@ -1929,21 +1929,21 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
             : isCancellationRequested
 
-            ? '4px solid #DC2626'
+              ? '4px solid #DC2626'
 
-            : isPendingOrRequested
+              : isPendingOrRequested
 
-            ? '4px solid #F59E0B'
+                ? '4px solid #F59E0B'
 
-            : stayState === 'checked_in'
+                : stayState === 'checked_in'
 
-            ? '4px solid #10B981'
+                  ? '4px solid #10B981'
 
-            : stayState === 'checked_out'
+                  : stayState === 'checked_out'
 
-            ? '4px solid #94A3B8'
+                    ? '4px solid #94A3B8'
 
-            : '4px solid #088395',
+                    : '4px solid #088395',
 
           background: '#FFFFFF',
 
@@ -1955,13 +1955,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
             : isCancellationRequested
 
-            ? '0 2px 8px -2px rgba(220, 38, 38, 0.10)'
+              ? '0 2px 8px -2px rgba(220, 38, 38, 0.10)'
 
-            : isPendingOrRequested
+              : isPendingOrRequested
 
-            ? '0 2px 8px -2px rgba(245, 158, 11, 0.08)'
+                ? '0 2px 8px -2px rgba(245, 158, 11, 0.08)'
 
-            : '0 1px 4px rgba(15, 23, 42, 0.04)',
+                : '0 1px 4px rgba(15, 23, 42, 0.04)',
 
           display: 'flex',
 
@@ -2019,9 +2019,9 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                   : stayState === 'checked_in'
 
-                  ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                    ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
 
-                  : 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
+                    : 'linear-gradient(135deg, #0A4D68 0%, #088395 100%)',
 
                 color: '#FFFFFF',
 
@@ -4390,7 +4390,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                     await apiRequest('/bookings/clear-hotel-bookings', { method: 'POST' });
 
-                  } catch {}
+                  } catch { }
 
                   window.location.reload();
 
@@ -4684,13 +4684,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                     : isCancellationsTab
 
-                    ? '1.5px solid #F87171'
+                      ? '1.5px solid #F87171'
 
-                    : isRequestsTab && requestsCount > 0
+                      : isRequestsTab && requestsCount > 0
 
-                    ? '1px solid #F59E0B'
+                        ? '1px solid #F59E0B'
 
-                    : '1px solid #CBD5E1',
+                        : '1px solid #CBD5E1',
 
                   background: isActive
 
@@ -4698,13 +4698,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                     : isCancellationsTab
 
-                    ? '#FEE2E2'
+                      ? '#FEE2E2'
 
-                    : isRequestsTab && requestsCount > 0
+                      : isRequestsTab && requestsCount > 0
 
-                    ? '#FEF3C7'
+                        ? '#FEF3C7'
 
-                    : '#FFFFFF',
+                        : '#FFFFFF',
 
                   color: isActive
 
@@ -4712,13 +4712,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                     : isCancellationsTab
 
-                    ? '#991B1B'
+                      ? '#991B1B'
 
-                    : isRequestsTab && requestsCount > 0
+                      : isRequestsTab && requestsCount > 0
 
-                    ? '#92400E'
+                        ? '#92400E'
 
-                    : '#334155',
+                        : '#334155',
 
                   fontSize: '12.5px',
 
@@ -4930,13 +4930,13 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                 : frontDeskFilter === 'requests'
 
-                ? 'No pending booking requests. All incoming reservations have been accepted and processed.'
+                  ? 'No pending booking requests. All incoming reservations have been accepted and processed.'
 
-                : frontDeskFilter === 'ledger'
+                  : frontDeskFilter === 'ledger'
 
-                ? '✓ All guest folios are fully settled. There are no outstanding desk balances due.'
+                    ? '✓ All guest folios are fully settled. There are no outstanding desk balances due.'
 
-                : `No bookings matching filter "${frontDeskFilter}". Switch to "All Operations" to see full guest roster.`}
+                    : `No bookings matching filter "${frontDeskFilter}". Switch to "All Operations" to see full guest roster.`}
 
             </p>
 
@@ -5424,7 +5424,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                             type="button"
 
-                            title="Details"
+                            title="Actions"
 
                             data-testid={`btn-inspect-row-${booking.reference}`}
 
@@ -5472,7 +5472,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                             <FileText size={11} color={isSelected && isDetailsModalOpen ? '#FFFFFF' : '#088395'} />
 
-                            <span>Details</span>
+                            <span>Actions</span>
 
                           </button>
 
@@ -6706,7 +6706,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
 
 
-{/* 5. MODALS: PHYSICAL ROOM CONFIG & ASSIGN ROOM MODAL                       */}
+      {/* 5. MODALS: PHYSICAL ROOM CONFIG & ASSIGN ROOM MODAL                       */}
 
       {/* ========================================================================= */}
 
@@ -6830,9 +6830,9 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
             (collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference] ||
 
-             (receiptModal.booking as any).payment_status === 'paid' ||
+              (receiptModal.booking as any).payment_status === 'paid' ||
 
-             (receiptModal.booking as any).payment_status === 'full_paid')
+              (receiptModal.booking as any).payment_status === 'full_paid')
 
               ? 0
 
@@ -6856,7 +6856,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
       )}
 
-    
+
       {/* Direct Payment Proof Inspector Modal */}
       {inspectingBooking && (
         <PaymentProofInspectorModal
@@ -6869,17 +6869,17 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
               prev.map((b) =>
                 b.id === updated.id
                   ? {
-                      ...b,
-                      payment_status: updated.payment_status as any,
-                      direct_transfer_verified_at: updated.direct_transfer_verified_at,
-                    }
+                    ...b,
+                    payment_status: updated.payment_status as any,
+                    direct_transfer_verified_at: updated.direct_transfer_verified_at,
+                  }
                   : b
               )
             );
           }}
         />
       )}
-</div>
+    </div>
 
   );
 
