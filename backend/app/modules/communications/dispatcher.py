@@ -48,22 +48,21 @@ class CommunicationDispatcher:
             if category:
                 room_info = f"{category} ({room_info})"
 
-        # Tourist contact
+        # Tourist contact: prefer booking-level WhatsApp entered at checkout, then account phone
         tourist = getattr(booking, "tourist", None)
         tourist_name = getattr(tourist, "full_name", None) or "Valued Guest"
         tourist_email = getattr(tourist, "email", None) or "tourist@swattourism.pk"
 
-        tourist_phone = "+923001234567"
+        explicit_whatsapp = ""
         special_requests = getattr(booking, "special_requests", "") or ""
         if "WhatsApp:" in special_requests:
             try:
-                part = special_requests.split("WhatsApp:")[1].split("|")[0].strip()
-                if part:
-                    tourist_phone = part
+                explicit_whatsapp = special_requests.split("WhatsApp:")[1].split("|")[0].strip()
             except Exception:
-                pass
-        if hasattr(tourist, "phone") and getattr(tourist, "phone", None):
-            tourist_phone = getattr(tourist, "phone")
+                explicit_whatsapp = ""
+
+        account_phone = getattr(tourist, "phone", None) if hasattr(tourist, "phone") else None
+        tourist_phone = explicit_whatsapp or account_phone or "+923001234567"
 
         # Business / Manager contact
         manager_phone = "+923459876543"
@@ -84,8 +83,22 @@ class CommunicationDispatcher:
                 if owner and getattr(owner, "email", None):
                     manager_email = getattr(owner, "email")
 
+        from decimal import Decimal
+
         total_amount = float(getattr(booking, "total_amount", 0.0) or 0.0)
-        paid_amount = float(getattr(booking, "deposit_paid", 0.0) or 0.0)
+        raw_deposit_paid = getattr(booking, "deposit_paid", None)
+        raw_deposit_amt = getattr(booking, "deposit_amount", None)
+        raw_prop_collected = getattr(booking, "property_collected_amount", None)
+        payment_status_str = str(getattr(booking, "payment_status", "unpaid") or "unpaid").lower()
+
+        if isinstance(raw_deposit_paid, (int, float, Decimal)):
+            paid_amount = float(raw_deposit_paid)
+        elif payment_status_str in ("paid", "full_paid"):
+            paid_amount = total_amount
+        else:
+            dep_val = float(raw_deposit_amt) if isinstance(raw_deposit_amt, (int, float, Decimal)) else 0.0
+            prop_val = float(raw_prop_collected) if isinstance(raw_prop_collected, (int, float, Decimal)) else 0.0
+            paid_amount = min(total_amount, dep_val + prop_val) if total_amount > 0 else (dep_val + prop_val)
         balance_due = max(0.0, total_amount - paid_amount)
 
         # Payment mode label
@@ -289,6 +302,73 @@ class CommunicationDispatcher:
             results["sms_voucher"] = {"error": str(e)}
 
         return results
+
+    # =========================================================================
+    # Resend Action: resend_booking_confirmation
+    # On-demand resend of confirmed voucher via WhatsApp (WAHA) and/or Email
+    # =========================================================================
+    @classmethod
+    async def resend_booking_confirmation(
+        cls,
+        booking: Any,
+        channel: str = "all",
+    ) -> Dict[str, Any]:
+        """
+        Resend official confirmed booking voucher to tourist via WhatsApp (WAHA) and/or Email.
+        Matches the automatic dispatch triggered when a booking request is accepted.
+        """
+        results: Dict[str, Any] = {}
+        ctx = cls._resolve_contacts(booking)
+
+        voucher_url = f"https://swattourism.pk/bookings/{ctx['booking_id']}/voucher"
+        qr_code_data = f"KPCTA-{ctx['booking_ref']}"
+
+        if channel in ("all", "whatsapp"):
+            try:
+                results["whatsapp_voucher"] = await WhatsAppService.send_booking_confirmed_voucher(
+                    to_phone=ctx["tourist_phone"],
+                    tourist_name=ctx["tourist_name"],
+                    booking_ref=ctx["booking_ref"],
+                    listing_title=ctx["listing_title"],
+                    dates=ctx["dates"],
+                    room_info=ctx["room_info"],
+                    payment_mode_label=ctx["payment_mode_label"],
+                    paid_amount=ctx["paid_amount"],
+                    balance_due=ctx["balance_due"],
+                    voucher_url=voucher_url,
+                    qr_code_data=qr_code_data,
+                )
+            except Exception as e:
+                logger.error(f"Failed to resend WhatsApp voucher: {e}")
+                results["whatsapp_voucher"] = {"error": str(e)}
+
+        if channel in ("all", "email"):
+            try:
+                results["email_voucher"] = await EmailService.send_confirmed_voucher_email(
+                    to_email=ctx["tourist_email"],
+                    tourist_name=ctx["tourist_name"],
+                    booking_ref=ctx["booking_ref"],
+                    listing_title=ctx["listing_title"],
+                    dates=ctx["dates"],
+                    room_info=ctx["room_info"],
+                    payment_mode_label=ctx["payment_mode_label"],
+                    paid_amount=ctx["paid_amount"],
+                    balance_due=ctx["balance_due"],
+                    voucher_url=voucher_url,
+                    qr_code_data=qr_code_data,
+                )
+            except Exception as e:
+                logger.error(f"Failed to resend Email voucher: {e}")
+                results["email_voucher"] = {"error": str(e)}
+
+        return {
+            "status": "success",
+            "message": f"Confirmation resent to tourist via {channel}",
+            "booking_reference": ctx["booking_ref"],
+            "tourist_phone": ctx["tourist_phone"],
+            "tourist_email": ctx["tourist_email"],
+            "results": results,
+        }
 
     # =========================================================================
     # Event Trigger 3: complete_booking

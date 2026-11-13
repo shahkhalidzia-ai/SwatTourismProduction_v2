@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_token_payload, require_roles
+from app.core.deps import get_current_token_payload, require_roles, get_optional_token_payload
 from app.core.sms import SMSService
 from app.modules.bookings.schemas import (
     BookingCreateRequest,
@@ -130,6 +130,36 @@ async def get_booking_details(
             detail="Booking not found",
         )
     return booking
+
+
+@router.post("/{booking_id_or_ref}/resend-confirmation")
+async def resend_booking_confirmation(
+    booking_id_or_ref: str,
+    channel: str = Query("all", pattern="^(all|whatsapp|email)$"),
+    db: AsyncSession = Depends(get_db),
+    payload: Optional[dict] = Depends(get_optional_token_payload),
+):
+    """
+    Resend official booking confirmation voucher to tourist via WhatsApp (WAHA) and/or Email.
+    Identical to the automatic dispatch triggered when a booking request is accepted.
+    """
+    booking = None
+    try:
+        b_uuid = uuid.UUID(booking_id_or_ref)
+        booking = await BookingService.get_booking_by_id(db, b_uuid)
+    except ValueError:
+        pass
+
+    if not booking:
+        booking = await BookingService.get_booking_by_reference(db, booking_id_or_ref)
+
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking '{booking_id_or_ref}' not found",
+        )
+
+    return await CommunicationDispatcher.resend_booking_confirmation(booking, channel=channel)
 
 
 @router.post("/{booking_id}/accept", response_model=BookingOut)

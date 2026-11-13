@@ -188,6 +188,18 @@ export interface CancellationPreview {
   is_free_cancellation: boolean;
 }
 
+export async function resendBookingConfirmation(
+  bookingIdOrRef: string,
+  channel: 'all' | 'whatsapp' | 'email' = 'all'
+): Promise<{ status: string; message: string; tourist_phone?: string; tourist_email?: string; results: any }> {
+  return apiRequest<{ status: string; message: string; tourist_phone?: string; tourist_email?: string; results: any }>(
+    `/bookings/${encodeURIComponent(bookingIdOrRef)}/resend-confirmation?channel=${channel}`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
 export async function acceptBooking(
   bookingId: string,
   details?: {

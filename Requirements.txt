@@ -131,6 +131,9 @@ change the landing page Card desgine.
 Shah.khalid@f3tech.com/Password123
 hassan@swat.pk/Password123
 anas@swat.pk/
+STP api url
+http://localhost:8090/docs
+http://localhost:3000/dashboard {whatsapp gateway (admin / swat2026).} c5ec190d8aa34bd78324d51b8c936a7f
 ===
 06/11/2026
 working on gapes in  payments and invoices
@@ -141,14 +144,27 @@ code archetecute oveview and understanding
 11/11/2026
 Payments process testing. and issue fixing
 adding the delete option on my bookings. form
+booking requested added, only requested is accepted, but it shows as completed on touris my bookings portal. why it is so? please check one record
+for tourist Sara swati demo user and swat serena hotel demo hotel. please review the complete flow and fix the issue
 
+there is one booking on swat serena today screen , its status is completed, on live room raks there are multiple rooms showing in resverd status.
+why, please create prompt, mention the reason and fix the issue
 
+No advance payment done, but it stills show that advance amount paid
 this week:
 
-Added whats app Email( will discuss with Haider ali bajwa)
-and finance invoicing,
-UI issue fixing
+**Daily Update Summary (`2026-11-11`)**
 
+- **Fixed Accepted Bookings Showing as Completed:** Stopped demo login from overwriting booking statuses so accepted reservations appear correctly in Tourist My Bookings.
+- **Fixed Live Room Rack Sync & Deletion Cleanup:** Reconciled room availability with active bookings and ensured completed/deleted bookings automatically release assigned rooms.
+- **Added Booking Bulk-Cleanup Support:** Implemented delete-all tourist bookings support for cleaner testing and data resets.
+- **Added Hotel Front-Desk Payment Proof Inspection:** Enabled hotel managers to inspect and verify tourist bank-transfer slips directly from the Hotel Today booking grid (`Inspect Proof` / `Actions`).
+- **Fixed Unpaid Booking Balance Display:** Removed false 25% deposit fallbacks so bookings without advance payment accurately display `PKR 0 (Unpaid — Pay at Hotel)` with the full balance due.
+- **Added Documentation:** Generated Word guides for SwatPay checkout, simplified tourist-hotel payment flow recommendations, and system/booking architecture.
 
+12/11/2026
+Analysis on whatsapp api for dev, and production environment.
+Setup Docker on my system
+configure environment for WAHA open source whats app api
 
 

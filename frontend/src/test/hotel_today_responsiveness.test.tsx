@@ -292,6 +292,51 @@ describe('Hotel Today Screen Responsiveness & Action Controls', () => {
       expect(screen.queryByTestId('assign-room-modal')).not.toBeInTheDocument();
     });
   });
+
+  it('shows PKR 0 Advance Paid (Unpaid) and full Balance Due when no advance payment is made', async () => {
+    render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessAddress="Saidu Sharif Road, Mingora, Swat"
+        bookings={[
+          {
+            id: 'b-unpaid-test',
+            reference: 'BK-UNPAID-01',
+            tourist: 'Ali Khan',
+            touristEmail: 'ali@swattourism.pk',
+            item: 'Executive Deluxe Room (1 night)',
+            roomType: 'Executive Deluxe Room',
+            roomsCount: 1,
+            nights: 1,
+            dates: '2026-11-11 – 2026-11-12',
+            amount: 'Rs 18,500',
+            rawAmount: 18500,
+            status: 'requested',
+            payment_status: 'unpaid',
+            deposit_amount: undefined,
+          },
+        ]}
+        roomTypes={[
+          { id: 'p-serena-deluxe', name: 'Executive Deluxe Room', default_units: 5 },
+        ]}
+        onAcceptBooking={vi.fn()}
+        onDeclineBooking={vi.fn()}
+        isDemoUser={true}
+        listingId="serena-hotel-swat"
+      />
+    );
+
+    // Desktop table row should show full PKR 18,500 due (not 75% after a phantom 25% deposit)
+    expect(screen.getByTestId('grid-balance-due-BK-UNPAID-01')).toHaveTextContent('Rs 18,500 Due');
+
+    // Open Actions / Folio Details modal to inspect Folio Ledger paid amount & label
+    fireEvent.click(screen.getByTestId('btn-inspect-row-BK-UNPAID-01'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('folio-paid-amount-BK-UNPAID-01')).toHaveTextContent('PKR 0');
+      expect(screen.getByTestId('folio-paid-label-BK-UNPAID-01')).toHaveTextContent('Unpaid — Pay at Hotel');
+    });
+  });
 });
 
 

@@ -45,6 +45,7 @@ class WhatsAppService:
         Base WhatsApp dispatcher.
         - If WHATSAPP_PROVIDER == 'meta', dispatches to Meta WhatsApp Cloud API.
         - If WHATSAPP_PROVIDER == 'twilio', dispatches via Twilio Programmable Messaging.
+        - If WHATSAPP_PROVIDER == 'waha', dispatches via self-hosted WAHA HTTP API.
         - Defaults to local structured mock logger for staging, test, and development.
         """
         message_id = f"WA-{uuid.uuid4().hex[:12].upper()}"
@@ -118,7 +119,37 @@ class WhatsAppService:
                 logger.error(f"[TWILIO WA EXCEPTION] {ex}")
                 delivery_status = "FALLBACK_MOCK"
 
-        # 3. Local Mock Logger (Always records for audit & inspection)
+        # 3. WAHA (Open-Source WhatsApp HTTP API) Dispatch
+        elif provider == "waha":
+            try:
+                base_url = getattr(settings, "WAHA_BASE_URL", "http://localhost:3000").rstrip("/")
+                session_name = getattr(settings, "WAHA_SESSION", "default")
+                api_key = getattr(settings, "WAHA_API_KEY", None)
+                url = f"{base_url}/api/sendText"
+                headers = {"Content-Type": "application/json"}
+                if api_key:
+                    headers["X-Api-Key"] = api_key
+                digits_only = "".join(ch for ch in clean_phone if ch.isdigit())
+                payload = {
+                    "chatId": f"{digits_only}@c.us",
+                    "text": message_body,
+                    "session": session_name,
+                }
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    resp = await client.post(url, headers=headers, json=payload)
+                    if resp.status_code in (200, 201):
+                        res_data = resp.json()
+                        external_id = res_data.get("id") or res_data.get("key", {}).get("id")
+                        delivery_status = "SENT_VIA_WAHA"
+                        logger.info(f"[WAHA WA SENT] To: {clean_phone} | Session: {session_name} | MsgId: {external_id}")
+                    else:
+                        logger.warning(f"[WAHA WA ERROR] Status {resp.status_code}: {resp.text}")
+                        delivery_status = "FALLBACK_MOCK"
+            except Exception as ex:
+                logger.error(f"[WAHA WA EXCEPTION] {ex}")
+                delivery_status = "FALLBACK_MOCK"
+
+        # 4. Local Mock Logger (Always records for audit & inspection)
         record = {
             "message_id": message_id,
             "external_id": external_id,

@@ -2524,9 +2524,9 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
             const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
 
-            const payment_status = isCollected ? 'paid' : b.payment_status;
+            const payment_status = isCollected ? 'paid' : (b.payment_status || 'unpaid');
 
-            const deposit_amount = isCollected ? Number(b.total_amount) : b.deposit_amount;
+            const deposit_amount = isCollected ? Number(b.total_amount) : (b.deposit_amount ?? 0);
 
 
 
@@ -2621,6 +2621,18 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
               nights,
 
               specialRequests: b.special_requests,
+
+              direct_transfer_tid: b.direct_transfer_tid,
+
+              direct_transfer_slip_url: b.direct_transfer_slip_url,
+
+              direct_transfer_verified_at: b.direct_transfer_verified_at,
+
+              deposit_track: b.deposit_track,
+
+              property_collected_amount: b.property_collected_amount,
+
+              payments: b.payments,
 
               rawBooking: {
 
@@ -2784,9 +2796,9 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
             const isCollected = Boolean(collectedBalances[b.id] || collectedBalances[b.reference]);
 
-            const payment_status = isCollected ? 'paid' : b.payment_status;
+            const payment_status = isCollected ? 'paid' : (b.payment_status || 'unpaid');
 
-            const deposit_amount = isCollected ? Number(b.total_amount) : b.deposit_amount;
+            const deposit_amount = isCollected ? Number(b.total_amount) : (b.deposit_amount ?? 0);
 
             const primaryItem = b.items && b.items.length > 0 ? b.items[0] : null;
 
@@ -4225,6 +4237,34 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
           onAcceptCancellation={handleAcceptCancellation}
 
           onCollectBalance={handleCollectBookingBalance}
+
+          onBookingProofVerified={(updated) => {
+            setBookings((prev) =>
+              prev.map((row) =>
+                row.id === updated.id || row.reference === updated.reference
+                  ? {
+                      ...row,
+                      status: updated.status,
+                      payment_status: updated.payment_status,
+                      deposit_amount: updated.deposit_amount ?? row.deposit_amount,
+                      direct_transfer_tid: updated.direct_transfer_tid,
+                      direct_transfer_slip_url: updated.direct_transfer_slip_url,
+                      direct_transfer_verified_at: updated.direct_transfer_verified_at,
+                      payments: updated.payments ?? (row as any).payments,
+                      rawBooking: {
+                        ...(row.rawBooking as any),
+                        ...updated,
+                      },
+                    }
+                  : row
+              )
+            );
+            showToast(
+              updated.direct_transfer_verified_at
+                ? `Payment proof for ${updated.reference} verified and deposit confirmed.`
+                : `Payment proof for ${updated.reference} updated.`
+            );
+          }}
 
           isMobile={isMobile}
 

@@ -3,6 +3,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PaymentProofUploadModal } from '../components/PaymentProofUploadModal';
 import { PaymentProofInspectorModal } from '../components/PaymentProofInspectorModal';
+import { HotelTodayScreen } from '../modules/business/HotelTodayScreen';
 import * as bookingsApi from '../api/bookings';
 
 vi.mock('../api/bookings', async () => {
@@ -192,6 +193,47 @@ describe('Tourist Payment Proof & Front-Desk Verification Components', () => {
       );
       expect(handleActionCompleted).toHaveBeenCalledTimes(1);
       expect(handleClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('shows Inspect Proof button on HotelTodayScreen desktop grid when rawBooking has direct_transfer_tid and opens inspector', async () => {
+    render(
+      <HotelTodayScreen
+        businessName="Swat Serena Hotel"
+        businessStats={{ bookings_today: 1, earnings_week: 25000, pending_requests: 1, confirmed_count: 0 }}
+        bookings={[
+          {
+            id: mockBooking.id,
+            reference: mockBooking.reference,
+            tourist: 'Sara Swati',
+            touristEmail: 'sara@swat.pk',
+            item: 'Executive Deluxe Room',
+            dates: '2026-11-20 – 2026-11-22',
+            amount: 'Rs 25,000',
+            rawAmount: 25000,
+            status: 'requested',
+            payment_status: 'unpaid',
+            deposit_amount: 5000,
+            rawBooking: {
+              ...mockBooking,
+              direct_transfer_tid: 'TID-TEST-1234',
+              direct_transfer_slip_url: '/uploads/payment_proofs/sample_slip.png',
+              direct_transfer_verified_at: undefined,
+            },
+          } as any,
+        ]}
+        onAcceptBooking={vi.fn()}
+        onDeclineBooking={vi.fn()}
+      />
+    );
+
+    const gridProofBtn = screen.getByTestId(`btn-grid-inspect-proof-${mockBooking.reference}`);
+    expect(gridProofBtn).toHaveTextContent('Inspect Proof');
+    fireEvent.click(gridProofBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('TID-TEST-1234')).toBeInTheDocument();
+      expect(screen.getByTestId('btn-approve-deposit')).toBeInTheDocument();
     });
   });
 });

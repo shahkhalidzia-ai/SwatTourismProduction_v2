@@ -143,6 +143,36 @@ async def test_whatsapp_service_meta_and_twilio_dispatch():
             assert mock_post.called
 
 
+@pytest.mark.asyncio
+async def test_whatsapp_service_waha_dispatch():
+    """Verify WAHA open-source HTTP API dispatch branch formats chatId and sends payload."""
+    with patch.object(settings, "WHATSAPP_PROVIDER", "waha"), \
+         patch.object(settings, "WAHA_BASE_URL", "http://localhost:3000"), \
+         patch.object(settings, "WAHA_SESSION", "default"), \
+         patch.object(settings, "WAHA_API_KEY", "test_waha_key"):
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 201
+        mock_resp.json.return_value = {"id": "waha_msg_001"}
+
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = mock_resp
+            res = await WhatsAppService.send_whatsapp_message(
+                to_phone="03001234567",
+                message_body="Test WAHA Confirmation Voucher",
+                template_name="TEMPLATE_3_OFFICIAL_CONFIRMED_VOUCHER",
+            )
+            assert res["success"] is True
+            assert res["status"] == "SENT_VIA_WAHA"
+            assert res["recipient"] == "+923001234567"
+            assert mock_post.called
+            call_args = mock_post.call_args
+            assert call_args[0][0] == "http://localhost:3000/api/sendText"
+            assert call_args[1]["headers"]["X-Api-Key"] == "test_waha_key"
+            assert call_args[1]["json"]["chatId"] == "923001234567@c.us"
+            assert call_args[1]["json"]["session"] == "default"
+
+
 # =============================================================================
 # 2. EMAIL SERVICE TESTS (Mock, SendGrid, SMTP, Templates)
 # =============================================================================

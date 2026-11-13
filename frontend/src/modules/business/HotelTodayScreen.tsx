@@ -57,7 +57,7 @@ import { PaymentProofInspectorModal } from '../../components/PaymentProofInspect
 
 import { getCurrentWeekDays } from '../../utils/currentWeek';
 
-import { collectBookingBalance, checkInBookingApi, checkOutBookingApi } from '../../api/bookings';
+import { collectBookingBalance, checkInBookingApi, checkOutBookingApi, resendBookingConfirmation } from '../../api/bookings';
 
 import { apiRequest } from '../../api/client';
 
@@ -237,11 +237,23 @@ export function loadHotelLocalBookings(listingId?: string, businessName?: string
 
           nights: Number(b.nights || 1),
 
-          payment_status: b.payment_status || 'paid',
+          payment_status: b.payment_status || 'unpaid',
 
-          deposit_amount: Number(b.deposit_amount || rawAmount),
+          deposit_amount: b.deposit_amount != null ? Number(b.deposit_amount) : 0,
 
           specialRequests: b.special_requests,
+
+          direct_transfer_tid: b.direct_transfer_tid,
+
+          direct_transfer_slip_url: b.direct_transfer_slip_url,
+
+          direct_transfer_verified_at: b.direct_transfer_verified_at,
+
+          deposit_track: b.deposit_track,
+
+          property_collected_amount: b.property_collected_amount,
+
+          payments: b.payments,
 
           rawBooking: b,
 
@@ -289,6 +301,8 @@ interface HotelTodayScreenProps {
 
   onCollectBalance?: (bookingIdOrRef: string) => void;
 
+  onBookingProofVerified?: (updated: any) => void;
+
   isMobile?: boolean;
 
   isDemoUser?: boolean;
@@ -335,6 +349,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   onCollectBalance,
 
+  onBookingProofVerified,
+
   isMobile = false,
 
   isDemoUser = false,
@@ -344,6 +360,12 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 }) => {
 
   const [localStatusMap, setLocalStatusMap] = useState<Record<string, string>>({});
+  const [resendNotice, setResendNotice] = useState<{
+    ref: string;
+    channel: 'whatsapp' | 'email';
+    status: 'sending' | 'success' | 'error';
+    text: string;
+  } | null>(null);
 
 
 
@@ -353,6 +375,43 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   const [assignModalBooking, setAssignModalBooking] = useState<BookingRow | null>(null);
   const [inspectingBooking, setInspectingBooking] = useState<any | null>(null);
+
+  const getProofInfo = (booking: BookingRow) => {
+    const raw = (booking.rawBooking || {}) as any;
+    const bAny = booking as any;
+    const payments = bAny.payments || raw.payments || [];
+    const directPayment = Array.isArray(payments)
+      ? payments.find((p: any) => p.track === 'property_direct' || p.receipt_image_url || p.transaction_ref)
+      : undefined;
+    const tid = bAny.direct_transfer_tid || raw.direct_transfer_tid || directPayment?.transaction_ref || '';
+    const slipUrl = bAny.direct_transfer_slip_url || raw.direct_transfer_slip_url || directPayment?.receipt_image_url || '';
+    const verifiedAt = bAny.direct_transfer_verified_at || raw.direct_transfer_verified_at || null;
+    const hasProof = Boolean(tid || slipUrl);
+    return { tid, slipUrl, verifiedAt, hasProof, directPayment, payments };
+  };
+
+  const openProofInspector = (booking: BookingRow) => {
+    const raw = (booking.rawBooking || {}) as any;
+    const info = getProofInfo(booking);
+    setInspectingBooking({
+      ...raw,
+      id: raw.id || booking.id,
+      reference: raw.reference || booking.reference,
+      total_amount: raw.total_amount ?? booking.rawAmount,
+      deposit_amount: raw.deposit_amount ?? booking.deposit_amount,
+      payment_status: raw.payment_status ?? booking.payment_status,
+      direct_transfer_tid: info.tid || undefined,
+      direct_transfer_slip_url: info.slipUrl || undefined,
+      direct_transfer_verified_at: info.verifiedAt || undefined,
+      payments: info.payments,
+      tourist: raw.tourist || {
+        id: 'tourist',
+        full_name: booking.tourist,
+        email: booking.touristEmail || '',
+        phone: booking.touristPhone,
+      },
+    });
+  };
 
   const [roomRackFilter, setRoomRackFilter] = useState<'all' | 'available' | 'reserved' | 'occupied' | 'cleaning'>('all');
 
@@ -1192,122 +1251,140 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   };
 
-
-
-  const handleShareWhatsAppBooking = (booking: BookingRow) => {
-
-    const rawTourist = (booking.rawBooking as any)?.tourist || {};
-
-    const guestPhone = (
-
-      booking.touristPhone ||
-
-      rawTourist.whatsapp_number ||
-
-      rawTourist.phone ||
-
-      rawTourist.phone_number ||
-
-      ''
-
-    ).replace(/[^0-9]/g, '');
-
-    const roomDetails = getBookingRoomDetails(booking);
-
-    const assignedRoom = physicalRooms.find((r) => r.current_booking_id === booking.id || r.current_booking_id === booking.reference);
-
-    const effectiveRoom = assignedRoom ? `Room ${assignedRoom.room_number}` : (booking.assigned_room_number ? `Room ${booking.assigned_room_number}` : 'Reserved Unit');
-
-    const rawAmt = Number(booking.rawAmount) || 0;
-
-    const isCollected = Boolean(collectedBalanceMap[booking.id] || collectedBalanceMap[booking.reference]);
-
-    const balanceDue = isCollected ? 0 : Math.max(0, rawAmt - (booking.deposit_amount || 0));
-
-
-
-    const text = encodeURIComponent(
-
-      `🏨 *${safeBusinessName} - Reservation Confirmation*\n\n` +
-
-      `Dear ${booking.tourist},\n` +
-
-      `Your booking at *${safeBusinessName}* is confirmed!\n\n` +
-
-      `📋 *Booking Ref:* ${booking.reference}\n` +
-
-      `🛏️ *Room Allocated:* ${effectiveRoom} (${roomDetails.roomType})\n` +
-
-      `📅 *Stay Schedule:* ${booking.dates}\n` +
-
-      `💰 *Total Cost:* PKR ${rawAmt.toLocaleString()}\n` +
-
-      `💵 *Folio Balance:* ${balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()} (due upon desk check-in)` : 'Zero balance - fully paid'}\n\n` +
-
-      `📍 *Location:* Mingora, Swat Valley, Khyber Pakhtunkhwa\n` +
-
-      `🌐 *Digital Key & Voucher:* https://swattourism.pk/my-bookings?ref=${booking.reference}\n\n` +
-
-      `For any front desk assistance, reply to this message. We look forward to welcoming you!`
-
+  /**
+   * Computes paid amount, remaining balance, and payment status label for a booking
+   * without fabricating a 25% deposit when payment_status is unpaid.
+   */
+  const getBookingPaymentSummary = (b: BookingRow) => {
+    const bKey = b.id || b.reference;
+    const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
+    const isCancelled = effStatus === 'cancelled' || effStatus === 'declined';
+    const rawAmt = Number(b.rawAmount) || Number((b as any).rawBooking?.total_amount) || 0;
+    const isBalanceCollected = Boolean(
+      collectedBalanceMap[bKey] ||
+      (b.id && collectedBalanceMap[b.id]) ||
+      (b.reference && collectedBalanceMap[b.reference])
     );
+    const rawPaymentStatus = String((b as any).payment_status || (b as any).rawBooking?.payment_status || 'unpaid').toLowerCase();
+    const isFullPaid =
+      !isCancelled &&
+      (isBalanceCollected ||
+        rawPaymentStatus === 'full_paid' ||
+        rawPaymentStatus === 'paid' ||
+        effStatus === 'completed');
 
-    window.open(`https://wa.me/${guestPhone}?text=${text}`, '_blank');
+    const rawDeposit = Number((b as any).deposit_amount ?? (b as any).rawBooking?.deposit_amount) || 0;
+    const propertyCollected = Number((b as any).property_collected_amount ?? (b as any).rawBooking?.property_collected_amount) || 0;
+    const hasDepositPaid = !isCancelled && !isFullPaid && rawPaymentStatus === 'deposit_paid';
 
+    let paidAmount = 0;
+    if (isCancelled) {
+      paidAmount = 0;
+    } else if (isFullPaid) {
+      paidAmount = rawAmt;
+    } else if (hasDepositPaid) {
+      const effectiveDeposit = rawDeposit > 0 ? rawDeposit : Math.round(rawAmt * 0.25);
+      paidAmount = Math.min(rawAmt, effectiveDeposit + propertyCollected);
+    } else {
+      paidAmount = Math.min(rawAmt, propertyCollected);
+    }
+
+    const balanceDue = isCancelled ? 0 : Math.max(0, rawAmt - paidAmount);
+    const isDepositPaid = !isCancelled && !isFullPaid && (hasDepositPaid || paidAmount > 0);
+    const paidStatusLabel = isCancelled
+      ? 'Cancelled'
+      : isFullPaid
+      ? '100% Paid'
+      : isDepositPaid
+      ? hasDepositPaid
+        ? 'Deposit'
+        : 'Partial Paid'
+      : 'Unpaid — Pay at Hotel';
+
+    return {
+      rawAmt,
+      paidAmount,
+      balanceDue,
+      isCancelled,
+      isBalanceCollected,
+      isFullPaid,
+      isDepositPaid,
+      paidStatusLabel,
+    };
   };
 
 
 
-  const handleShareEmailBooking = (booking: BookingRow) => {
+  const handleShareWhatsAppBooking = async (booking: BookingRow) => {
+    const bRef = booking.reference;
+    const bookingIdentifier = booking.id || booking.reference;
+    setResendNotice({
+      ref: bRef,
+      channel: 'whatsapp',
+      status: 'sending',
+      text: 'Sending WhatsApp confirmation to tourist...',
+    });
 
-    const guestEmail = booking.touristEmail || (booking.rawBooking as any)?.tourist?.email || '';
+    try {
+      const res = await resendBookingConfirmation(bookingIdentifier, 'whatsapp');
+      const targetPhone = res.tourist_phone || booking.touristPhone || 'tourist phone';
+      setResendNotice({
+        ref: bRef,
+        channel: 'whatsapp',
+        status: 'success',
+        text: `✓ WhatsApp confirmation sent to ${targetPhone}`,
+      });
+      setTimeout(() => {
+        setResendNotice((curr) => (curr?.ref === bRef && curr.channel === 'whatsapp' ? null : curr));
+      }, 5000);
+    } catch (err: any) {
+      console.error('Backend resend WhatsApp error:', err);
+      setResendNotice({
+        ref: bRef,
+        channel: 'whatsapp',
+        status: 'error',
+        text: `✕ WhatsApp dispatch failed: ${err.message || 'Server error'}`,
+      });
+      setTimeout(() => {
+        setResendNotice((curr) => (curr?.ref === bRef && curr.channel === 'whatsapp' ? null : curr));
+      }, 6000);
+    }
+  };
 
-    const roomDetails = getBookingRoomDetails(booking);
+  const handleShareEmailBooking = async (booking: BookingRow) => {
+    const bRef = booking.reference;
+    const bookingIdentifier = booking.id || booking.reference;
+    setResendNotice({
+      ref: bRef,
+      channel: 'email',
+      status: 'sending',
+      text: 'Sending confirmation email to tourist...',
+    });
 
-    const assignedRoom = physicalRooms.find((r) => r.current_booking_id === booking.id || r.current_booking_id === booking.reference);
-
-    const effectiveRoom = assignedRoom ? `Room ${assignedRoom.room_number}` : (booking.assigned_room_number ? `Room ${booking.assigned_room_number}` : 'Reserved Unit');
-
-    const rawAmt = Number(booking.rawAmount) || 0;
-
-    const isCollected = Boolean(collectedBalanceMap[booking.id] || collectedBalanceMap[booking.reference]);
-
-    const balanceDue = isCollected ? 0 : Math.max(0, rawAmt - (booking.deposit_amount || 0));
-
-
-
-    const subject = encodeURIComponent(`Booking Confirmation: ${booking.reference} - ${safeBusinessName}`);
-
-    const body = encodeURIComponent(
-
-      `Dear ${booking.tourist},\n\n` +
-
-      `Thank you for choosing ${safeBusinessName}. Your reservation is confirmed.\n\n` +
-
-      `RESERVATION DETAILS:\n` +
-
-      `----------------------------------------\n` +
-
-      `Booking Reference: ${booking.reference}\n` +
-
-      `Room Allocated: ${effectiveRoom} (${roomDetails.roomType})\n` +
-
-      `Stay Schedule: ${booking.dates}\n` +
-
-      `Total Cost: PKR ${rawAmt.toLocaleString()}\n` +
-
-      `Folio Balance: ${balanceDue > 0 ? `PKR ${balanceDue.toLocaleString()} (due upon desk check-in)` : 'Zero balance - fully paid'}\n\n` +
-
-      `Property Address: Mingora, Swat Valley, Khyber Pakhtunkhwa\n` +
-
-      `Digital Key & Guest Pass: https://swattourism.pk/my-bookings?ref=${booking.reference}\n\n` +
-
-      `Best regards,\nFront Desk & Guest Services\n${safeBusinessName}`
-
-    );
-
-    window.open(`mailto:${guestEmail}?subject=${subject}&body=${body}`, '_self');
-
+    try {
+      const res = await resendBookingConfirmation(bookingIdentifier, 'email');
+      const targetEmail = res.tourist_email || booking.touristEmail || 'tourist email';
+      setResendNotice({
+        ref: bRef,
+        channel: 'email',
+        status: 'success',
+        text: `✓ Confirmation email sent to ${targetEmail}`,
+      });
+      setTimeout(() => {
+        setResendNotice((curr) => (curr?.ref === bRef && curr.channel === 'email' ? null : curr));
+      }, 5000);
+    } catch (err: any) {
+      console.error('Backend resend email error:', err);
+      setResendNotice({
+        ref: bRef,
+        channel: 'email',
+        status: 'error',
+        text: `✕ Email dispatch failed: ${err.message || 'Server error'}`,
+      });
+      setTimeout(() => {
+        setResendNotice((curr) => (curr?.ref === bRef && curr.channel === 'email' ? null : curr));
+      }, 6000);
+    }
   };
 
 
@@ -1473,57 +1550,12 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   const totalFolioValue = displayedRequests.reduce((sum, b) => sum + (Number(b.rawAmount) || 0), 0);
 
-  const totalDepositsCollected = displayedRequests.reduce((sum, b) => {
+  const totalDepositsCollected = displayedRequests.reduce(
+    (sum, b) => sum + getBookingPaymentSummary(b).paidAmount,
+    0
+  );
 
-    const raw = Number(b.rawAmount) || 0;
-
-    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
-
-    const isPaid = (b as any).payment_status === 'full_paid' || (b as any).payment_status === 'paid' || b.status === 'completed';
-
-    if (isPaid) return sum + raw;
-
-    if (isDep) return sum + ((b as any).deposit_amount || Math.round(raw * 0.25));
-
-    return sum;
-
-  }, 0);
-
-  const getBookingBalanceDue = (b: BookingRow): number => {
-
-    const bKey = b.id || b.reference;
-
-    const effStatus = localStatusMap[bKey] || localStatusMap[b.id] || localStatusMap[b.reference] || b.status;
-
-    if (effStatus === 'cancelled' || effStatus === 'declined') return 0;
-
-    const isBalanceCollected = Boolean(
-
-      collectedBalanceMap[bKey] ||
-
-      (b.id && collectedBalanceMap[b.id]) ||
-
-      (b.reference && collectedBalanceMap[b.reference])
-
-    );
-
-    if (isBalanceCollected) return 0;
-
-    const isPaid = (b as any).payment_status === 'full_paid' || (b as any).payment_status === 'paid' || b.status === 'completed';
-
-    if (isPaid) return 0;
-
-
-
-    const rawAmt = Number(b.rawAmount) || 0;
-
-    const isDep = (b as any).payment_status === 'deposit_paid' || Boolean((b as any).deposit_amount);
-
-    const depAmt = (b as any).deposit_amount || (isDep ? Math.round(rawAmt * 0.25) : 0);
-
-    return Math.max(0, rawAmt - depAmt);
-
-  };
+  const getBookingBalanceDue = (b: BookingRow): number => getBookingPaymentSummary(b).balanceDue;
 
 
 
@@ -1821,17 +1853,15 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
     const stayState = isCancelled ? 'checked_out' : getBookingStayState(booking);
 
-    const rawAmt = Number(booking.rawAmount) || 24000;
+    const paymentSummary = getBookingPaymentSummary(booking);
 
-    const isDeposit = (booking as any).payment_status === 'deposit_paid' || Boolean((booking as any).deposit_amount);
+    const rawAmt = paymentSummary.rawAmt;
 
-    const isFullPaid = (booking as any).payment_status === 'full_paid' || (booking as any).payment_status === 'paid' || effStatus === 'completed';
+    const depositAmt = paymentSummary.paidAmount;
 
-    const depositAmt = (booking as any).deposit_amount || (isFullPaid ? rawAmt : Math.round(rawAmt * 0.25));
+    const isBalanceCollected = paymentSummary.isBalanceCollected;
 
-    const isBalanceCollected = collectedBalanceMap[bKey];
-
-    const balanceDue = isCancelled || isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
+    const balanceDue = paymentSummary.balanceDue;
 
 
 
@@ -2102,45 +2132,91 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                 )}
 
                 {['accepted', 'confirmed', 'checked_in', 'checked_out'].includes(effStatus) && (
+                  <>
+                    <span
+                      data-testid={`badge-comm-sent-${booking.reference}`}
+                      title="Official booking confirmation voucher dispatched automatically via WhatsApp & Email gateway to tourist"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        fontSize: '9.5px',
+                        fontWeight: 700,
+                        color: '#047857',
+                        background: '#ECFDF5',
+                        border: '1px solid #A7F3D0',
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      <CheckCircle2 size={10} color="#059669" />
+                      <span>✓ WhatsApp &amp; Email Sent</span>
+                    </span>
 
-                  <span
+                    {/* On-demand Resend WhatsApp icon button */}
+                    <button
+                      type="button"
+                      onClick={() => handleShareWhatsAppBooking(booking)}
+                      data-testid={`btn-fd-wa-${booking.reference}`}
+                      title="Resend WhatsApp confirmation to guest"
+                      aria-label="Resend WhatsApp confirmation to guest"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: '1px 2px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: 1,
+                      }}
+                    >
+                      <MessageSquare size={13} color="#16A34A" />
+                    </button>
 
-                    data-testid={`badge-comm-sent-${booking.reference}`}
+                    {/* On-demand Resend Email icon button */}
+                    <button
+                      type="button"
+                      onClick={() => handleShareEmailBooking(booking)}
+                      data-testid={`btn-fd-email-${booking.reference}`}
+                      title="Resend email confirmation to guest"
+                      aria-label="Resend email confirmation to guest"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        padding: '1px 2px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: 1,
+                      }}
+                    >
+                      <Mail size={13} color="#0284C7" />
+                    </button>
 
-                    title="Official booking confirmation voucher dispatched automatically via WhatsApp & Email gateway to tourist"
-
-                    style={{
-
-                      display: 'inline-flex',
-
-                      alignItems: 'center',
-
-                      gap: '3px',
-
-                      fontSize: '9.5px',
-
-                      fontWeight: 700,
-
-                      color: '#047857',
-
-                      background: '#ECFDF5',
-
-                      border: '1px solid #A7F3D0',
-
-                      padding: '1px 5px',
-
-                      borderRadius: '4px',
-
-                    }}
-
-                  >
-
-                    <CheckCircle2 size={10} color="#059669" />
-
-                    <span>✓ WhatsApp &amp; Email Sent</span>
-
-                  </span>
-
+                    {/* Live status notification when confirmation is resent */}
+                    {resendNotice && resendNotice.ref === booking.reference && (
+                      <span
+                        data-testid={`badge-resend-feedback-${booking.reference}`}
+                        style={{
+                          fontSize: '9.5px',
+                          fontWeight: 700,
+                          color: resendNotice.status === 'sending' ? '#0369A1' : (resendNotice.status === 'error' ? '#DC2626' : '#15803D'),
+                          background: resendNotice.status === 'sending' ? '#F0F9FF' : (resendNotice.status === 'error' ? '#FEF2F2' : '#F0FDF4'),
+                          border: `1px solid ${resendNotice.status === 'sending' ? '#BAE6FD' : (resendNotice.status === 'error' ? '#FECACA' : '#BBF7D0')}`,
+                          borderRadius: '4px',
+                          padding: '1px 6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          marginLeft: '2px',
+                        }}
+                      >
+                        {resendNotice.text}
+                      </span>
+                    )}
+                  </>
                 )}
 
               </div>
@@ -2977,17 +3053,25 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
               <div>
 
-                <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>Deposit Paid:</span>
+                <span style={{ fontSize: '9px', color: '#78350F', display: 'block', fontWeight: 500 }}>
+                  Deposit Paid:
+                </span>
 
-                <strong style={{ fontSize: '12px', color: '#059669', fontWeight: 800 }}>
+                <strong
+                  data-testid={`folio-paid-amount-${booking.reference}`}
+                  style={{ fontSize: '12px', color: depositAmt > 0 ? '#059669' : '#64748B', fontWeight: 800 }}
+                >
 
                   PKR {depositAmt.toLocaleString()}
 
                 </strong>
 
-                <span style={{ fontSize: '8.5px', color: '#047857', display: 'block' }}>
+                <span
+                  data-testid={`folio-paid-label-${booking.reference}`}
+                  style={{ fontSize: '8.5px', color: depositAmt > 0 ? '#047857' : '#B45309', display: 'block' }}
+                >
 
-                  ({isDeposit ? 'Deposit' : '100% Paid'})
+                  ({paymentSummary.paidStatusLabel})
 
                 </span>
 
@@ -3503,29 +3587,34 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
 
-                {Boolean((booking as any).direct_transfer_tid && !(booking as any).direct_transfer_verified_at) && (
-                  <button
-                    type="button"
-                    onClick={() => setInspectingBooking(booking)}
-                    style={{
-                      background: '#FFFBEB',
-                      color: '#B45309',
-                      border: '1.5px solid #FCD34D',
-                      borderRadius: '5px',
-                      padding: '4px 8px',
-                      fontSize: '10.5px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                    }}
-                    title="Inspect Tourist Payment Proof Slip & Confirm Deposit"
-                    data-testid={`btn-inspect-proof-${booking.id}`}
-                  >
-                    <span>🔍 Inspect Proof (TID: {(booking as any).direct_transfer_tid})</span>
-                  </button>
-                )}
+                {(() => {
+                  const proof = getProofInfo(booking);
+                  if (!proof.hasProof) return null;
+                  const isVerified = Boolean(proof.verifiedAt);
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => openProofInspector(booking)}
+                      style={{
+                        background: isVerified ? '#ECFDF5' : '#FFFBEB',
+                        color: isVerified ? '#059669' : '#B45309',
+                        border: isVerified ? '1.5px solid #6EE7B7' : '1.5px solid #FCD34D',
+                        borderRadius: '5px',
+                        padding: '4px 8px',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                      title={isVerified ? 'View Verified Payment Proof Slip' : 'Inspect Tourist Payment Proof Slip & Confirm Deposit'}
+                      data-testid={`btn-inspect-proof-${booking.id}`}
+                    >
+                      <span>{isVerified ? `✓ View Proof (TID: ${proof.tid || 'Slip'})` : `🔍 Inspect Proof (TID: ${proof.tid || 'Slip'})`}</span>
+                    </button>
+                  );
+                })()}
                 {balanceDue > 0 ? (
 
                   <button
@@ -3728,105 +3817,7 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
 
 
-                {/* 1-Click WhatsApp Direct Share */}
-
-                <button
-
-                  type="button"
-
-                  onClick={() => handleShareWhatsAppBooking(booking)}
-
-                  data-testid={`btn-fd-wa-${booking.reference}`}
-
-                  title="Share confirmation directly to tourist WhatsApp"
-
-                  style={{
-
-                    background: '#25D366',
-
-                    border: 'none',
-
-                    color: '#FFFFFF',
-
-                    borderRadius: '5px',
-
-                    padding: '4px 8px',
-
-                    fontSize: '10.5px',
-
-                    fontWeight: 700,
-
-                    cursor: 'pointer',
-
-                    display: 'inline-flex',
-
-                    alignItems: 'center',
-
-                    gap: '3px',
-
-                    boxShadow: '0 1px 3px rgba(37, 211, 102, 0.25)',
-
-                  }}
-
-                >
-
-                  <MessageSquare size={11} color="#FFFFFF" />
-
-                  <span>WhatsApp</span>
-
-                </button>
-
-
-
-                {/* 1-Click Email Direct Share */}
-
-                <button
-
-                  type="button"
-
-                  onClick={() => handleShareEmailBooking(booking)}
-
-                  data-testid={`btn-fd-email-${booking.reference}`}
-
-                  title="Send confirmation letter via email to tourist"
-
-                  style={{
-
-                    background: '#0284C7',
-
-                    border: 'none',
-
-                    color: '#FFFFFF',
-
-                    borderRadius: '5px',
-
-                    padding: '4px 8px',
-
-                    fontSize: '10.5px',
-
-                    fontWeight: 700,
-
-                    cursor: 'pointer',
-
-                    display: 'inline-flex',
-
-                    alignItems: 'center',
-
-                    gap: '3px',
-
-                    boxShadow: '0 1px 3px rgba(2, 132, 199, 0.2)',
-
-                  }}
-
-                >
-
-                  <Mail size={11} color="#FFFFFF" />
-
-                  <span>Email</span>
-
-                </button>
-
-              </div>
+                </div>
 
             </>
 
@@ -5054,15 +5045,15 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                     const stayState = isCancelled ? 'checked_out' : getBookingStayState(booking);
 
-                    const rawAmt = Number(booking.rawAmount) || 24000;
+                    const gridPaymentSummary = getBookingPaymentSummary(booking);
 
-                    const isFullPaid = (booking as any).payment_status === 'full_paid' || (booking as any).payment_status === 'paid' || effStatus === 'completed';
+                    const rawAmt = gridPaymentSummary.rawAmt;
 
-                    const depositAmt = (booking as any).deposit_amount || (isFullPaid ? rawAmt : Math.round(rawAmt * 0.25));
+                    const depositAmt = gridPaymentSummary.paidAmount;
 
-                    const isBalanceCollected = collectedBalanceMap[bKey];
+                    const isBalanceCollected = gridPaymentSummary.isBalanceCollected;
 
-                    const balanceDue = isCancelled || isFullPaid || isBalanceCollected ? 0 : Math.max(0, rawAmt - depositAmt);
+                    const balanceDue = gridPaymentSummary.balanceDue;
 
 
 
@@ -5396,7 +5387,10 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
                             ) : balanceDue > 0 ? (
 
-                              <span style={{ fontSize: '10px', fontWeight: 800, color: '#B45309', background: '#FEF3C7', padding: '1px 5px', borderRadius: '3px' }}>
+                              <span
+                                data-testid={`grid-balance-due-${booking.reference}`}
+                                style={{ fontSize: '10px', fontWeight: 800, color: '#B45309', background: '#FEF3C7', padding: '1px 5px', borderRadius: '3px' }}
+                              >
 
                                 Rs {balanceDue.toLocaleString()} Due
 
@@ -5419,63 +5413,95 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
 
                         <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
+                            {(() => {
+                              const proof = getProofInfo(booking);
+                              if (!proof.hasProof) return null;
+                              const isVerified = Boolean(proof.verifiedAt);
+                              return (
+                                <button
+                                  type="button"
+                                  title={isVerified ? 'View Verified Payment Proof Slip' : 'Inspect Tourist Payment Proof Slip & Verify Deposit'}
+                                  data-testid={`btn-grid-inspect-proof-${booking.reference}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openProofInspector(booking);
+                                  }}
+                                  style={{
+                                    padding: '5px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                    background: isVerified ? '#ECFDF5' : '#FFFBEB',
+                                    color: isVerified ? '#059669' : '#B45309',
+                                    border: isVerified ? '1px solid #6EE7B7' : '1px solid #FCD34D',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                  }}
+                                >
+                                  <span>{isVerified ? '✓ View Proof' : '🔍 Inspect Proof'}</span>
+                                </button>
+                              );
+                            })()}
 
-                          <button
+                            <button
 
-                            type="button"
+                              type="button"
 
-                            title="Actions"
+                              title="Actions"
 
-                            data-testid={`btn-inspect-row-${booking.reference}`}
+                              data-testid={`btn-inspect-row-${booking.reference}`}
 
-                            onClick={(e) => {
+                              onClick={(e) => {
 
-                              e.stopPropagation();
+                                e.stopPropagation();
 
-                              setSelectedBookingRef(booking.reference || booking.id);
+                                setSelectedBookingRef(booking.reference || booking.id);
 
-                              setIsDetailsModalOpen(true);
+                                setIsDetailsModalOpen(true);
 
-                            }}
+                              }}
 
-                            style={{
+                              style={{
 
-                              padding: '5px 12px',
+                                padding: '5px 12px',
 
-                              borderRadius: '6px',
+                                borderRadius: '6px',
 
-                              fontSize: '11px',
+                                fontSize: '11px',
 
-                              fontWeight: 700,
+                                fontWeight: 700,
 
-                              background: isSelected && isDetailsModalOpen ? '#088395' : '#F1F5F9',
+                                background: isSelected && isDetailsModalOpen ? '#088395' : '#F1F5F9',
 
-                              color: isSelected && isDetailsModalOpen ? '#FFFFFF' : '#0A4D68',
+                                color: isSelected && isDetailsModalOpen ? '#FFFFFF' : '#0A4D68',
 
-                              border: isSelected && isDetailsModalOpen ? '1px solid #088395' : '1px solid #CBD5E1',
+                                border: isSelected && isDetailsModalOpen ? '1px solid #088395' : '1px solid #CBD5E1',
 
-                              cursor: 'pointer',
+                                cursor: 'pointer',
 
-                              display: 'inline-flex',
+                                display: 'inline-flex',
 
-                              alignItems: 'center',
+                                alignItems: 'center',
 
-                              gap: '4px',
+                                gap: '4px',
 
-                              boxShadow: isSelected && isDetailsModalOpen ? '0 1px 3px rgba(8, 131, 149, 0.25)' : 'none',
+                                boxShadow: isSelected && isDetailsModalOpen ? '0 1px 3px rgba(8, 131, 149, 0.25)' : 'none',
 
-                              transition: 'all 0.15s ease',
+                                transition: 'all 0.15s ease',
 
-                            }}
+                              }}
 
-                          >
+                            >
 
-                            <FileText size={11} color={isSelected && isDetailsModalOpen ? '#FFFFFF' : '#088395'} />
+                              <FileText size={11} color={isSelected && isDetailsModalOpen ? '#FFFFFF' : '#088395'} />
 
-                            <span>Actions</span>
+                              <span>Actions</span>
 
-                          </button>
-
+                            </button>
+                          </div>
                         </td>
 
                       </tr>
@@ -6824,31 +6850,11 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
           roomCategory={receiptModal.booking.item.split('(')[0].trim()}
 
-          depositAmount={(receiptModal.booking as any).deposit_amount || Math.round((Number(receiptModal.booking.rawAmount) || 24000) * 0.25)}
+          depositAmount={getBookingPaymentSummary(receiptModal.booking).paidAmount}
 
-          balanceDue={
+          balanceDue={getBookingPaymentSummary(receiptModal.booking).balanceDue}
 
-            (collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference] ||
-
-              (receiptModal.booking as any).payment_status === 'paid' ||
-
-              (receiptModal.booking as any).payment_status === 'full_paid')
-
-              ? 0
-
-              : Math.max(0, (Number(receiptModal.booking.rawAmount) || 24000) - ((receiptModal.booking as any).deposit_amount || Math.round((Number(receiptModal.booking.rawAmount) || 24000) * 0.25)))
-
-          }
-
-          isBalanceSettled={Boolean(
-
-            collectedBalanceMap[receiptModal.booking.id || receiptModal.booking.reference] ||
-
-            (receiptModal.booking as any).payment_status === 'paid' ||
-
-            (receiptModal.booking as any).payment_status === 'full_paid'
-
-          )}
+          isBalanceSettled={getBookingPaymentSummary(receiptModal.booking).balanceDue === 0}
 
           receiptType={receiptModal.receiptType}
 
@@ -6867,15 +6873,25 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
             setInspectingBooking(null);
             setLocalHotelBookings((prev) =>
               prev.map((b) =>
-                b.id === updated.id
+                b.id === updated.id || b.reference === updated.reference
                   ? {
                     ...b,
+                    status: updated.status,
                     payment_status: updated.payment_status as any,
+                    direct_transfer_tid: updated.direct_transfer_tid,
+                    direct_transfer_slip_url: updated.direct_transfer_slip_url,
                     direct_transfer_verified_at: updated.direct_transfer_verified_at,
+                    rawBooking: {
+                      ...(b.rawBooking as any),
+                      ...updated,
+                    },
                   }
                   : b
               )
             );
+            if (onBookingProofVerified) {
+              onBookingProofVerified(updated);
+            }
           }}
         />
       )}

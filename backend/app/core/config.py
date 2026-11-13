@@ -50,13 +50,16 @@ class Settings(BaseSettings):
     SMS_SENDER_ID: str = "SWAT-TOURISM"
     SMS_GATEWAY_URL: str = "https://api.sms-gateway.pk/v2/send"
 
-    # WhatsApp Cloud API & Twilio Settings
-    WHATSAPP_PROVIDER: str = "mock"  # 'mock', 'meta', 'twilio'
+    # WhatsApp Cloud API, Twilio & Open-Source WAHA Settings
+    WHATSAPP_PROVIDER: str = "mock"  # 'mock', 'meta', 'twilio', 'waha'
     META_WHATSAPP_TOKEN: Optional[str] = None
     META_PHONE_NUMBER_ID: Optional[str] = None
     TWILIO_ACCOUNT_SID: Optional[str] = None
     TWILIO_AUTH_TOKEN: Optional[str] = None
     TWILIO_WHATSAPP_NUMBER: str = "+14155238886"
+    WAHA_BASE_URL: str = "http://localhost:3000"
+    WAHA_SESSION: str = "default"
+    WAHA_API_KEY: Optional[str] = None
 
     # Transactional Email Gateway Settings
     EMAIL_PROVIDER: str = "mock"  # 'mock', 'smtp', 'sendgrid'
