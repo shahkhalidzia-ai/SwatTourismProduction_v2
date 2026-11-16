@@ -3241,17 +3241,21 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
 
   // Tourist Home Screen Travel Dates & Weather Forecast Prompt State
-
-  const [homeStartDate, setHomeStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [homeStartDate, setHomeStartDate] = useState<string>(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  });
 
   const [homeEndDate, setHomeEndDate] = useState<string>(() => {
-
     const d = new Date();
-
     d.setDate(d.getDate() + 4);
-
-    return d.toISOString().split('T')[0];
-
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   });
 
   const [weatherModal, setWeatherModal] = useState<{
@@ -7410,7 +7414,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
 
 
-        {/* 5-Day Strip (Mon, Tue, Wed, Sat, Sun matching concept) with temperatures */}
+        {/* 7-Day Complete Weather Forecast Strip (Mon through Sun including Thu and Fri) */}
 
         <div
 
@@ -7418,9 +7422,9 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
             display: 'grid',
 
-            gridTemplateColumns: 'repeat(5, 1fr)',
+            gridTemplateColumns: 'repeat(7, 1fr)',
 
-            gap: '6px',
+            gap: '4px',
 
             textAlign: 'center',
 
@@ -7432,15 +7436,19 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
           {[
 
-            { day: 'Mon', temp: '18°C', icon: <Sun size={17} color="#F59E0B" /> },
+            { day: 'Mon', temp: '18°C', icon: <Sun size={15} color="#F59E0B" /> },
 
-            { day: 'Tue', temp: '15°C', icon: <CloudSun size={17} color="#028AC8" /> },
+            { day: 'Tue', temp: '15°C', icon: <CloudSun size={15} color="#028AC8" /> },
 
-            { day: 'Wed', temp: '14°C', icon: <CloudSun size={17} color="#028AC8" /> },
+            { day: 'Wed', temp: '14°C', icon: <CloudSun size={15} color="#028AC8" /> },
 
-            { day: 'Sat', temp: '7°C', icon: <CloudRain size={17} color="#64748B" /> },
+            { day: 'Thu', temp: '12°C', icon: <CloudSun size={15} color="#028AC8" /> },
 
-            { day: 'Sun', temp: '3°C', icon: <CloudRain size={17} color="#64748B" /> },
+            { day: 'Fri', temp: '10°C', icon: <CloudRain size={15} color="#64748B" /> },
+
+            { day: 'Sat', temp: '7°C', icon: <CloudRain size={15} color="#64748B" /> },
+
+            { day: 'Sun', temp: '3°C', icon: <CloudRain size={15} color="#64748B" /> },
 
           ].map((w, idx) => (
 
@@ -7458,7 +7466,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                 gap: '3px',
 
-                padding: '5px 2px',
+                padding: '5px 1px',
 
                 borderRadius: '6px',
 

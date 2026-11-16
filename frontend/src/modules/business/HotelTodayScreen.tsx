@@ -1859,8 +1859,6 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
     const depositAmt = paymentSummary.paidAmount;
 
-    const isBalanceCollected = paymentSummary.isBalanceCollected;
-
     const balanceDue = paymentSummary.balanceDue;
 
 
@@ -5048,10 +5046,6 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
                     const gridPaymentSummary = getBookingPaymentSummary(booking);
 
                     const rawAmt = gridPaymentSummary.rawAmt;
-
-                    const depositAmt = gridPaymentSummary.paidAmount;
-
-                    const isBalanceCollected = gridPaymentSummary.isBalanceCollected;
 
                     const balanceDue = gridPaymentSummary.balanceDue;
 

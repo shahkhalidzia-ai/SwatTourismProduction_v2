@@ -214,6 +214,20 @@ export interface BookingRow {
 
   notes?: string;
 
+  direct_transfer_tid?: string;
+
+  direct_transfer_slip_url?: string;
+
+  direct_transfer_verified_at?: string;
+
+  deposit_track?: string;
+
+  property_collected_amount?: number;
+
+  payments?: any[];
+
+  payment_proof_status?: string;
+
 }
 
 

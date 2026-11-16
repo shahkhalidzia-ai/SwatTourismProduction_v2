@@ -1587,22 +1587,24 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                 </span>
               </div>
 
-              {/* 5-Day Strip (Mon, Tue, Wed, Sat, Sun matching concept) with temperatures */}
+              {/* 7-Day Complete Weather Forecast Strip (Mon through Sun including Thu and Fri) */}
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(5, 1fr)',
-                  gap: '6px',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gap: '4px',
                   textAlign: 'center',
                   paddingTop: '4px',
                 }}
               >
                 {[
-                  { day: 'Mon', temp: '18°C', icon: <Sun size={17} color="#F59E0B" /> },
-                  { day: 'Tue', temp: '15°C', icon: <CloudSun size={17} color="#028AC8" /> },
-                  { day: 'Wed', temp: '14°C', icon: <CloudSun size={17} color="#028AC8" /> },
-                  { day: 'Sat', temp: '7°C', icon: <CloudRain size={17} color="#64748B" /> },
-                  { day: 'Sun', temp: '3°C', icon: <CloudRain size={17} color="#64748B" /> },
+                  { day: 'Mon', temp: '18°C', icon: <Sun size={15} color="#F59E0B" /> },
+                  { day: 'Tue', temp: '15°C', icon: <CloudSun size={15} color="#028AC8" /> },
+                  { day: 'Wed', temp: '14°C', icon: <CloudSun size={15} color="#028AC8" /> },
+                  { day: 'Thu', temp: '12°C', icon: <CloudSun size={15} color="#028AC8" /> },
+                  { day: 'Fri', temp: '10°C', icon: <CloudRain size={15} color="#64748B" /> },
+                  { day: 'Sat', temp: '7°C', icon: <CloudRain size={15} color="#64748B" /> },
+                  { day: 'Sun', temp: '3°C', icon: <CloudRain size={15} color="#64748B" /> },
                 ].map((w, idx) => (
                   <div
                     key={idx}
@@ -1611,16 +1613,16 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '3px',
-                      padding: '5px 2px',
+                      padding: '5px 1px',
                       borderRadius: '6px',
                       backgroundColor: '#F8FAFD',
                     }}
                   >
-                    <span style={{ fontSize: '11px', fontWeight: 650, color: '#64748B' }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: 650, color: '#64748B' }}>
                       {w.day}
                     </span>
                     <div>{w.icon}</div>
-                    <span style={{ fontSize: '11px', fontWeight: 750, color: '#0F172A' }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: 750, color: '#0F172A' }}>
                       {w.temp}
                     </span>
                   </div>

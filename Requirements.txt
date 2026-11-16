@@ -166,5 +166,17 @@ this week:
 Analysis on whatsapp api for dev, and production environment.
 Setup Docker on my system
 configure environment for WAHA open source whats app api
+===
+13/11/2026
+▶ 3. Communications & WhatsApp (WAHA) Gateway Integration (Nov 11 – Nov 13)
+• WAHA Open-Source Engine: Added support for self-hosted WhatsApp HTTP API (WAHA) alongside Twilio and Mock providers in backend/app/core/config.py and whatsapp_service.py.
+• Multi-Channel Dispatcher: Updated dispatcher.py to automatically send official confirmation boarding passes with dynamic QR verification codes upon host acceptance.
+• Automated Communications Test Suite: Added comprehensive unit tests in backend/tests/test_phase2_communications_gateway.py.
+▶ 4. 6-Layer Architecture & End-to-End Hotel Booking Flow (Nov 13)
+===
+16 /11/2026
+on transport Fleet and vehical only the loged in user vehyical should be loaded to that specific user. also every thing should be db presistan, 
+also check the review cuntions and compelete rid option is not working properly
+
 
 
