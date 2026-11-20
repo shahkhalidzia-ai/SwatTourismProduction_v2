@@ -70,9 +70,26 @@ import { HotelTodayScreen } from './HotelTodayScreen';
 
 import { LiveRoomRackBoard } from './LiveRoomRackBoard';
 
-import { getPhysicalRoomsForHotel } from './physicalRooms';
+import { getPhysicalRoomsForHotel, clearAllHotelBookingsData } from './physicalRooms';
 
 import { OperatorEarningsInvoicesView } from './OperatorEarningsInvoicesView';
+import { BusinessDealsManager } from './BusinessDealsManager';
+
+
+import { getAreas, type Area } from '../../api/trips';
+
+const DEFAULT_SWAT_AREAS: Area[] = [
+  { id: 'area-mingora', name: 'Mingora', area_type: 'town', latitude: 34.7717, longitude: 72.3602 },
+  { id: 'area-saidu-sharif', name: 'Saidu Sharif', area_type: 'town', latitude: 34.7465, longitude: 72.3557 },
+  { id: 'area-kalam', name: 'Kalam', area_type: 'valley', latitude: 35.4906, longitude: 72.5794 },
+  { id: 'area-malam-jabba', name: 'Malam Jabba', area_type: 'valley', latitude: 34.7997, longitude: 72.5714 },
+  { id: 'area-bahrain', name: 'Bahrain', area_type: 'town', latitude: 35.2078, longitude: 72.5517 },
+  { id: 'area-madyan', name: 'Madyan', area_type: 'town', latitude: 35.1378, longitude: 72.5344 },
+  { id: 'area-ushu', name: 'Ushu', area_type: 'valley', latitude: 35.5342, longitude: 72.6106 },
+  { id: 'area-utror', name: 'Utror', area_type: 'valley', latitude: 35.4983, longitude: 72.4633 },
+  { id: 'area-miandam', name: 'Miandam', area_type: 'valley', latitude: 35.0433, longitude: 72.5536 },
+  { id: 'area-fizaghat', name: 'Fizaghat', area_type: 'town', latitude: 34.8058, longitude: 72.3789 },
+];
 
 import {
 
@@ -1426,6 +1443,59 @@ const getCategoryDemoBookings = (type: ListingTypeCode, providerCtx?: TransportP
 
   }
 
+  if (type === 'hotel') {
+    return [
+      {
+        id: 'b-demo-h1',
+        reference: 'SWT-HTL-901',
+        tourist: 'Kamran Ali',
+        touristEmail: 'kamran@swat.pk',
+        item: 'Executive Deluxe Room (2 nights)',
+        dates: '2026-11-16 – 2026-11-18',
+        amount: 'Rs 37,000',
+        rawAmount: 37000,
+        status: 'requested',
+        payment_status: 'unpaid',
+        deposit_amount: 0,
+        roomType: 'Executive Deluxe Room',
+        roomsCount: 1,
+        nights: 2,
+      },
+      {
+        id: 'b-demo-h2',
+        reference: 'SWT-HTL-902',
+        tourist: 'Sara Ahmed',
+        touristEmail: 'sara@swat.pk',
+        item: 'Deluxe Heritage Room (1 night)',
+        dates: '2026-11-16 – 2026-11-17',
+        amount: 'Rs 18,500',
+        rawAmount: 18500,
+        status: 'confirmed',
+        payment_status: 'paid',
+        deposit_amount: 18500,
+        roomType: 'Deluxe Heritage Room',
+        roomsCount: 1,
+        nights: 1,
+      },
+      {
+        id: 'b-demo-h3',
+        reference: 'SWT-HTL-903',
+        tourist: 'Zainab Bibi',
+        touristEmail: 'zainab@swat.pk',
+        item: 'Heritage Presidential Suite (2 nights)',
+        dates: '2026-11-17 – 2026-11-19',
+        amount: 'Rs 70,000',
+        rawAmount: 70000,
+        status: 'requested',
+        payment_status: 'unpaid',
+        deposit_amount: 0,
+        roomType: 'Heritage Presidential Suite',
+        roomsCount: 1,
+        nights: 2,
+      },
+    ];
+  }
+
   return [];
 
 };
@@ -1537,6 +1607,8 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
   const { user, refreshUser } = useAuth();
 
   const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
+
+  const isHotelBookingsCleared = typeof window !== 'undefined' && localStorage.getItem('swat_hotel_bookings_cleared') === 'true';
 
   const hasRealBusiness = Boolean(
 
@@ -1964,7 +2036,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
       ? loadTransportRideOrders(undefined, currentProviderContext)
 
-      : isDemoAccount
+      : (isDemoAccount && !(currentBizType === 'hotel' && isHotelBookingsCleared))
 
       ? getCategoryDemoBookings(currentBizType, currentProviderContext)
 
@@ -2094,13 +2166,31 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
   const [editWhatsapp, setEditWhatsapp] = useState(user?.business_profile?.whatsapp_number || user?.whatsapp_number || '+92 300 1234567');
 
-  const [editAddress, setEditAddress] = useState(user?.business_profile?.address_text || user?.address_text || 'Saidu Sharif, Swat Valley');
+  const [editAddress, setEditAddress] = useState(user?.business_profile?.address_text || user?.address_text || 'Amanabad, Mingora, Swat');
+
+  const [editAreaId, setEditAreaId] = useState<string>((user?.business_profile as any)?.area_id || '');
+
+  const [areasList, setAreasList] = useState<Area[]>(DEFAULT_SWAT_AREAS);
 
   const [editAccommodationType, setEditAccommodationType] = useState((user?.business_profile as any)?.accommodation_type || 'Hotel');
 
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
-
+  useEffect(() => {
+    getAreas()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setAreasList(data);
+          // Auto-select Mingora if not yet set
+          setEditAreaId((prev) => {
+            if (prev) return prev;
+            const mingora = data.find((a) => a.name.toLowerCase().includes('mingora'));
+            return mingora ? mingora.id : data[0]?.id || '';
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
 
@@ -2125,6 +2215,8 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
         if (user.business_profile.address_text) setEditAddress(user.business_profile.address_text);
 
         else if (user.address_text) setEditAddress(user.address_text);
+
+        if ((user.business_profile as any)?.area_id) setEditAreaId((user.business_profile as any).area_id);
 
         if ((user.business_profile as any).accommodation_type) setEditAccommodationType((user.business_profile as any).accommodation_type);
 
@@ -2183,6 +2275,8 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
           whatsapp_number: editWhatsapp.trim() || undefined,
 
           address_text: editAddress.trim() || undefined,
+
+          area_id: editAreaId || undefined,
 
           accommodation_type: currentBizType === 'hotel' ? editAccommodationType : undefined,
 
@@ -2498,6 +2592,23 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
   };
 
+  const handleClearAllHotelBookings = () => {
+    try {
+      clearAllHotelBookingsData();
+      setBookings([]);
+      setBusinessStats({
+        bookings_today: 0,
+        earnings_week: 0,
+        pending_requests: 0,
+        confirmed_count: 0,
+      });
+      showToast('All hotel bookings and room reservations cleared successfully.');
+    } catch (err) {
+      console.error('Error clearing hotel bookings:', err);
+      setBookings([]);
+    }
+  };
+
 
 
   // Load listings, bookings, and stats from API if authenticated
@@ -2665,6 +2776,9 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
 
           if (bData && bData.length > 0) {
+            try {
+              localStorage.removeItem('swat_hotel_bookings_cleared');
+            } catch {}
 
             const mappedB: BookingRow[] = bData.map(mapBookingToRow);
 
@@ -2696,7 +2810,9 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
             } else {
 
-              const demoList = isDemoAccount ? getCategoryDemoBookings(currentBizType, currentProviderContext) : [];
+              const demoList = (isDemoAccount && !(currentBizType === 'hotel' && isHotelBookingsCleared))
+                ? getCategoryDemoBookings(currentBizType, currentProviderContext)
+                : [];
 
               const mappedDemo = demoList.map((b) => {
 
@@ -2723,10 +2839,9 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
 
               // Merge local guest bookings for current business ONLY if matching this business
-
               const localRaw = localStorage.getItem('swat_local_bookings');
 
-              if (localRaw) {
+              if (localRaw && !(currentBizType === 'hotel' && isHotelBookingsCleared)) {
 
                 try {
 
@@ -2878,7 +2993,9 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
           } else {
 
-            const demoList = isDemoAccount ? getCategoryDemoBookings(currentBizType, currentProviderContext) : [];
+            const demoList = (isDemoAccount && !(currentBizType === 'hotel' && isHotelBookingsCleared))
+              ? getCategoryDemoBookings(currentBizType, currentProviderContext)
+              : [];
 
             const mappedDemo = demoList.map((b) => {
 
@@ -2905,10 +3022,9 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
 
             // Merge local guest bookings ONLY if they explicitly belong to this business and are not in demo list
-
             const localRaw = localStorage.getItem('swat_local_bookings');
 
-            if (localRaw) {
+            if (localRaw && !(currentBizType === 'hotel' && isHotelBookingsCleared)) {
 
               try {
 
@@ -3031,10 +3147,26 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
       .catch(() => {});
 
     fetchBusinessReviews()
-
-      .then((r) => Array.isArray(r) && setReviewsList(r))
-
-      .catch(() => {});
+      .then((r) => {
+        if (Array.isArray(r) && r.length > 0) {
+          setReviewsList(r);
+        } else {
+          try {
+            const localRev = JSON.parse(localStorage.getItem('swat_published_reviews') || '[]');
+            if (Array.isArray(localRev) && localRev.length > 0) {
+              setReviewsList(localRev as any);
+            }
+          } catch {}
+        }
+      })
+      .catch(() => {
+        try {
+          const localRev = JSON.parse(localStorage.getItem('swat_published_reviews') || '[]');
+          if (Array.isArray(localRev) && localRev.length > 0) {
+            setReviewsList(localRev as any);
+          }
+        } catch {}
+      });
 
 
 
@@ -3081,47 +3213,37 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
 
   const handleCompleteBooking = async (bookingId: string) => {
-
     const actionLabel =
-
       currentBizType === 'transport'
-
         ? 'Ride'
-
         : currentBizType === 'restaurant'
-
         ? 'Meal order'
-
         : currentBizType === 'activity'
-
         ? 'Session'
-
         : 'Stay';
 
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId);
+
     try {
-
-      await completeBooking(bookingId);
-
-      setBookings((prev) =>
-
-        prev.map((b) => (b.id === bookingId ? { ...b, status: 'completed' } : b))
-
-      );
-
-      if (currentBizType === 'transport') {
-
-        syncRideOrderStatusLocally(bookingId, 'completed');
-
+      if (isUuid) {
+        await completeBooking(bookingId);
       }
-
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId || b.reference === bookingId ? { ...b, status: 'completed' } : b))
+      );
+      if (currentBizType === 'transport') {
+        syncRideOrderStatusLocally(bookingId, 'completed');
+      }
       showToast(`${actionLabel} completed! Tourist has been notified to leave a review.`);
-
     } catch (err: any) {
-
-      showToast(err.message || 'Failed to complete booking');
-
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId || b.reference === bookingId ? { ...b, status: 'completed' } : b))
+      );
+      if (currentBizType === 'transport') {
+        syncRideOrderStatusLocally(bookingId, 'completed');
+      }
+      showToast(`${actionLabel} marked completed.`);
     }
-
   };
 
 
@@ -4284,6 +4406,8 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
           isDemoUser={isDemoAccount}
 
+          onClearAllBookings={handleClearAllHotelBookings}
+
           listingId={listings[0]?.id || (isDemoAccount ? 'serena-hotel-swat' : undefined)}
 
         />
@@ -4564,59 +4688,68 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
 
 
-                {currentBizType === 'transport' && (
+                <button
 
-                  <button
+                  type="button"
 
-                    type="button"
+                  data-testid="btn-clear-ride-orders"
 
-                    data-testid="btn-clear-ride-orders"
+                  disabled={bookings.length === 0}
 
-                    disabled={bookings.length === 0}
+                  onClick={() => {
+                    if (currentBizType === 'transport') {
+                      handleClearAllRideOrders();
+                    } else {
+                      setBookings([]);
+                      setBusinessStats({
+                        bookings_today: 0,
+                        earnings_week: 0,
+                        pending_requests: 0,
+                        confirmed_count: 0,
+                      });
+                      showToast('All bookings and requests cleared successfully.');
+                    }
+                  }}
 
-                    onClick={handleClearAllRideOrders}
+                  style={{
 
-                    style={{
+                    display: 'inline-flex',
 
-                      display: 'inline-flex',
+                    alignItems: 'center',
 
-                      alignItems: 'center',
+                    gap: '5px',
 
-                      gap: '5px',
+                    padding: '5px 12px',
 
-                      padding: '5px 12px',
+                    borderRadius: '8px',
 
-                      borderRadius: '8px',
+                    backgroundColor: bookings.length === 0 ? 'rgba(148, 163, 184, 0.1)' : 'rgba(239, 68, 68, 0.08)',
 
-                      backgroundColor: bookings.length === 0 ? 'rgba(148, 163, 184, 0.1)' : 'rgba(239, 68, 68, 0.08)',
+                    border: bookings.length === 0 ? '1px solid rgba(148, 163, 184, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
 
-                      border: bookings.length === 0 ? '1px solid rgba(148, 163, 184, 0.25)' : '1px solid rgba(239, 68, 68, 0.25)',
+                    color: bookings.length === 0 ? '#94A3B8' : '#DC2626',
 
-                      color: bookings.length === 0 ? '#94A3B8' : '#DC2626',
+                    fontSize: '12px',
 
-                      fontSize: '12px',
+                    fontWeight: 650,
 
-                      fontWeight: 650,
+                    cursor: bookings.length === 0 ? 'not-allowed' : 'pointer',
 
-                      cursor: bookings.length === 0 ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s ease',
 
-                      transition: 'all 0.15s ease',
+                    marginLeft: 'auto',
 
-                      marginLeft: 'auto',
+                  }}
 
-                    }}
+                  title={bookings.length === 0 ? 'No orders to clear' : `Clear all ${currentBizType === 'transport' ? 'ride orders' : 'bookings'}`}
 
-                    title={bookings.length === 0 ? 'No ride orders to clear' : 'Clear all ride orders'}
+                >
 
-                  >
+                  <Trash2 size={13} />
 
-                    <Trash2 size={13} />
+                  <span>Clear All {currentBizType === 'transport' ? 'Orders' : 'Bookings'}</span>
 
-                    <span>Clear All Orders</span>
-
-                  </button>
-
-                )}
+                </button>
 
               </div>
 
@@ -7486,6 +7619,68 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
 
 
+              <div>
+
+                <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+
+                  Destination / Valley (Area) *
+
+                </label>
+
+                <select
+
+                  value={editAreaId}
+
+                  onChange={(e) => setEditAreaId(e.target.value)}
+
+                  data-testid="select-edit-business-area"
+
+                  style={{
+
+                    width: '100%',
+
+                    padding: '8px 12px',
+
+                    borderRadius: 'var(--radius-button)',
+
+                    border: '1px solid var(--line)',
+
+                    backgroundColor: 'var(--bg)',
+
+                    color: 'var(--ink)',
+
+                    fontSize: 'var(--font-sm)',
+
+                    boxSizing: 'border-box',
+
+                  }}
+
+                >
+
+                  <option value="">-- Select Destination / Valley --</option>
+
+                  {areasList.map((area) => (
+
+                    <option key={area.id} value={area.id}>
+
+                      {area.name} ({area.area_type || 'area'})
+
+                    </option>
+
+                  ))}
+
+                </select>
+
+                <span style={{ fontSize: '11px', color: 'var(--mute)', display: 'block', marginTop: '3px' }}>
+
+                  Enables tourists to find your hotel when searching or selecting Quick Valleys
+
+                </span>
+
+              </div>
+
+
+
               <div style={{ gridColumn: '1 / -1' }}>
 
                 <label style={{ display: 'block', fontSize: 'var(--font-xs)', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
@@ -7502,7 +7697,7 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
 
                   onChange={(e) => setEditAddress(e.target.value)}
 
-                  placeholder="e.g. Opposite Swat Museum, Saidu Sharif, Swat Valley"
+                  placeholder="e.g. Amanabad, Mingora, Swat"
 
                   data-testid="input-edit-address"
 
@@ -7912,6 +8107,19 @@ export const BusinessShell: React.FC<BusinessShellProps> = ({ activeTab, isMobil
         />
 
       )}
+
+      {/* Offers & Deals Management Tab */}
+
+      {activeTab === 'deals' && (
+
+        <BusinessDealsManager
+          businessId={user?.business_profile?.id}
+          primaryType={currentBizType}
+          listings={listings}
+        />
+
+      )}
+
 
 
 

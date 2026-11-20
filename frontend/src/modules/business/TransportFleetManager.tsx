@@ -19,7 +19,6 @@ import {
   EyeOff,
 } from 'lucide-react';
 import {
-  addPriceItem,
   updatePriceItem,
   deletePriceItem,
   type ListingItem,
@@ -30,7 +29,11 @@ import {
   createTransportVehicle,
   updateTransportVehicle,
   deleteTransportVehicle,
+  seedTransportFleet,
 } from '../../api/transportFleet';
+
+const isValidUuid = (val?: string | null): boolean =>
+  Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
 export interface FleetVehicle {
   id: string;
@@ -393,6 +396,8 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
   const cleanName = transportName.toLowerCase().replace(/[^a-z0-9]/g, '_');
   const storageKey = `swat_transport_fleet_${cleanName}`;
 
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
   const [vehicles, setVehicles] = useState<FleetVehicle[]>(() => {
     // 1. Check provider storage key
     let candidateVehicles: FleetVehicle[] = [];
@@ -419,41 +424,14 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
       } catch {}
     }
 
-    // 3. Check global registry
-    if (candidateVehicles.length === 0) {
-      try {
-        const globalRaw = localStorage.getItem('swat_transport_fleet_global');
-        if (globalRaw) {
-          const parsed = JSON.parse(globalRaw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const matched = parsed.filter(
-              (v: any) =>
-                (providerId && v.providerId === providerId) ||
-                (userId && v.userId === userId) ||
-                (v.providerName && v.providerName.toLowerCase().replace(/[^a-z0-9]/g, '_') === cleanName)
-            );
-            if (matched.length > 0) {
-              candidateVehicles = matched;
-            }
-          }
-        }
-      } catch {}
-    }
-
-    // 4. Scoping enforcement:
-    // If logged-in user (isLoggedInUser is true, or providerId / userId provided):
-    // Only return vehicles added by this user/provider. Never include DEFAULT_FLEET demo vehicles.
+    // 3. Strict Scoping: If logged-in user/provider, return ONLY vehicles belonging to this provider!
+    // Never include DEFAULT_FLEET demo vehicles!
     if (isLoggedInUser || providerId || userId) {
       const userAddedOnly = candidateVehicles.filter((v) => !DEFAULT_VEHICLE_IDS.has(v.id));
       return userAddedOnly;
     }
 
-    // If candidate vehicles exist, return them
-    if (candidateVehicles.length > 0) {
-      return candidateVehicles;
-    }
-
-    // Fallback for default demo provider in unauthenticated test environments
+    // Unauthenticated test fallback only
     const isDefaultProvider =
       cleanName.includes('swat_valley_transport') ||
       cleanName.includes('swat_valley_4x4') ||
@@ -474,7 +452,7 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
         localStorage.setItem(`swat_transport_fleet_id_${providerId}`, JSON.stringify(vehicles));
       }
 
-      // Merge into global fleet registry so other providers' vehicles and default fleet are not lost
+      // Merge into global fleet registry
       let globalList: FleetVehicle[] = [];
       try {
         const rawGlobal = localStorage.getItem('swat_transport_fleet_global');
@@ -486,7 +464,6 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
         }
       } catch {}
 
-      // Keep vehicles that DO NOT belong to this provider
       const otherVehicles = globalList.filter((g) => {
         if (providerId && g.providerId === providerId) return false;
         if (userId && g.userId === userId) return false;
@@ -503,12 +480,60 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
     }
   }, [vehicles, storageKey, cleanName, providerId, userId]);
 
-  // Sync fleet from Database on mount
+  // Sync fleet strictly from Database on mount
   useEffect(() => {
     let isSubscribed = true;
-    fetchTransportFleet(listing?.id, providerId || listing?.business_id).then((dbList) => {
-      if (!isSubscribed || !dbList || dbList.length === 0) return;
-      const mapped: FleetVehicle[] = dbList.map((v) => ({
+    setIsLoading(true);
+
+    fetchTransportFleet(listing?.id, providerId || listing?.business_id)
+      .then((dbList) => {
+        if (!isSubscribed) return;
+        const mapped: FleetVehicle[] = (dbList || []).map((v) => ({
+          id: v.id,
+          name: v.model_name,
+          category: v.vehicle_type,
+          fare: Number(v.fare || 0),
+          unit: (v.fare_unit as PriceUnitCode) || 'per_day',
+          capacity: v.seat_capacity,
+          regNumber: v.license_plate,
+          driverName: v.driver_name || 'Assigned Driver',
+          driverPhone: v.driver_phone || '',
+          description: v.description || '',
+          features: v.features || [],
+          is_active: v.is_active,
+          is_in_service: v.is_in_service,
+          availabilityNote: v.notes || 'Daily 06:00 AM – 09:00 PM',
+          providerId: v.business_id,
+          providerName: transportName,
+          business_id: v.business_id,
+          imageUrl: (() => {
+            try {
+              if (v.notes && v.notes.startsWith('{')) {
+                const p = JSON.parse(v.notes);
+                if (p.image_url) return p.image_url;
+              }
+            } catch {}
+            return getVehicleDefaultImage(v.vehicle_type, v.model_name);
+          })(),
+        }));
+
+        setVehicles(mapped);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isSubscribed) setIsLoading(false);
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [listing?.id, providerId, listing?.business_id, transportName]);
+
+  const handleLoadSampleTemplates = async () => {
+    try {
+      setIsLoading(true);
+      const seeded = await seedTransportFleet(listing?.id);
+      const mapped: FleetVehicle[] = (seeded || []).map((v) => ({
         id: v.id,
         name: v.model_name,
         category: v.vehicle_type,
@@ -526,28 +551,16 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
         providerId: v.business_id,
         providerName: transportName,
         business_id: v.business_id,
-        imageUrl: (() => {
-          try {
-            if (v.notes && v.notes.startsWith('{')) {
-              const p = JSON.parse(v.notes);
-              if (p.image_url) return p.image_url;
-            }
-          } catch {}
-          return getVehicleDefaultImage(v.vehicle_type, v.model_name);
-        })(),
+        imageUrl: getVehicleDefaultImage(v.vehicle_type, v.model_name),
       }));
-
-      setVehicles((prev) => {
-        const existingIds = new Set(mapped.map((m) => m.id));
-        const merged = [...mapped, ...prev.filter((p) => !existingIds.has(p.id))];
-        return merged;
-      });
-    }).catch(() => {});
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, [listing?.id, providerId, listing?.business_id, transportName]);
+      setVehicles(mapped);
+      showToast('Sample vehicle templates loaded and saved to database!');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to seed sample templates');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filters
   const [selectedCategory, setSelectedCategory] = useState<string>('All Vehicles');
@@ -685,72 +698,111 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
     }
 
     if (editingVehicleId) {
-      // Update vehicle
-      const updatedList = vehicles.map((v) =>
-        v.id === editingVehicleId
-          ? {
-              ...v,
-              name: formName.trim(),
-              category: formCategory,
-              fare: Number(formFare),
-              unit: formUnit,
-              capacity: Number(formCapacity),
-              regNumber: formRegNumber.trim().toUpperCase(),
-              driverName: formDriverName.trim() || 'Assigned Company Driver',
-              driverPhone: formDriverPhone.trim(),
-              description: formDescription.trim(),
-              features: formFeatures,
-              is_active: formIsActive,
-              is_in_service: formIsInService,
-              availabilityNote: formAvailabilityNote.trim(),
-              providerId: v.providerId || providerId || listing?.business_id,
-              providerName: v.providerName || transportName,
-              userId: v.userId || userId,
-              business_id: v.business_id || listing?.business_id || providerId,
-            }
-          : v
-      );
-      setVehicles(updatedList);
-
-      // Attempt API sync if listing is available
-      if (listing?.id) {
+      if (isValidUuid(editingVehicleId)) {
         try {
-          await updatePriceItem(editingVehicleId, {
-            name: formName.trim(),
-            price: Number(formFare),
-            unit: formUnit,
+          const updated = await updateTransportVehicle(editingVehicleId, {
+            model_name: formName.trim(),
+            vehicle_type: formCategory,
+            fare: Number(formFare),
+            fare_unit: formUnit,
+            seat_capacity: Number(formCapacity),
+            license_plate: formRegNumber.trim().toUpperCase(),
+            driver_name: formDriverName.trim(),
+            driver_phone: formDriverPhone.trim(),
             description: formDescription.trim(),
+            features: formFeatures,
             is_active: formIsActive,
-            is_bookable: formIsInService,
-            default_units: Number(formCapacity),
+            is_in_service: formIsInService,
+            notes: formAvailabilityNote.trim(),
           });
-        } catch {
-          // offline fallback
+          setVehicles((prev) =>
+            prev.map((v) =>
+              v.id === editingVehicleId
+                ? {
+                    ...v,
+                    name: updated.model_name,
+                    category: updated.vehicle_type,
+                    fare: Number(updated.fare ?? formFare),
+                    unit: (updated.fare_unit as PriceUnitCode) || formUnit,
+                    capacity: updated.seat_capacity,
+                    regNumber: updated.license_plate,
+                    driverName: updated.driver_name || v.driverName,
+                    driverPhone: updated.driver_phone || v.driverPhone,
+                    description: updated.description || v.description,
+                    features: updated.features || v.features,
+                    is_active: updated.is_active,
+                    is_in_service: updated.is_in_service,
+                    availabilityNote: updated.notes || v.availabilityNote,
+                  }
+                : v
+            )
+          );
+          showToast(`Vehicle "${formName}" updated successfully.`);
+        } catch (err: any) {
+          showToast(err.message || 'Failed to update vehicle in database');
         }
+      } else {
+        setVehicles((prev) =>
+          prev.map((v) =>
+            v.id === editingVehicleId
+              ? {
+                  ...v,
+                  name: formName.trim(),
+                  category: formCategory,
+                  fare: Number(formFare),
+                  unit: formUnit,
+                  capacity: Number(formCapacity),
+                  regNumber: formRegNumber.trim().toUpperCase(),
+                  driverName: formDriverName.trim(),
+                  driverPhone: formDriverPhone.trim(),
+                  description: formDescription.trim(),
+                  features: formFeatures,
+                  is_active: formIsActive,
+                  is_in_service: formIsInService,
+                  availabilityNote: formAvailabilityNote.trim(),
+                }
+              : v
+          )
+        );
+        showToast(`Vehicle "${formName}" updated.`);
+      }
+    } else {
+      // Add new vehicle with database persistence
+      let createdId = `veh-${Date.now()}`;
+      try {
+        const targetBizId = isValidUuid(listing?.business_id)
+          ? listing?.business_id
+          : isValidUuid(providerId)
+          ? providerId
+          : undefined;
+        const targetListingId = isValidUuid(listing?.id) ? listing?.id : undefined;
+
+        const created = await createTransportVehicle({
+          business_id: targetBizId,
+          listing_id: targetListingId,
+          vehicle_type: formCategory,
+          model_name: formName.trim(),
+          license_plate: formRegNumber.trim().toUpperCase(),
+          driver_name: formDriverName.trim() || 'Assigned Company Driver',
+          driver_phone: formDriverPhone.trim(),
+          seat_capacity: Number(formCapacity),
+          fare: Number(formFare),
+          fare_unit: formUnit,
+          features: formFeatures,
+          description: formDescription.trim(),
+          is_active: formIsActive,
+          is_in_service: formIsInService,
+          notes: formAvailabilityNote.trim(),
+        });
+        if (created?.id) {
+          createdId = created.id;
+        }
+      } catch (err: any) {
+        // Fallback for offline or test environments
       }
 
-      // Persist update to Database transport_vehicles
-      updateTransportVehicle(editingVehicleId, {
-        model_name: formName.trim(),
-        vehicle_type: formCategory,
-        fare: Number(formFare),
-        fare_unit: formUnit,
-        seat_capacity: Number(formCapacity),
-        license_plate: formRegNumber.trim().toUpperCase(),
-        driver_name: formDriverName.trim(),
-        driver_phone: formDriverPhone.trim(),
-        description: formDescription.trim(),
-        features: formFeatures,
-        is_active: formIsActive,
-        is_in_service: formIsInService,
-        notes: formAvailabilityNote.trim(),
-      }).catch(() => {});
-
-      showToast(`Vehicle "${formName}" updated successfully.`);
-    } else {
-      // Add new vehicle
       const newVehicle: FleetVehicle = {
-        id: `veh-${Date.now()}`,
+        id: createdId,
         name: formName.trim(),
         category: formCategory,
         fare: Number(formFare),
@@ -766,53 +818,16 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
         availabilityNote: formAvailabilityNote.trim(),
         providerId: providerId || listing?.business_id,
         providerName: transportName,
-        userId: userId,
         business_id: listing?.business_id || providerId,
+        imageUrl: getVehicleDefaultImage(formCategory, formName.trim()),
       };
 
       setVehicles((prev) => {
         const cleanPrev = (isLoggedInUser || providerId || userId)
           ? prev.filter((v) => !DEFAULT_VEHICLE_IDS.has(v.id))
           : prev;
-        return [newVehicle, ...cleanPrev];
+        return [newVehicle, ...cleanPrev.filter((v) => v.id !== createdId)];
       });
-
-      // Attempt API sync
-      if (listing?.id) {
-        try {
-          await addPriceItem(listing.id, {
-            name: formName.trim(),
-            price: Number(formFare),
-            unit: formUnit,
-            description: formDescription.trim(),
-            is_active: formIsActive,
-            is_bookable: formIsInService,
-            default_units: Number(formCapacity),
-          });
-        } catch {
-          // offline fallback
-        }
-      }
-
-      // Persist new vehicle to Database transport_vehicles
-      createTransportVehicle({
-        business_id: listing?.business_id || providerId,
-        listing_id: listing?.id,
-        vehicle_type: formCategory,
-        model_name: formName.trim(),
-        license_plate: formRegNumber.trim().toUpperCase(),
-        driver_name: formDriverName.trim() || 'Assigned Company Driver',
-        driver_phone: formDriverPhone.trim(),
-        seat_capacity: Number(formCapacity),
-        fare: Number(formFare),
-        fare_unit: formUnit,
-        features: formFeatures,
-        description: formDescription.trim(),
-        is_active: formIsActive,
-        is_in_service: formIsInService,
-        notes: formAvailabilityNote.trim(),
-      }).catch(() => {});
-
       showToast(`Vehicle "${formName}" added & published to fleet!`);
     }
 
@@ -874,19 +889,25 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
   const handleConfirmDelete = async () => {
     if (!deleteModal.vehicle) return;
     const toDelete = deleteModal.vehicle;
+
+    if (isValidUuid(toDelete.id)) {
+      try {
+        await deleteTransportVehicle(toDelete.id);
+      } catch (err: any) {
+        showToast(err.message || 'Failed to remove vehicle from database');
+      }
+    }
+
     const remaining = vehicles.filter((v) => v.id !== toDelete.id);
     setVehicles(remaining);
 
-    if (listing?.id) {
+    if (listing?.id && isValidUuid(toDelete.id)) {
       try {
         await deletePriceItem(toDelete.id);
       } catch {
         // offline fallback
       }
     }
-
-    // Persist deletion to Database transport_vehicles
-    deleteTransportVehicle(toDelete.id).catch(() => {});
 
     setDeleteModal({ open: false, vehicle: null });
     showToast(`Vehicle "${toDelete.name}" removed from fleet.`);
@@ -1101,9 +1122,21 @@ export const TransportFleetManager: React.FC<TransportFleetManagerProps> = ({
               ? 'You have not added any vehicles to your fleet yet. Click "+ Add Vehicle to Fleet" to register and publish your vehicle with daily fares and mountain driver details.'
               : 'No vehicles match the selected filter or search term. Try selecting "All Vehicles" or add a new vehicle to your fleet.'}
           </p>
-          <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openAddModal}>
-            Add Vehicle to Fleet
-          </Button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={openAddModal}>
+              Add Vehicle to Fleet
+            </Button>
+            {vehicles.length === 0 && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleLoadSampleTemplates}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Loading Templates...' : '⚡ Load Sample Vehicle Templates'}
+              </Button>
+            )}
+          </div>
         </Card>
       ) : (
         <div

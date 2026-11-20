@@ -466,10 +466,26 @@ class AccountService:
                 biz.contact_phone = req.contact_phone.strip()
                 if not user.phone:
                     user.phone = req.contact_phone.strip()
+            if req.whatsapp_number is not None:
+                biz.whatsapp_number = req.whatsapp_number.strip() if req.whatsapp_number else None
             if req.registration_no is not None:
                 biz.registration_no = req.registration_no.strip() if req.registration_no else None
+            if req.address_text is not None or req.address is not None:
+                new_addr = (req.address_text or req.address or "").strip()
+                biz.address_text = new_addr if new_addr else None
             if req.area_id is not None:
                 biz.area_id = req.area_id
+
+            # Cascade area_id and address to listings for this business
+            from app.modules.listings.models import Listing
+            listing_stmt = select(Listing).where(Listing.business_id == biz.id)
+            biz_listings = (await db.execute(listing_stmt)).scalars().all()
+            for l in biz_listings:
+                if req.area_id is not None:
+                    l.area_id = req.area_id
+                if biz.address_text:
+                    if not l.address_text or req.address_text is not None or req.address is not None:
+                        l.address_text = biz.address_text
 
         elif user.role == "community" and user.community_profile:
             if req.bio is not None:

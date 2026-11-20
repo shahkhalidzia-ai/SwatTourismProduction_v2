@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.deps import get_current_token_payload, require_roles
+from app.core.deps import get_current_token_payload, get_optional_token_payload, require_roles
 from app.modules.community.schemas import (
     CommunityPostCreate,
     CommunityPostOut,
@@ -14,6 +14,9 @@ from app.modules.community.schemas import (
     HostApplicationCreate,
     HostApplicationReviewRequest,
     HostApplicationOut,
+    CommunityServiceBookingCreate,
+    CommunityServiceBookingAction,
+    CommunityServiceBookingOut,
 )
 from app.modules.community.service import CommunityService
 
@@ -175,4 +178,87 @@ async def delete_host_application(
     is_admin = any(r in roles for r in ["authority", "admin"])
     await CommunityService.delete_host_application(db, app_id, user_id, is_admin)
     return None
+
+
+# =============================================================================
+# COMMUNITY SERVICE BOOKINGS (Tourist Requests for Guides, Homestays, 4x4 Rides)
+# =============================================================================
+
+@router.post("/bookings/request", response_model=CommunityServiceBookingOut, status_code=status.HTTP_201_CREATED)
+async def create_community_booking_request(
+    data: CommunityServiceBookingCreate,
+    payload: Optional[dict] = Depends(get_optional_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tourist books an approved community service (guide, homestay, transport, activity)."""
+    tourist_id = uuid.UUID(payload.get("sub")) if (payload and payload.get("sub")) else None
+    return await CommunityService.create_community_booking(db, tourist_id, data)
+
+
+@router.get("/bookings/my", response_model=List[CommunityServiceBookingOut])
+async def list_my_community_service_requests(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Community host views all incoming tourist service requests scoped to their offerings."""
+    host_user_id = uuid.UUID(payload.get("sub"))
+    return await CommunityService.get_my_community_bookings(db, host_user_id, status_filter)
+
+
+@router.patch("/bookings/{booking_id}/accept", response_model=CommunityServiceBookingOut)
+async def accept_community_booking_request(
+    booking_id: uuid.UUID,
+    data: Optional[CommunityServiceBookingAction] = None,
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Community host accepts a tourist's booking request."""
+    host_user_id = uuid.UUID(payload.get("sub"))
+    host_notes = data.host_notes if data else None
+    return await CommunityService.update_community_booking_status(
+        db, booking_id, host_user_id, action="accept", host_notes=host_notes
+    )
+
+
+@router.patch("/bookings/{booking_id}/decline", response_model=CommunityServiceBookingOut)
+async def decline_community_booking_request(
+    booking_id: uuid.UUID,
+    data: Optional[CommunityServiceBookingAction] = None,
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Community host declines a tourist's booking request with optional reason."""
+    host_user_id = uuid.UUID(payload.get("sub"))
+    decline_reason = data.decline_reason if data else "Host unavailable for requested dates"
+    host_notes = data.host_notes if data else None
+    return await CommunityService.update_community_booking_status(
+        db, booking_id, host_user_id, action="decline", decline_reason=decline_reason, host_notes=host_notes
+    )
+
+
+@router.patch("/bookings/{booking_id}/complete", response_model=CommunityServiceBookingOut)
+async def complete_community_booking(
+    booking_id: uuid.UUID,
+    data: Optional[CommunityServiceBookingAction] = None,
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Community host marks the service completed, concluding the tour or stay and enabling reviews."""
+    host_user_id = uuid.UUID(payload.get("sub"))
+    host_notes = data.host_notes if data else None
+    return await CommunityService.update_community_booking_status(
+        db, booking_id, host_user_id, action="complete", host_notes=host_notes
+    )
+
+
+@router.delete("/bookings/clear-all")
+async def clear_all_community_bookings(
+    clear_all: bool = Query(False, alias="all"),
+    payload: dict = Depends(get_current_token_payload),
+    db: AsyncSession = Depends(get_db),
+):
+    """Demo helper: clears community booking requests for current host (or all if all=True)."""
+    host_user_id = uuid.UUID(payload.get("sub"))
+    return await CommunityService.clear_community_bookings(db, host_user_id, clear_all=clear_all)
 

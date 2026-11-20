@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Optional
 from datetime import datetime, timezone
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
@@ -223,8 +223,19 @@ class ReviewService:
             list_q = select(Listing.id).where(Listing.business_id.in_(biz_ids))
             list_res = await db.execute(list_q)
             listing_ids = list_res.scalars().all()
-            if not listing_ids:
-                return []
+
+        conditions = []
+        if listing_ids:
+            conditions.append(Review.listing_id.in_(listing_ids))
+        if biz_ids:
+            conditions.append(
+                Review.booking_id.in_(
+                    select(Booking.id).where(Booking.business_id.in_(biz_ids))
+                )
+            )
+
+        if not conditions and not is_elevated:
+            return []
 
         stmt = (
             select(Review)
@@ -235,8 +246,8 @@ class ReviewService:
             )
             .order_by(Review.created_at.desc())
         )
-        if listing_ids:
-            stmt = stmt.where(Review.listing_id.in_(listing_ids))
+        if conditions:
+            stmt = stmt.where(or_(*conditions))
         res = await db.execute(stmt)
         reviews_list = res.scalars().all()
 
@@ -317,8 +328,10 @@ class ReviewService:
         return await ReviewService.get_review_by_id(db, review_id)
 
     @staticmethod
-    async def _update_listing_ratings(db: AsyncSession, listing_id: uuid.UUID):
+    async def _update_listing_ratings(db: AsyncSession, listing_id: Optional[uuid.UUID]):
         """Helper to recalculate rating_avg and rating_count on Listing table."""
+        if not listing_id:
+            return
         agg_q = select(
             func.avg(Review.rating).label("avg_rating"),
             func.count(Review.id).label("total_count"),

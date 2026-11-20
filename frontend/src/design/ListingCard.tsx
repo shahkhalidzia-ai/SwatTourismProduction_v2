@@ -2,6 +2,15 @@ import React from 'react';
 import { MapPin, CheckCircle2, Bed, UtensilsCrossed, Star, CloudSun, Phone } from 'lucide-react';
 import { Tag } from './Tag';
 
+export interface ActivePromotionInfo {
+  title: string;
+  badge_label?: string | null;
+  discount_type: string;
+  discount_value: number;
+  promo_code?: string | null;
+  max_discount_cap?: number | null;
+}
+
 export interface ListingCardProps {
   id?: string;
   title: string;
@@ -21,6 +30,7 @@ export interface ListingCardProps {
   isSelected?: boolean;
   accommodationType?: string;
   isCommunityService?: boolean;
+  activePromotion?: ActivePromotionInfo;
   onSelect?: () => void;
   onViewHotelDetails?: () => void;
   onViewMenu?: () => void;
@@ -50,6 +60,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   reviewCount,
   isSelected = false,
   isCommunityService: _isCommunityService = false,
+  activePromotion,
   onSelect,
   onViewHotelDetails,
   onViewMenu,
@@ -95,6 +106,32 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   };
 
   const priceData = parsePrice(priceLine);
+
+  // Discount / Promotion Calculations
+  const numericPrice = React.useMemo(() => {
+    const raw = (type === 'hotel' ? priceData.bold : (priceLine || priceData.bold)) || '';
+    const digits = raw.replace(/[^0-9]/g, '');
+    return digits ? parseInt(digits, 10) : 0;
+  }, [type, priceData, priceLine]);
+
+  const discountCalculation = React.useMemo(() => {
+    if (!activePromotion || numericPrice <= 0) return null;
+    let discount = 0;
+    if (activePromotion.discount_type === 'percentage') {
+      discount = Math.round(numericPrice * (activePromotion.discount_value / 100));
+    } else {
+      discount = activePromotion.discount_value;
+    }
+    if (activePromotion.max_discount_cap && discount > activePromotion.max_discount_cap) {
+      discount = activePromotion.max_discount_cap;
+    }
+    const finalPrice = Math.max(0, numericPrice - discount);
+    return {
+      discount,
+      finalPrice,
+      savingsPct: Math.round((discount / numericPrice) * 100),
+    };
+  }, [activePromotion, numericPrice]);
 
   const locationSubtitle = addressText
     ? addressText
@@ -197,6 +234,25 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               Verified
             </div>
           )}
+          {activePromotion && (
+            <div
+              style={{
+                backgroundColor: '#E11D48',
+                color: '#FFFFFF',
+                padding: '2.5px 8px',
+                borderRadius: '5px',
+                fontSize: '10px',
+                fontWeight: 800,
+                letterSpacing: '0.02em',
+                boxShadow: '0 2px 8px rgba(225, 29, 72, 0.45)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+              }}
+            >
+              🔥 {activePromotion.badge_label || (activePromotion.discount_type === 'percentage' ? `${activePromotion.discount_value}% OFF` : `PKR ${activePromotion.discount_value.toLocaleString()} OFF`)}
+            </div>
+          )}
           {isSelected && (
             <Tag variant="accent" style={{ fontSize: '9.5px', padding: '1px 5px' }}>
               Selected Stay
@@ -287,6 +343,55 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             {locationSubtitle}
           </div>
 
+          {/* Active Deal Ribbon / Banner */}
+          {activePromotion && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                backgroundColor: '#FFF1F2',
+                border: '1px solid #FECDD3',
+                color: '#BE123C',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontSize: '10.5px',
+                fontWeight: 650,
+                margin: '2px 0 4px 0',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontWeight: 800, color: '#E11D48' }}>🔥 {activePromotion.title}</span>
+              <span>•</span>
+              <span style={{ color: '#007A55', fontWeight: 750 }}>
+                {activePromotion.discount_type === 'percentage'
+                  ? `${activePromotion.discount_value}% OFF`
+                  : `Save PKR ${activePromotion.discount_value.toLocaleString()}`}
+              </span>
+              {activePromotion.promo_code ? (
+                <span
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px dashed #FDA4AF',
+                    padding: '0.5px 5px',
+                    borderRadius: '4px',
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    fontSize: '9.5px',
+                    color: '#9F1239',
+                  }}
+                >
+                  Code: {activePromotion.promo_code}
+                </span>
+              ) : (
+                <span style={{ color: '#64748B', fontSize: '10px' }}>(Auto-applied)</span>
+              )}
+            </div>
+          )}
+
           {/* Restaurant Specific: Contact No directly visible on card */}
           {type === 'restaurant' && phone && (
             <div
@@ -341,10 +446,48 @@ export const ListingCard: React.FC<ListingCardProps> = ({
               <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 500, lineHeight: 1.1 }}>
                 Starting rate: in
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
-                  {type === 'hotel' ? priceData.bold : (priceLine || priceData.bold)}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                {discountCalculation ? (
+                  <>
+                    <span
+                      style={{
+                        fontSize: '11.5px',
+                        color: '#94A3B8',
+                        textDecoration: 'line-through',
+                        fontWeight: 600,
+                      }}
+                    >
+                      PKR {numericPrice.toLocaleString()}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '18px',
+                        fontWeight: 900,
+                        color: '#E11D48',
+                        lineHeight: 1.2,
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      PKR {discountCalculation.finalPrice.toLocaleString()}
+                    </span>
+                    <span
+                      style={{
+                        backgroundColor: '#FFE4E6',
+                        color: '#BE123C',
+                        fontSize: '9.5px',
+                        fontWeight: 800,
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      -{discountCalculation.savingsPct}%
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ fontSize: '17px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+                    {type === 'hotel' ? priceData.bold : (priceLine || priceData.bold)}
+                  </span>
+                )}
                 {type === 'hotel' && priceData.suffix && (
                   <span style={{ fontSize: '10.5px', color: '#64748B', fontWeight: 500 }}>
                     {priceData.suffix}
@@ -442,22 +585,17 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           </div>
         </div>
 
-        {/* Action Row: Instant Reserve in front of Facility (Check dates & Add to trip hidden) */}
+        {/* Action Row: Unified primary action button */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: 'auto', paddingTop: '8px' }}>
-          {/* Instant Reserve Button: Acts like Check Dates & Instant Reservation */}
-          {(onCheckDates || onInstantReserve) && (
+          {/* Instant Reserve Button: For non-hotel services (transport, guide, activities) */}
+          {type !== 'hotel' && (onCheckDates || onInstantReserve) && (
             <button
               type="button"
               className="btn-card-instant-reserve"
               onClick={(e) => {
                 e.stopPropagation();
-                if (type === 'hotel') {
-                  if (onCheckDates) onCheckDates();
-                  else if (onInstantReserve) onInstantReserve();
-                } else {
-                  if (onInstantReserve) onInstantReserve();
-                  else if (onCheckDates) onCheckDates();
-                }
+                if (onInstantReserve) onInstantReserve();
+                else if (onCheckDates) onCheckDates();
               }}
               id={`btn-instant-reserve-${id || type}`}
               data-testid={`btn-instant-reserve-${id || type}`}
@@ -496,41 +634,45 @@ export const ListingCard: React.FC<ListingCardProps> = ({
             </button>
           )}
 
-          {/* Facility Button for Hotels: Placed directly next to Instant Reserve */}
-          {type === 'hotel' && onViewHotelDetails && (
+          {/* Unified Hotel Action Button (Option 1): View Rooms & Instant Reserve */}
+          {type === 'hotel' && (onViewHotelDetails || onCheckDates || onInstantReserve) && (
             <button
               type="button"
               className="btn-smart-hotel-details"
-              aria-label="View Rooms, Facilities & Activities"
-              title="View Rooms, Facilities & Activities"
+              aria-label="View Rooms & Instant Reserve"
+              title="View Rooms & Instant Reserve"
               onClick={(e) => {
                 e.stopPropagation();
-                onViewHotelDetails();
+                if (onViewHotelDetails) onViewHotelDetails();
+                else if (onCheckDates) onCheckDates();
+                else if (onInstantReserve) onInstantReserve();
               }}
               id={`btn-view-hotel-details-${id || 'hotel'}`}
               data-testid={`btn-view-hotel-details-${id || 'hotel'}`}
               style={{
                 flex: 1,
+                width: '100%',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '5px',
-                padding: '6px 12px',
-                borderRadius: '7px',
-                backgroundColor: 'rgba(0, 122, 85, 0.09)',
-                color: '#007A55',
-                border: '1px solid rgba(0, 122, 85, 0.28)',
-                fontSize: '11.5px',
-                fontWeight: 700,
+                gap: '6px',
+                padding: '7px 14px',
+                borderRadius: '8px',
+                backgroundColor: '#007A55',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: 750,
                 cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(0, 122, 85, 0.25)',
                 transition: 'all 0.15s ease',
                 whiteSpace: 'nowrap',
-                minHeight: '32px',
+                minHeight: '34px',
               }}
             >
-              <Bed size={13} style={{ flexShrink: 0 }} />
-              <span>Facility</span>
-              <span style={{ fontSize: '10px', opacity: 0.85, flexShrink: 0 }}>➔</span>
+              <Bed size={14} style={{ flexShrink: 0 }} />
+              <span>View Rooms &amp; Instant Reserve</span>
+              <span style={{ fontSize: '11px', flexShrink: 0, marginLeft: '2px' }}>➔</span>
             </button>
           )}
 

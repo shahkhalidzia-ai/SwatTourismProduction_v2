@@ -44,6 +44,9 @@ class Booking(Base, UUIDPrimaryKeyMixin):
     direct_transfer_slip_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     direct_transfer_verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     direct_transfer_verified_by: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    discount_amount: Mapped[Optional[float]] = mapped_column(Numeric(12, 2), default=0.00, nullable=True)
+    promo_code: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    promotion_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("promotions.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -92,6 +95,8 @@ class Booking(Base, UUIDPrimaryKeyMixin):
         cascade="all, delete-orphan",
         order_by="BookingPayment.created_at.desc()",
     )
+    promotion: Mapped[Optional["app.modules.listings.models.Promotion"]] = relationship("app.modules.listings.models.Promotion")
+
 
 
 class BookingItem(Base, UUIDPrimaryKeyMixin):

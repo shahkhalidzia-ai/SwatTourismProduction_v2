@@ -243,6 +243,43 @@ class BookingService:
                 line_total,
             ))
 
+        # Check for promotions / discount codes
+        discount_amount = 0.0
+        applied_promo = None
+        if req.promo_code or req.promotion_id:
+            from app.modules.listings.models import Promotion, PromotionRedemption
+            from app.modules.listings.promotions_service import PromotionsService
+
+            promo_q = select(Promotion)
+            if req.promo_code:
+                clean_promo = req.promo_code.strip().upper()
+                promo_q = promo_q.where(func.upper(Promotion.promo_code) == clean_promo)
+            elif req.promotion_id:
+                promo_q = promo_q.where(Promotion.id == req.promotion_id)
+
+            promo_res = await db.execute(promo_q)
+            applied_promo = promo_res.scalar_one_or_none()
+            if applied_promo:
+                stay_days = 1
+                if req.end_date and req.end_date > req.start_date:
+                    stay_days = (req.end_date - req.start_date).days
+                is_eligible, _ = PromotionsService.is_promotion_eligible(
+                    promotion=applied_promo,
+                    subtotal=total_amount,
+                    stay_days=stay_days,
+                    listing_id=listing.id,
+                    stay_start=req.start_date,
+                    stay_end=req.end_date,
+                )
+                if is_eligible:
+                    discount_amount = PromotionsService.calculate_discount_amount(
+                        promotion=applied_promo,
+                        subtotal=total_amount,
+                        stay_days=stay_days,
+                    )
+
+        final_booking_amount = max(0.0, total_amount - discount_amount)
+
         # 3. Create Booking record
         ref = generate_booking_reference()
         booking = Booking(
@@ -256,7 +293,10 @@ class BookingService:
             start_date=req.start_date,
             end_date=req.end_date,
             travellers=req.travellers,
-            total_amount=round(total_amount, 2),
+            total_amount=round(final_booking_amount, 2),
+            discount_amount=round(discount_amount, 2),
+            promo_code=applied_promo.promo_code if applied_promo else (req.promo_code.strip().upper() if req.promo_code else None),
+            promotion_id=applied_promo.id if applied_promo else None,
             payment_status="unpaid",
             special_requests=req.special_requests,
             pickup_point=req.pickup_point,
@@ -266,6 +306,19 @@ class BookingService:
         )
         db.add(booking)
         await db.flush()
+
+        # Record redemption if promo discount was applied
+        if applied_promo and discount_amount > 0:
+            redemption = PromotionRedemption(
+                id=uuid.uuid4(),
+                promotion_id=applied_promo.id,
+                booking_id=booking.id,
+                user_id=tourist_id,
+                discount_amount=discount_amount,
+            )
+            db.add(redemption)
+            applied_promo.usage_count = (applied_promo.usage_count or 0) + 1
+
 
         # 4. Create BookingItem records
         for pi, s_date, qty, u_price, l_total in booking_items_to_create:
@@ -412,7 +465,7 @@ class BookingService:
                 selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
-                selectinload(Booking.listing),
+                selectinload(Booking.listing).selectinload(Listing.listing_type),
             )
         )
         res = await db.execute(query)
@@ -442,7 +495,7 @@ class BookingService:
                 selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
-                selectinload(Booking.listing),
+                selectinload(Booking.listing).selectinload(Listing.listing_type),
             )
         )
         res = await db.execute(query)
@@ -458,7 +511,7 @@ class BookingService:
                     selectinload(Booking.history),
                     selectinload(Booking.tourist),
                     selectinload(Booking.business),
-                    selectinload(Booking.listing),
+                    selectinload(Booking.listing).selectinload(Listing.listing_type),
                 )
             )
             res2 = await db.execute(query2)
@@ -487,7 +540,7 @@ class BookingService:
                 selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
-                selectinload(Booking.listing),
+                selectinload(Booking.listing).selectinload(Listing.listing_type),
             )
             .order_by(Booking.created_at.desc())
         )
@@ -528,7 +581,7 @@ class BookingService:
                 selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
-                selectinload(Booking.listing),
+                selectinload(Booking.listing).selectinload(Listing.listing_type),
             )
             .order_by(Booking.created_at.desc())
         )
@@ -663,10 +716,13 @@ class BookingService:
         if not (is_owner or is_tourist or is_elevated):
             raise HTTPException(status_code=403, detail="Not authorized to complete this booking")
 
-        if booking.status not in ("confirmed", "accepted"):
+        if booking.status == "completed":
+            return booking
+
+        if booking.status not in ("confirmed", "accepted", "in_progress", "arrived", "requested"):
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot complete booking in '{booking.status}' status. Must be accepted or confirmed.",
+                detail=f"Cannot complete booking in '{booking.status}' status. Must be accepted, confirmed, or active.",
             )
 
         old_status = booking.status
@@ -679,25 +735,32 @@ class BookingService:
             db, booking, to_status="cleaning" if old_status == "confirmed" and booking.checked_in_at else "available"
         )
 
+        is_transport = bool(
+            booking.listing
+            and getattr(booking.listing, "listing_type", None)
+            and booking.listing.listing_type.code == "transport"
+        )
+        service_label = "Ride" if is_transport else "Stay / service"
         history = BookingStatusHistory(
             id=uuid.uuid4(),
             booking_id=booking.id,
             from_status=old_status,
             to_status="completed",
             changed_by=user_id,
-            note=action.note or "Stay / service concluded successfully.",
+            note=action.note or f"{service_label} concluded successfully.",
             created_at=datetime.now(timezone.utc),
         )
         db.add(history)
 
         # Notify tourist to share feedback
+        listing_name = booking.listing.title if booking.listing else "Swat Service"
         await NotificationService.create_notification(
             db=db,
             user_id=booking.tourist_id,
             type="booking",
-            title=f"Stay Completed ({booking.reference})",
+            title=f"{service_label} Completed ({booking.reference})",
             body=(
-                f"Your booking for {booking.listing.title} has completed! "
+                f"Your {service_label.lower()} for {listing_name} has completed! "
                 "Please leave a review and share your experience."
             ),
             related_type="booking",
@@ -1836,7 +1899,7 @@ class BookingService:
                 selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
-                selectinload(Booking.listing),
+                selectinload(Booking.listing).selectinload(Listing.listing_type),
             )
             .where(or_(*conditions))
         )
@@ -1862,7 +1925,7 @@ class BookingService:
                 selectinload(Booking.payments),
                 selectinload(Booking.tourist),
                 selectinload(Booking.business),
-                selectinload(Booking.listing),
+                selectinload(Booking.listing).selectinload(Listing.listing_type),
             )
             .where(Booking.tourist_id == user_id)
             .order_by(Booking.created_at.desc())

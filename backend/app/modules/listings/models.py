@@ -226,3 +226,58 @@ class TransportVehicle(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         return []
 
 
+class Promotion(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    __tablename__ = "promotions"
+
+    business_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("business_profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    listing_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("listings.id", ondelete="CASCADE"), nullable=True, index=True)
+    price_item_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid, ForeignKey("price_items.id", ondelete="SET NULL"), nullable=True, index=True)
+
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    promo_code: Mapped[Optional[str]] = mapped_column(String(40), index=True, nullable=True)
+
+    discount_type: Mapped[str] = mapped_column(String(30), nullable=False)  # 'percentage', 'fixed_amount', 'rate_override'
+    discount_value: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    max_discount_cap: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+
+    # Criteria & Rules
+    min_booking_amount: Mapped[Optional[float]] = mapped_column(Numeric(10, 2), nullable=True)
+    min_nights_or_days: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+
+    # Dates
+    start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    travel_start_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    travel_end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
+    # Usage Quota
+    usage_limit: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    usage_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    badge_label: Mapped[Optional[str]] = mapped_column(String(50), default="Special Deal", nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint("discount_type IN ('percentage', 'fixed_amount', 'rate_override')", name="check_promo_discount_type"),
+        CheckConstraint("discount_value > 0", name="check_promo_positive_value"),
+    )
+
+    business: Mapped["BusinessProfile"] = relationship("BusinessProfile")
+    listing: Mapped[Optional["Listing"]] = relationship("Listing")
+    price_item: Mapped[Optional["PriceItem"]] = relationship("PriceItem")
+    redemptions: Mapped[List["PromotionRedemption"]] = relationship("PromotionRedemption", back_populates="promotion", cascade="all, delete-orphan")
+
+
+class PromotionRedemption(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    __tablename__ = "promotion_redemptions"
+
+    promotion_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("promotions.id", ondelete="CASCADE"), nullable=False, index=True)
+    booking_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    discount_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+
+    promotion: Mapped["Promotion"] = relationship("Promotion", back_populates="redemptions")
+
+
+

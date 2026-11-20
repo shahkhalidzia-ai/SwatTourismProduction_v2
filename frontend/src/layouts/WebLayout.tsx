@@ -28,6 +28,7 @@ const ITEM_SUBTITLES: Record<string, string> = {
   safety: 'Live SOS & Road Updates',
   profile: 'Traveler Account & Pass',
   today: 'Daily Bookings & KPI',
+  requests: 'Tourist Booking Inquiries',
   listings: 'Active Catalog & Rooms',
   availability: 'Calendar & Capacity',
   reviews: 'Guest Feedback & Trust',

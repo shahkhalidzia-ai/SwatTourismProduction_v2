@@ -31,6 +31,7 @@ from app.modules.community.models import (
     CommunityPost,
     IssueReport,
     HostApplication,
+    CommunityServiceBooking,
 )
 from app.modules.verification.models import VerificationDocument, AuditLog
 from app.modules.trips.models import Trip, TripStop, SavedItem
@@ -88,6 +89,7 @@ async def seed_data():
         areas_data = [
             {"name": "Swat", "area_type": "district", "parent": None, "lat": 35.2227, "lng": 72.4258},
             {"name": "Mingora", "area_type": "town", "parent": "Swat", "lat": 34.7717, "lng": 72.3602},
+            {"name": "Saidu Sharif", "area_type": "town", "parent": "Swat", "lat": 34.7465, "lng": 72.3557},
             {"name": "Madyan", "area_type": "town", "parent": "Swat", "lat": 35.1378, "lng": 72.5344},
             {"name": "Bahrain", "area_type": "town", "parent": "Swat", "lat": 35.2078, "lng": 72.5517},
             {"name": "Kalam", "area_type": "valley", "parent": "Swat", "lat": 35.4906, "lng": 72.5794},
@@ -131,6 +133,8 @@ async def seed_data():
             {"name": "White Palace Marghuzar", "area": "Swat", "category": "heritage", "desc": "Historic 1940 royal summer residence of the Wali of Swat built from pure white Chiniot marble among royal gardens.", "season": "Year-round (Mar-Nov)", "lat": 34.6933, "lng": 72.3333},
             {"name": "Bahrain Swat", "area": "Bahrain", "category": "valley", "desc": "Picturesque riverside town at the dramatic confluence of the Swat and Daral rivers, famous for handicrafts and wood carving.", "season": "April to November", "lat": 35.2075, "lng": 72.5475},
             {"name": "Miandam Valley", "area": "Swat", "category": "valley", "desc": "Serene hillside retreat amidst terraced emerald cornfields, peach and apple orchards, and cascading mountain streams.", "season": "April to October", "lat": 35.0433, "lng": 72.5536},
+            {"name": "Mingora", "area": "Mingora", "category": "valley", "desc": "Vibrant commercial heart of Swat Valley famous for bustling bazaars, emerald gemstones, local crafts, and gateway to upper Swat.", "season": "Year-round", "lat": 34.7717, "lng": 72.3602},
+            {"name": "Saidu Sharif", "area": "Saidu Sharif", "category": "heritage", "desc": "Historic royal and administrative capital of Swat, home to the Swat Museum, ancient Buddhist stupas, and heritage estates.", "season": "Year-round", "lat": 34.7465, "lng": 72.3557},
         ]
         for dest in destinations_data:
             stmt = select(Destination).where(Destination.name == dest["name"])
@@ -346,6 +350,7 @@ async def seed_data():
                 "primary_type": "hotel",
                 "reg_no": "KP-HOTEL-SERENA-001",
                 "phone": "+92946710201",
+                "address": "Amanabad, Mingora, Swat",
                 "area": "Mingora",
                 "status": "verified",
             },
@@ -380,6 +385,7 @@ async def seed_data():
                     registration_no=b["reg_no"],
                     contact_phone=b["phone"],
                     whatsapp_number=b["phone"],
+                    address_text=b.get("address"),
                     area_id=area_map.get(b["area"]),
                     verification_status=b["status"],
                     verified_by=user_map["authority@swat.pk"] if b["status"] == "verified" else None,
@@ -413,6 +419,7 @@ async def seed_data():
                 "business": "Swat Serena Hotel",
                 "type": "hotel",
                 "area": "Mingora",
+                "address": "Amanabad, Mingora, Swat",
                 "lat": 34.7717,
                 "lng": 72.3602,
                 "desc": "Premier luxury heritage hotel nestled in the heart of Swat Valley with historic gardens and five-star hospitality.",
@@ -542,6 +549,7 @@ async def seed_data():
                     area_id=area_map.get(ld["area"]),
                     title=ld["title"],
                     description=ld["desc"],
+                    address_text=ld.get("address"),
                     latitude=ld["lat"],
                     longitude=ld["lng"],
                     status="published",
@@ -736,22 +744,145 @@ async def seed_data():
                 )
                 session.add(r)
 
-        # Host Application
-        stmt = select(HostApplication).where(HostApplication.user_id == user_map["gul.zaman@swat.pk"])
-        ha = (await session.execute(stmt)).scalar_one_or_none()
-        if not ha:
-            ha = HostApplication(
-                user_id=user_map["gul.zaman@swat.pk"],
-                offer_type="homestay",
-                description="Traditional 3-room stone cottage in Kalam Valley with mountain stream views and organic local breakfast.",
-                status="approved",
-                reviewed_by=user_map["authority@swat.pk"],
-                reviewed_at=datetime.now(timezone.utc),
-            )
-            session.add(ha)
+        # Host Applications for Gul Zaman (Tourist Guide & Homestay)
+        community_users = [
+            user_map.get("community@swattourism.pk"),
+            user_map.get("gul.zaman@swat.pk"),
+        ]
+        auth_reviewer = user_map.get("authority@swattourism.pk") or user_map.get("authority@swat.pk")
+
+        host_app_specs = [
+            {
+                "offer_type": "guide",
+                "description": "[Local Guide: Gul Zaman Certified Alpine Trekking Guide | Rate: PKR 3,500/day | Base: Kalam Valley | Phone: +923009990003] Gul Zaman is an approved native tourist guide certified in alpine mountain safety, high-altitude trekking across Ushu Forest, Mahodand, Kundol Lake, and cultural heritage walks.",
+                "status": "approved",
+            },
+            {
+                "offer_type": "homestay",
+                "description": "[Homestay: Gul Zaman Traditional Ushu Homestay & Orchard Stay | Rate: PKR 4,500/night | Base: Ushu Valley, Kalam | Phone: +923009990003] Experience authentic Swati hospitality in a traditional 3-room stone and cedarwood cottage in Ushu Valley with organic orchard views, river stream access, and home-cooked breakfasts.",
+                "status": "approved",
+            },
+        ]
+
+        for u_id in community_users:
+            if not u_id:
+                continue
+            # Ensure community profile has is_host_approved = True
+            stmt_cp = select(CommunityProfile).where(CommunityProfile.user_id == u_id)
+            cp_obj = (await session.execute(stmt_cp)).scalar_one_or_none()
+            if cp_obj:
+                cp_obj.is_host_approved = True
+
+            for spec in host_app_specs:
+                stmt_ha = select(HostApplication).where(
+                    HostApplication.user_id == u_id,
+                    HostApplication.offer_type == spec["offer_type"],
+                )
+                existing_ha = (await session.execute(stmt_ha)).scalar_one_or_none()
+                if existing_ha:
+                    existing_ha.status = spec["status"]
+                    existing_ha.description = spec["description"]
+                    existing_ha.reviewed_by = auth_reviewer
+                    existing_ha.reviewed_at = datetime.now(timezone.utc)
+                else:
+                    new_ha = HostApplication(
+                        user_id=u_id,
+                        offer_type=spec["offer_type"],
+                        description=spec["description"],
+                        status=spec["status"],
+                        reviewed_by=auth_reviewer,
+                        reviewed_at=datetime.now(timezone.utc),
+                    )
+                    session.add(new_ha)
 
         await session.commit()
         print("[OK] Community stories, issue reports, and host applications verified.")
+
+        # 10. Community Service Bookings (Tourist Requests for Gul Zaman)
+        gz_id = user_map.get("community@swattourism.pk") or user_map.get("gul.zaman@swat.pk")
+        tourist_user_id = user_map.get("tourist@swat.pk")
+
+        sample_requests = [
+            {
+                "reference": "SWAT-GD-482910",
+                "offer_type": "guide",
+                "service_title": "Gul Zaman Certified Alpine Trekking Guide",
+                "tourist_name": "Sara Ahmed",
+                "tourist_phone": "+923001234567",
+                "tourist_email": "sara.ahmed@gmail.com",
+                "start_date": date(2026, 11, 22),
+                "end_date": date(2026, 11, 24),
+                "travellers": 3,
+                "pickup_location": "Kalam Main Bazaar (PTDC Junction)",
+                "destination_valley": "Ushu Forest & Mahodand Lake Trail",
+                "pickup_time": "08:00 AM",
+                "special_requests": "We have 1 senior family member and want scenic trail walks and local flora photography.",
+                "total_amount": 7000.00,
+                "status": "requested",
+            },
+            {
+                "reference": "SWAT-HS-621849",
+                "offer_type": "homestay",
+                "service_title": "Gul Zaman Traditional Ushu Homestay & Orchard Stay",
+                "tourist_name": "Tariq Mahmood",
+                "tourist_phone": "+923339988112",
+                "tourist_email": "tariq.m@yahoo.com",
+                "start_date": date(2026, 11, 25),
+                "end_date": date(2026, 11, 27),
+                "travellers": 4,
+                "pickup_location": "Ushu Forest River Bridge",
+                "destination_valley": "Ushu Valley",
+                "pickup_time": "02:00 PM",
+                "special_requests": "Requesting 2 rooms with mountain stream view and home-cooked Swati trout dinner.",
+                "total_amount": 9000.00,
+                "status": "requested",
+            },
+            {
+                "reference": "SWAT-GD-319482",
+                "offer_type": "guide",
+                "service_title": "Gul Zaman Certified Alpine Trekking Guide",
+                "tourist_name": "Hamza Ali",
+                "tourist_phone": "+923458899221",
+                "tourist_email": "hamza.ali@outlook.com",
+                "start_date": date(2026, 11, 18),
+                "end_date": date(2026, 11, 19),
+                "travellers": 2,
+                "pickup_location": "Utror Jeep Stand",
+                "destination_valley": "Kundol Lake Alpine Trek",
+                "pickup_time": "07:30 AM",
+                "special_requests": "High-altitude trek guidance with weather navigation.",
+                "total_amount": 3500.00,
+                "status": "accepted",
+            },
+        ]
+
+        if gz_id:
+            for s_req in sample_requests:
+                stmt_b = select(CommunityServiceBooking).where(CommunityServiceBooking.reference == s_req["reference"])
+                existing_b = (await session.execute(stmt_b)).scalar_one_or_none()
+                if not existing_b:
+                    b_obj = CommunityServiceBooking(
+                        reference=s_req["reference"],
+                        host_user_id=gz_id,
+                        tourist_user_id=tourist_user_id,
+                        offer_type=s_req["offer_type"],
+                        service_title=s_req["service_title"],
+                        tourist_name=s_req["tourist_name"],
+                        tourist_phone=s_req["tourist_phone"],
+                        tourist_email=s_req["tourist_email"],
+                        start_date=s_req["start_date"],
+                        end_date=s_req["end_date"],
+                        travellers=s_req["travellers"],
+                        pickup_location=s_req["pickup_location"],
+                        destination_valley=s_req["destination_valley"],
+                        pickup_time=s_req["pickup_time"],
+                        special_requests=s_req["special_requests"],
+                        total_amount=s_req["total_amount"],
+                        status=s_req["status"],
+                    )
+                    session.add(b_obj)
+            await session.commit()
+            print("[OK] Community service bookings verified.")
 
     print("--- SUCCESS: Database successfully populated with idempotent prototype seed dataset! ---")
 

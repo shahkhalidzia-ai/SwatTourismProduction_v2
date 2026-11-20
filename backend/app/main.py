@@ -58,6 +58,9 @@ async def lifespan(app: FastAPI):
                         ("stay_status", "VARCHAR(20) DEFAULT 'reserved'"),
                         ("checked_in_at", "DATETIME"),
                         ("checked_out_at", "DATETIME"),
+                        ("discount_amount", "NUMERIC(12, 2) DEFAULT 0.00"),
+                        ("promo_code", "VARCHAR(50)"),
+                        ("promotion_id", "VARCHAR(36)"),
                     ]
                     for b_col, b_type in new_booking_cols:
                         if b_col not in booking_cols:

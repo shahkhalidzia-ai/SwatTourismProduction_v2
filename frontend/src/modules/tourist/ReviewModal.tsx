@@ -31,20 +31,38 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
     e.preventDefault();
     setIsSubmitting(true);
     setErrorMsg(null);
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(booking.id);
+
     try {
-      // Auto-conclude booking in case it was still confirmed/accepted
-      if (booking.id && !booking.id.startsWith('b-trip-') && !booking.id.startsWith('booking-trip-')) {
+      if (isUuid) {
+        // Auto-conclude booking in case it was still confirmed/accepted
         try {
           await completeBooking(booking.id).catch(() => {});
         } catch {}
+
+        await createReview({
+          booking_id: booking.id,
+          rating,
+          title: title.trim() || undefined,
+          comment: comment.trim() || undefined,
+        });
+      } else {
+        // Demo or local booking storage fallback
+        const stored = JSON.parse(localStorage.getItem('swat_published_reviews') || '[]');
+        stored.unshift({
+          id: `rev-${Date.now()}`,
+          booking_id: booking.id,
+          rating,
+          title: title.trim() || 'Verified Passenger Review',
+          comment: comment.trim() || 'Excellent service in Swat Valley!',
+          created_at: new Date().toISOString(),
+          status: 'published',
+          listing_title: booking.listing?.title || 'Swat Tour Stay & Service',
+        });
+        localStorage.setItem('swat_published_reviews', JSON.stringify(stored));
       }
 
-      await createReview({
-        booking_id: booking.id,
-        rating,
-        title: title.trim() || undefined,
-        comment: comment.trim() || undefined,
-      });
       setIsDone(true);
       if (onSuccess) onSuccess();
       setTimeout(() => {
@@ -53,15 +71,15 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
       }, 1500);
     } catch (err: any) {
       const errMsg = err?.message || '';
-      // Graceful local/demo fallback: if booking is demo/offline or backend returns 404
+      // Graceful local/demo fallback: if booking is demo/offline or backend returns error
       if (
         errMsg.includes('not found') ||
         errMsg.includes('Not Found') ||
         errMsg.includes('Network') ||
         errMsg.includes('Failed to fetch') ||
         errMsg.includes('404') ||
-        booking.id.startsWith('b-') ||
-        booking.id.startsWith('booking-trip-')
+        errMsg.includes('422') ||
+        !isUuid
       ) {
         try {
           const stored = JSON.parse(localStorage.getItem('swat_published_reviews') || '[]');

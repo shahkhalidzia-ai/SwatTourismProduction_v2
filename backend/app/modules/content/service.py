@@ -74,7 +74,7 @@ class ContentService:
             f"?latitude={coord['lat']}&longitude={coord['lon']}"
             f"&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m"
             f"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
-            f"&timezone=Asia%2FKarachi&forecast_days=5"
+            f"&timezone=Asia%2FKarachi&forecast_days=7"
         )
 
         try:
@@ -131,6 +131,8 @@ class ContentService:
             WeatherDaily(date="Day 3", weather_code=61, condition="Slight rain", temperature_max=14.0, temperature_min=5.0, precipitation_probability=65),
             WeatherDaily(date="Day 4", weather_code=2, condition="Partly cloudy", temperature_max=17.5, temperature_min=6.0, precipitation_probability=15),
             WeatherDaily(date="Day 5", weather_code=0, condition="Clear sky", temperature_max=20.0, temperature_min=8.0, precipitation_probability=5),
+            WeatherDaily(date="Day 6", weather_code=1, condition="Mainly clear", temperature_max=19.0, temperature_min=7.5, precipitation_probability=10),
+            WeatherDaily(date="Day 7", weather_code=0, condition="Clear sky", temperature_max=21.0, temperature_min=8.0, precipitation_probability=5),
         ]
         resp = WeatherResponse(
             area=display_name,

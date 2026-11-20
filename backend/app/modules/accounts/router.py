@@ -260,6 +260,50 @@ async def demo_login(role: str, db: AsyncSession = Depends(get_db)):
         user.demo_role = role
         await db.commit()
 
+    if role == "community":
+        from app.modules.community.models import HostApplication
+        from app.modules.accounts.models import CommunityProfile
+        from datetime import datetime, timezone
+
+        # Ensure community profile has is_host_approved = True
+        stmt_cp = select(CommunityProfile).where(CommunityProfile.user_id == user.id)
+        cp_res = await db.execute(stmt_cp)
+        cp_obj = cp_res.scalar_one_or_none()
+        if cp_obj:
+            cp_obj.is_host_approved = True
+
+        host_specs = [
+            (
+                "guide",
+                "[Local Guide: Gul Zaman Certified Alpine Trekking Guide | Rate: PKR 3,500/day | Base: Kalam Valley | Phone: +923009990003] Gul Zaman is an approved native tourist guide certified in alpine mountain safety, high-altitude trekking across Ushu Forest, Mahodand, Kundol Lake, and cultural heritage walks.",
+            ),
+            (
+                "homestay",
+                "[Homestay: Gul Zaman Traditional Ushu Homestay & Orchard Stay | Rate: PKR 4,500/night | Base: Ushu Valley, Kalam | Phone: +923009990003] Experience authentic Swati hospitality in a traditional 3-room stone and cedarwood cottage in Ushu Valley with organic orchard views, river stream access, and home-cooked breakfasts.",
+            ),
+        ]
+        for off_type, desc in host_specs:
+            stmt_app = select(HostApplication).where(
+                HostApplication.user_id == user.id,
+                HostApplication.offer_type == off_type,
+            )
+            app_res = await db.execute(stmt_app)
+            existing_app = app_res.scalar_one_or_none()
+            if not existing_app:
+                new_app = HostApplication(
+                    user_id=user.id,
+                    offer_type=off_type,
+                    description=desc,
+                    status="approved",
+                    reviewed_at=datetime.now(timezone.utc),
+                )
+                db.add(new_app)
+            elif existing_app.status != "approved":
+                existing_app.status = "approved"
+                existing_app.description = desc
+                existing_app.reviewed_at = datetime.now(timezone.utc)
+        await db.commit()
+
     user_out = AccountService.user_to_user_out(user)
     access_token = create_access_token(subject=str(user.id), role=user.role)
     refresh_token = create_refresh_token(subject=str(user.id))

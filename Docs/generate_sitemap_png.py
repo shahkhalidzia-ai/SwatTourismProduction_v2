@@ -1,0 +1,736 @@
+"""
+Generates an ultra-crisp, visual Site Map Diagram for Swat Tourism Platform (SwatTourismProduction_v2)
+as Docs/swat_tourism_sitemap.png using Playwright Chromium.
+"""
+
+import os
+from playwright.sync_api import sync_playwright
+
+HTML_CONTENT = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  body {
+    background: #0B1120;
+    color: #F8FAFC;
+    padding: 35px;
+    width: 2500px;
+    height: auto;
+    overflow: hidden;
+  }
+  
+  /* Header */
+  .sitemap-header {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 24px 35px;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+  .header-text h1 {
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #FFFFFF, #38BDF8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header-text p {
+    font-size: 14px;
+    color: #94A3B8;
+    margin-top: 5px;
+  }
+  .header-badges {
+    display: flex;
+    gap: 10px;
+  }
+  .badge {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .b-cyan { background: rgba(6, 182, 212, 0.15); color: #22D3EE; border: 1px solid rgba(6, 182, 212, 0.3); }
+  .b-emerald { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+  /* Columns Grid (5 Portals + Modals) */
+  .sitemap-columns {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
+  }
+
+  .portal-card {
+    background: #0F172A;
+    border: 1px solid #1E293B;
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    position: relative;
+  }
+  .portal-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 18px;
+    right: 18px;
+    height: 3px;
+    border-radius: 0 0 4px 4px;
+  }
+
+  .p-tourist::before { background: #06B6D4; }
+  .p-hotel::before { background: #F59E0B; }
+  .p-fleet::before { background: #3B82F6; }
+  .p-community::before { background: #A855F7; }
+  .p-authority::before { background: #10B981; }
+
+  .portal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-top: 4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #1E293B;
+  }
+  .portal-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #F8FAFC;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .portal-sub {
+    font-size: 11px;
+    color: #64748B;
+    margin-top: 3px;
+  }
+  .portal-pill {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Tree Nodes */
+  .nav-tree {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .tree-node {
+    background: #131E36;
+    border: 1px solid #1E2D4D;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .node-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .node-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #E2E8F0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .node-route {
+    font-size: 9.5px;
+    font-family: monospace;
+    color: #38BDF8;
+    background: rgba(56, 189, 248, 0.1);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .node-items {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-left: 14px;
+    border-left: 1.5px solid #223454;
+    margin-top: 4px;
+  }
+  .leaf-item {
+    font-size: 11px;
+    color: #94A3B8;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .leaf-bullet {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #64748B;
+  }
+
+  /* Overlay Modals Section */
+  .modals-panel {
+    margin-top: 20px;
+    background: #0F172A;
+    border: 1px solid #1E293B;
+    border-radius: 14px;
+    padding: 18px 24px;
+  }
+  .modals-title {
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #F8FAFC;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modals-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+  .modal-box {
+    background: #111A2E;
+    border: 1px solid #1E2B45;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  .modal-box h4 {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #38BDF8;
+    margin-bottom: 3px;
+  }
+  .modal-box p {
+    font-size: 10px;
+    color: #64748B;
+    line-height: 1.4;
+  }
+
+  /* Footer */
+  .footer-row {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #475569;
+    padding-top: 10px;
+    border-top: 1px solid #1E293B;
+  }
+</style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="sitemap-header">
+    <div class="header-text">
+      <h1>Swat Tourism Platform — Complete Application Site Map</h1>
+      <p>Multi-Role Navigational Hierarchy • 5 Persona Portals • Real-Time Safety &amp; Reservation Workflows</p>
+    </div>
+    <div class="header-badges">
+      <div class="badge b-cyan">🗺️ Full UX Hierarchy</div>
+      <div class="badge b-emerald">🏛️ KPCTA Government Verified</div>
+    </div>
+  </div>
+
+  <!-- 5 MAIN PORTALS -->
+  <div class="sitemap-columns">
+
+    <!-- 1. TOURIST PORTAL -->
+    <div class="portal-card p-tourist">
+      <div class="portal-head">
+        <div>
+          <div class="portal-title"><span>🎒</span> Tourist Portal</div>
+          <div class="portal-sub">Public &amp; Registered Traveler Experience</div>
+        </div>
+        <span class="portal-pill" style="background:#083344; color:#22D3EE;">Tourist</span>
+      </div>
+      <div class="nav-tree">
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🏠 Home (Modern Explore)</span>
+            <span class="node-route">tab=home</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Destination Hero &amp; Valleys Showcase</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Live 7-Day Satellite Weather Card</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Real-time Road Conditions Strip</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Verified Hotels &amp; Transport Cards</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🔍 Explore Directory</span>
+            <span class="node-route">tab=explore</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Hotels, Transport &amp; Restaurants</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Local Activities, Treks &amp; Guides</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Intercity Buses &amp; Timetables</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Area Filters (Mingora, Kalam, Malam Jabba)</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🗺️ Trips &amp; Itinerary</span>
+            <span class="node-route">tab=trips</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Multi-Day Trip Itinerary Builder</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Daily Hotel &amp; Room Allocations</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>1-Prompt AI Trip Generator</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Budget Estimation &amp; Travel Times</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">📑 My Bookings</span>
+            <span class="node-route">tab=my-bookings</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>All Stays &amp; Ride Orders Dashboard</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Digital Travel Voucher &amp; QR Pass</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Direct Bank Slip Upload (TID)</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Interactive Cancellation Flow</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🛡️ Safety &amp; SOS Center</span>
+            <span class="node-route">tab=safety</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Official Government Advisories</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Live Road Blockades &amp; 4x4 Notices</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>1-Tap SOS Emergency Dispatch</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Rescue 1122 &amp; Police Contacts</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">👤 Profile &amp; Settings</span>
+            <span class="node-route">tab=profile</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Emergency Contact &amp; Next of Kin</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Language: English, Urdu, Pashto</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. HOTEL & BUSINESS PORTAL -->
+    <div class="portal-card p-hotel">
+      <div class="portal-head">
+        <div>
+          <div class="portal-title"><span>🏨</span> Hotel Business</div>
+          <div class="portal-sub">Front Desk PMS &amp; Operations</div>
+        </div>
+        <span class="portal-pill" style="background:#451A03; color:#FBBF24;">Hotel</span>
+      </div>
+      <div class="nav-tree">
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">📅 Today (Front Desk)</span>
+            <span class="node-route">tab=today</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Today Arrivals &amp; Departures</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>In-House Guests Matrix</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Physical Room Rack Allocation</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Advance Paid vs Balance Ledger</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Check In &amp; Check Out Operations</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Inspect Bank Slip Proof (TID)</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🏨 My Listing &amp; Property</span>
+            <span class="node-route">tab=listings</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Hotel Name, Description &amp; Address</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Facilities &amp; Amenities Tags</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Property Photo Galleries</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Manage Services &amp; Activities</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🛏️ Rooms &amp; Availability</span>
+            <span class="node-route">tab=availability</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Room Tiers (Deluxe, Suite, Standard)</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Nightly Pricing &amp; Extra Bed Rates</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>60-Day Visual Calendar Grid</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Room Cleaning &amp; Block States</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">💰 Invoices &amp; Ledger</span>
+            <span class="node-route">tab=invoices</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Platform Commission (5%)</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Net Payouts &amp; Settlements</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Financial History</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">⭐ Guest Reviews</span>
+            <span class="node-route">tab=reviews</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Verified Guest Feedback</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Management Responses</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. TRANSPORT & RESTAURANTS -->
+    <div class="portal-card p-fleet">
+      <div class="portal-head">
+        <div>
+          <div class="portal-title"><span>🚐</span> Fleet &amp; Dining</div>
+          <div class="portal-sub">Transport &amp; Kitchen Portals</div>
+        </div>
+        <span class="portal-pill" style="background:#1E3A8A; color:#60A5FA;">Transport</span>
+      </div>
+      <div class="nav-tree">
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🧭 Explore Swat</span>
+            <span class="node-route">tab=home</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Platform Valley Landing</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Live Traffic &amp; Route Alerts</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🚖 Ride Orders (Transport)</span>
+            <span class="node-route">tab=today</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Passenger Reservations</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Origin / Destination Schedules</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Trip Status (Scheduled, En-Route)</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Complete Ride Confirmation</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🚐 Fleet &amp; Vehicles</span>
+            <span class="node-route">tab=listings</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Add / Edit Coasters &amp; Jeeps</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Fare per Seat / Daily Rent</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Driver Assignment &amp; Phone</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Availability Toggle</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🍽️ Menu &amp; Kitchen (Food)</span>
+            <span class="node-route">tab=listings</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Dish Catalog &amp; Categories</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Chef Specials &amp; Live Trout</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Prices &amp; Dietary Tags</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>In-Stock / Out-of-Stock</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">⭐ Reviews &amp; Profile</span>
+            <span class="node-route">tab=reviews</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Passenger / Diner Ratings</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Business Profile &amp; Contact</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. COMMUNITY PORTAL -->
+    <div class="portal-card p-community">
+      <div class="portal-head">
+        <div>
+          <div class="portal-title"><span>🤝</span> Community Portal</div>
+          <div class="portal-sub">Local Guides &amp; Artisans</div>
+        </div>
+        <span class="portal-pill" style="background:#3B0764; color:#C084FC;">Community</span>
+      </div>
+      <div class="nav-tree">
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🙋 Tourist Requests</span>
+            <span class="node-route">tab=requests</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Live Traveler Assistance Needs</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Trekking Guide Requests</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>4x4 Jeep Ride Requests</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Proposal Bidding &amp; Acceptance</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">📖 Verified Stories</span>
+            <span class="node-route">tab=stories</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Swat Culture &amp; Heritage Articles</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Local Artisan Spotlights</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Traditional Craft Highlights</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Publish Community Story</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">⚠️ Report an Incident</span>
+            <span class="node-route">tab=report</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Report Trail / Road Blockages</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Environmental &amp; Litter Issues</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Submit Photo &amp; Location</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🏡 Host Services</span>
+            <span class="node-route">tab=hosts</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Apply as Local Guide / Homestay</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Artisan Craft Showcase</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Service Approval Status</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">👤 Community Profile</span>
+            <span class="node-route">tab=profile</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Verified Local Resident Status</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Language Proficiency (Pashto/Urdu)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. AUTHORITY & ADMIN PORTAL -->
+    <div class="portal-card p-authority">
+      <div class="portal-head">
+        <div>
+          <div class="portal-title"><span>🏛️</span> Authority &amp; Admin</div>
+          <div class="portal-sub">KPCTA Governance &amp; Safety</div>
+        </div>
+        <span class="portal-pill" style="background:#064E3B; color:#34D399;">Authority</span>
+      </div>
+      <div class="nav-tree">
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">📊 Executive Overview</span>
+            <span class="node-route">tab=overview</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Provincial Tourism KPI Cards</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Total Arrivals &amp; Occupancy</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Platform Revenue &amp; Levies</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">💰 Finances &amp; Commission</span>
+            <span class="node-route">tab=finances</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>5% Platform Service Fee Ledger</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Provincial Tourism Tax Audits</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Business Payment Clearance</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">👥 User Management</span>
+            <span class="node-route">tab=users</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Master Accounts Directory</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Inspect Profile &amp; KYC Status</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Deactivate / Reactivate Users</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Clean State &amp; Manual Creation</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">📢 Road Advisories</span>
+            <span class="node-route">tab=advisories</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Broadcast Severe Weather Alerts</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Record Route Condition Status</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Toggle: Open / 4x4 Only / Closed</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">✅ Approvals &amp; KYC</span>
+            <span class="node-route">tab=approvals</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Pending Business Queue</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Inspect CNIC &amp; Trade License</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>1-Click Approve / Ask Changes</div>
+          </div>
+        </div>
+
+        <div class="tree-node">
+          <div class="node-title-row">
+            <span class="node-title">🚨 SOS Cases &amp; CAD</span>
+            <span class="node-route">tab=cases</span>
+          </div>
+          <div class="node-items">
+            <div class="leaf-item"><span class="leaf-bullet"></span>Live Tourist Distress Beacon Queue</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>GPS Pin Geo-Location Map</div>
+            <div class="leaf-item"><span class="leaf-bullet"></span>Dispatch Rescue 1122 &amp; Police</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODALS & OVERLAYS ROW -->
+  <div class="modals-panel">
+    <div class="modals-title">
+      <span>🪟</span> Universal Modals &amp; Interactive Overlay Workflows (Accessible from Any View)
+    </div>
+    <div class="modals-grid">
+      <div class="modal-box">
+        <h4>HotelDetailsModal</h4>
+        <p>Room tier cards, photos, facility tags, check-in instructions, and direct instant reserve trigger.</p>
+      </div>
+
+      <div class="modal-box">
+        <h4>SwatPay &amp; Checkout</h4>
+        <p>20% advance guarantee calculation, EasyPaisa, JazzCash, 1Link card, and bank slip upload.</p>
+      </div>
+
+      <div class="modal-box">
+        <h4>WeatherForecastModal</h4>
+        <p>Live 7-day satellite telemetry (Open-Meteo), temperature curve, humidity, wind, and rain %.</p>
+      </div>
+
+      <div class="modal-box">
+        <h4>BookingVoucherModal</h4>
+        <p>Digital travel pass, verified QR check-in token, directions, contact info, and PDF download.</p>
+      </div>
+
+      <div class="modal-box">
+        <h4>ProofInspectorModal</h4>
+        <p>Front-desk TID validation, direct transfer receipt inspection, and deposit approval.</p>
+      </div>
+
+      <div class="modal-box">
+        <h4>SOS Distress Beacon</h4>
+        <p>Emergency capture of GPS latitude/longitude, distress note, and direct 1122 CAD dispatch.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-row">
+    <span>Swat Tourism Platform (SwatTourismProduction_v2) • Complete Site Map &amp; Navigation Topology</span>
+    <span>5 User Personas • 28 Active Views &amp; Tabs • 6 Global Overlay Engines</span>
+    <span>Government of Khyber Pakhtunkhwa (KPCTA) Verified</span>
+  </div>
+
+</body>
+</html>
+"""
+
+def generate_sitemap_png():
+    output_html_path = os.path.abspath("Docs/sitemap_diagram.html")
+    output_png_path = os.path.abspath("Docs/swat_tourism_sitemap.png")
+    
+    with open(output_html_path, "w", encoding="utf-8") as f:
+        f.write(HTML_CONTENT)
+    
+    print(f"HTML sitemap saved to: {output_html_path}")
+    
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        # High resolution viewport
+        page = browser.new_page(viewport={"width": 2500, "height": 1650}, device_scale_factor=2)
+        page.goto(f"file:///{output_html_path}")
+        page.wait_for_timeout(800)
+        page.screenshot(path=output_png_path, full_page=True)
+        browser.close()
+        
+    print(f"Sitemap diagram PNG successfully generated at: {output_png_path}")
+    
+    # Also copy to artifact directory
+    app_data_artifact_dir = "C:/Users/shahkhalid1/.gemini/antigravity/brain/a4ab2b4f-d721-4c46-bc21-24c731c3a57e"
+    if os.path.exists(app_data_artifact_dir):
+        dest_png = os.path.join(app_data_artifact_dir, "swat_tourism_sitemap.png")
+        import shutil
+        shutil.copy2(output_png_path, dest_png)
+        print(f"Copied to artifact directory: {dest_png}")
+
+if __name__ == "__main__":
+    generate_sitemap_png()
+

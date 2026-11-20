@@ -370,4 +370,102 @@ class TransportVehicleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True, protected_namespaces=())
 
 
+PromotionDiscountType = Literal["percentage", "fixed_amount", "rate_override"]
+
+
+class PromotionBase(BaseModel):
+    title: str = Field(..., max_length=150)
+    description: Optional[str] = None
+    listing_id: Optional[uuid.UUID] = None
+    price_item_id: Optional[uuid.UUID] = None
+    promo_code: Optional[str] = Field(default=None, max_length=40)
+    discount_type: PromotionDiscountType = "percentage"
+    discount_value: float = Field(..., gt=0)
+    max_discount_cap: Optional[float] = Field(default=None, gt=0)
+    min_booking_amount: Optional[float] = Field(default=None, ge=0)
+    min_nights_or_days: int = Field(default=1, ge=1)
+    start_date: datetime
+    end_date: datetime
+    travel_start_date: Optional[date] = None
+    travel_end_date: Optional[date] = None
+    usage_limit: Optional[int] = Field(default=None, ge=1)
+    badge_label: Optional[str] = Field(default="Special Deal", max_length=50)
+    is_active: bool = True
+
+
+class PromotionCreate(PromotionBase):
+    pass
+
+
+class PromotionUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    listing_id: Optional[uuid.UUID] = None
+    price_item_id: Optional[uuid.UUID] = None
+    promo_code: Optional[str] = None
+    discount_type: Optional[PromotionDiscountType] = None
+    discount_value: Optional[float] = None
+    max_discount_cap: Optional[float] = None
+    min_booking_amount: Optional[float] = None
+    min_nights_or_days: Optional[int] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    travel_start_date: Optional[date] = None
+    travel_end_date: Optional[date] = None
+    usage_limit: Optional[int] = None
+    badge_label: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class PromotionOut(BaseModel):
+    id: uuid.UUID
+    business_id: uuid.UUID
+    listing_id: Optional[uuid.UUID] = None
+    price_item_id: Optional[uuid.UUID] = None
+    listing_title: Optional[str] = None
+    business_name: Optional[str] = None
+    price_item_name: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    promo_code: Optional[str] = None
+    discount_type: str
+    discount_value: float
+    max_discount_cap: Optional[float] = None
+    min_booking_amount: Optional[float] = None
+    min_nights_or_days: int
+    start_date: datetime
+    end_date: datetime
+    travel_start_date: Optional[date] = None
+    travel_end_date: Optional[date] = None
+    usage_limit: Optional[int] = None
+    usage_count: int = 0
+    badge_label: Optional[str] = "Special Deal"
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PromoCodeValidateRequest(BaseModel):
+    promo_code: str
+    listing_id: Optional[uuid.UUID] = None
+    price_item_id: Optional[uuid.UUID] = None
+    subtotal: float = Field(..., ge=0)
+    stay_days: int = Field(default=1, ge=1)
+    stay_start: Optional[date] = None
+    stay_end: Optional[date] = None
+
+
+class PromoCodeValidateResponse(BaseModel):
+    is_valid: bool
+    message: str
+    promotion_id: Optional[uuid.UUID] = None
+    discount_type: Optional[str] = None
+    discount_value: Optional[float] = None
+    discount_amount: float = 0.0
+    final_subtotal: float
+    badge_label: Optional[str] = None
+
+
+
 

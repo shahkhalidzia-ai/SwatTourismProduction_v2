@@ -178,5 +178,37 @@ configure environment for WAHA open source whats app api
 on transport Fleet and vehical only the loged in user vehyical should be loaded to that specific user. also every thing should be db presistan, 
 also check the review cuntions and compelete rid option is not working properly
 
+Create aprompt where the community person registered as guide, transport provider, home stay,advenurer should see his request for services from
+a tourist. currently there is no screen which load tourist request on community portal.
+
+Fixed 502 Bad Gateway on Demo User Login: Stabilized FastAPI backend on port 8090 and resolved port/database startup collisions.
+Enabled Gul Zaman & Community Offerings Visibility: Fixed Explore & Book portal query so verified community guides, homestays, and transport load for tourists.
+Added "Tourist Requests" Screen to Community Portal: Built CommunityRequestsView.tsx with inbound request queue, booking actions (Accept/Decline/Complete), and sidebar navigation.
+Implemented Bi-Directional WhatsApp Communication: Added direct WhatsApp message buttons with pre-filled booking details for both community hosts and tourists.
+Added Database Persistence for Community Bookings: Created community_service_bookings table and 5 backend REST API endpoints.
+Added Mingora & Saidu Sharif to Quick Valleys & Destination Search: Added filter pills (🏙️, 🏛️) and phonetic/multi-field search matching (Mingora 
+↔
+↔ Mingrora).
+Added Destination / Valley (Area) Selector to Business Profile: Added structured Area dropdown to BusinessShell.tsx with automatic address cascading to child listings.
+Fixed Swat Serena Hotel Location Search: Updated database and fallback fixtures so searching Mingora or Amanabad reliably loads Swat Serena Hotel.
+Fixed "Clear All Bookings" Button on Today Screen: Purged cached local storage, stopped demo re-injection on reload, and added instant real-time state clearing.
+Generated & Downloaded Technical Documentation: Exported full implementation specifications and prompts in both .docx and .md formats to your Downloads folder.
+100% Verification: Passed all backend pytest suites (9/9), frontend Vitest suites (22/22), and production build (tsc -b && vite build).
+===============
+over all archetecture diagram,
+Technoligies
+external apis
+Modules
+Task done
+task to do
+data Set
+Core flow of ateh application
+Site mape
+itegrations like , payment gateway(easy paisa), stripe. intercity transport booking(bookme.api) open weather api, meta, is pending.NHA and motor ways. 
+google maps
+
+road status entry screen is missing  for Authority road_status- we can do it from NHA
+
+
 
 

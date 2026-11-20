@@ -93,6 +93,7 @@ import { MapModal } from './MapModal';
 import { AvailabilityModal } from './AvailabilityModal';
 
 import { HotelDetailsModal } from './HotelDetailsModal';
+import { HotelPropertyDetailsView } from './HotelPropertyDetailsView';
 
 import { InstantServiceReservationModal } from './InstantServiceReservationModal';
 
@@ -869,6 +870,8 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
     type_code: 'hotel',
 
     type_label: 'Hotels & Stays',
+
+    area_id: 'a6aa1d6b-c5db-4e4b-a81c-16419bc59dba',
 
     area_name: 'Mingora',
 
@@ -2952,7 +2955,49 @@ const DEFAULT_VERIFIED_LISTINGS: ListingItem[] = [
 
 
 
+const DEFAULT_AREAS: Area[] = [
+  { id: 'a6aa1d6b-c5db-4e4b-a81c-16419bc59dba', name: 'Mingora', area_type: 'town', latitude: 34.7717, longitude: 72.3602 },
+  { id: '2815e544-35ea-4e21-a6f9-44ab0d0c806b', name: 'Saidu Sharif', area_type: 'town', latitude: 34.75, longitude: 72.35 },
+  { id: '1ad8fdbe-f0be-4210-af2c-7cbd9224b9e9', name: 'Kalam', area_type: 'valley', latitude: 35.48, longitude: 72.58 },
+  { id: '2e570bfb-29bd-4349-ba98-f8808cc86aa9', name: 'Malam Jabba', area_type: 'town', latitude: 34.80, longitude: 72.57 },
+  { id: 'c46b3f16-727b-479b-af89-ea7015e16471', name: 'Bahrain', area_type: 'town', latitude: 35.21, longitude: 72.55 },
+  { id: '1accadad-dde4-4fb0-acea-1f55fb64c0f4', name: 'Fizaghat', area_type: 'town', latitude: 34.79, longitude: 72.37 },
+  { id: 'e573209b-5cc3-4428-b148-dd29657cec9b', name: 'Madyan', area_type: 'town', latitude: 35.13, longitude: 72.53 },
+  { id: '786b7cd7-6aed-4681-b67e-2debe3b0bea2', name: 'Ushu', area_type: 'village', latitude: 35.53, longitude: 72.63 },
+  { id: '719fe691-5baa-4069-97ff-0a98cf02ac5d', name: 'Utror', area_type: 'village', latitude: 35.61, longitude: 72.48 },
+  { id: '5d2941ce-c41c-42c0-a2a2-6b5c807693ee', name: 'Swat', area_type: 'district', latitude: 35.22, longitude: 72.42 },
+];
+
 const DEFAULT_DESTINATIONS: Destination[] = [
+  {
+    id: 'c6a01dbc-15fc-4c8d-bae7-5842e3c9bf3a',
+    area_id: 'a6aa1d6b-c5db-4e4b-a81c-16419bc59dba',
+    area_name: 'Mingora',
+    name: 'Mingora',
+    description: 'Vibrant commercial heart of Swat Valley, home to the Swat Museum, bustling bazaars, emerald markets, and riverside promenades.',
+    category: 'valley',
+    best_season: 'Year-round',
+    latitude: 34.7717,
+    longitude: 72.3602,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'ebf9736e-34cd-454a-9cd7-bb8036ee8a13',
+    area_id: '2815e544-35ea-4e21-a6f9-44ab0d0c806b',
+    area_name: 'Saidu Sharif',
+    name: 'Saidu Sharif',
+    description: 'Historic royal and administrative capital of Swat, home to the Swat Museum, ancient Buddhist monasteries, and royal stupas.',
+    category: 'heritage',
+    best_season: 'Year-round',
+    latitude: 34.75,
+    longitude: 72.35,
+    is_approved: true,
+    is_featured: true,
+    created_at: new Date().toISOString(),
+  },
+
 
   {
 
@@ -3202,7 +3247,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
   // Master data
 
-  const [areas, setAreas] = useState<Area[]>([]);
+  const [areas, setAreas] = useState<Area[]>(DEFAULT_AREAS);
 
   const [destinations, setDestinations] = useState<Destination[]>(DEFAULT_DESTINATIONS);
 
@@ -3656,7 +3701,19 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
   const [selectedHotelId, setSelectedHotelId] = useState<string | null>(null);
 
+  const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<ListingItem | null>(null);
+
   const [hotelModalListing, setHotelModalListing] = useState<ListingItem | null>(null);
+
+  const handleOpenHotelDetails = (hotel: ListingItem) => {
+    setSelectedHotelId(hotel.id);
+    setSelectedHotelForDetails(hotel);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    setSelectedHotelForDetails(null);
+  }, [activeTab]);
 
   const [restaurantModalListing, setRestaurantModalListing] = useState<ListingItem | null>(null);
 
@@ -3870,6 +3927,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         if (areasData && areasData.length > 0) {
 
           setAreas(areasData);
+
+        } else {
+
+          setAreas(DEFAULT_AREAS);
 
         }
 
@@ -4472,9 +4533,22 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
             const areaObj = areas.find((a) => a.id === selectedAreaId);
 
+            const isMingoraOrSaiduArea = areaObj && (
+              areaObj.name.toLowerCase().includes('mingora') ||
+              areaObj.name.toLowerCase().includes('saidu')
+            );
+
             fallbackList = fallbackList.filter(
 
-              (l) => l.area_id === selectedAreaId || (areaObj && l.area_name?.toLowerCase() === areaObj.name.toLowerCase())
+              (l) =>
+                l.area_id === selectedAreaId ||
+                (areaObj && (l.area_name || '').toLowerCase() === areaObj.name.toLowerCase()) ||
+                (isMingoraOrSaiduArea && (
+                  (l.area_name || '').toLowerCase().includes('mingora') ||
+                  (l.area_name || '').toLowerCase().includes('saidu') ||
+                  (l.address_text || '').toLowerCase().includes('mingora') ||
+                  (l.address_text || '').toLowerCase().includes('saidu')
+                ))
 
             );
 
@@ -4557,6 +4631,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         if (searchQuery && searchQuery.trim()) {
 
           const q = searchQuery.toLowerCase().trim();
+          const isMingoraOrSaiduQuery = q.includes('mingora') || q.includes('mingrora') || q.includes('saidu');
 
           merged = merged.filter(
 
@@ -4569,6 +4644,17 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               (l.area_name || '').toLowerCase().includes(q) ||
 
               (l.business_name || '').toLowerCase().includes(q) ||
+
+              (l.address_text || '').toLowerCase().includes(q) ||
+
+              (isMingoraOrSaiduQuery && (
+                (l.area_name || '').toLowerCase().includes('mingora') ||
+                (l.area_name || '').toLowerCase().includes('saidu') ||
+                (l.address_text || '').toLowerCase().includes('mingora') ||
+                (l.address_text || '').toLowerCase().includes('saidu') ||
+                (l.title || '').toLowerCase().includes('mingora') ||
+                (l.title || '').toLowerCase().includes('saidu')
+              )) ||
 
               l.price_items?.some((p) => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
 
@@ -4637,6 +4723,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         if (searchQuery && searchQuery.trim()) {
 
           const q = searchQuery.toLowerCase().trim();
+          const isMingoraOrSaiduQuery = q.includes('mingora') || q.includes('mingrora') || q.includes('saidu');
 
           merged = merged.filter(
 
@@ -4649,6 +4736,17 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
               (l.area_name || '').toLowerCase().includes(q) ||
 
               (l.business_name || '').toLowerCase().includes(q) ||
+
+              (l.address_text || '').toLowerCase().includes(q) ||
+
+              (isMingoraOrSaiduQuery && (
+                (l.area_name || '').toLowerCase().includes('mingora') ||
+                (l.area_name || '').toLowerCase().includes('saidu') ||
+                (l.address_text || '').toLowerCase().includes('mingora') ||
+                (l.address_text || '').toLowerCase().includes('saidu') ||
+                (l.title || '').toLowerCase().includes('mingora') ||
+                (l.title || '').toLowerCase().includes('saidu')
+              )) ||
 
               l.price_items?.some((p) => p.name.toLowerCase().includes(q) || (p.description || '').toLowerCase().includes(q))
 
@@ -5192,9 +5290,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
     if (l.type_code === 'hotel') {
 
-      setSelectedHotelId(l.id);
-
-      setHotelModalListing(l);
+      handleOpenHotelDetails(l);
 
       showToast(`Selected ${l.title} for Day ${dayNumber} • Select room to confirm`);
 
@@ -7572,9 +7668,113 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
 
 
-      {/* Active Advisory Banner on non-home, non-trips, non-bookings tabs */}
+      {/* Dedicated Booking.com-Style Hotel Property Details Page (In-Shell) */}
 
-      {activeTab !== 'home' && activeTab !== 'trips' && activeTab !== 'bookings' && renderAdvisoryFrame(false)}
+      {selectedHotelForDetails ? (
+
+        <HotelPropertyDetailsView
+
+          hotel={selectedHotelForDetails}
+
+          onBack={() => setSelectedHotelForDetails(null)}
+
+          onViewMap={(lat, lng, title, areaName) => {
+
+            setMapModal({
+
+              open: true,
+
+              title,
+
+              lat,
+
+              lng,
+
+              areaName: areaName || 'Swat',
+
+              categoryOrType: 'Hotel & Stay',
+
+              originCity: 'Islamabad / Rawalpindi',
+
+              destinationCity: areaName || title,
+
+            });
+
+          }}
+
+          onAddRoomToTrip={(room, startDate, endDate, travellers, roomsCount) => {
+
+            let dayNum = 1;
+
+            let endDayNum = 2;
+
+            if (startDate && endDate) {
+
+              const d1 = new Date(startDate).getTime();
+
+              const d2 = new Date(endDate).getTime();
+
+              const diffNights = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+
+              endDayNum = dayNum + diffNights;
+
+            }
+
+            handleAddStop(
+
+              'listing',
+
+              selectedHotelForDetails.id,
+
+              `${selectedHotelForDetails.title} - ${room.name}`,
+
+              `Room: ${room.name} (${Number(room.price).toLocaleString()} PKR/night) • ${startDate || ''} to ${endDate || ''} (${roomsCount || 1} room, ${travellers || 2} guests)`,
+
+              {
+
+                price_item_id: room.id,
+
+                quantity: roomsCount || 1,
+
+                day_number: dayNum,
+
+                end_day_number: endDayNum,
+
+                time_slot: '02:00 PM',
+
+              }
+
+            );
+
+            showToast(`Added ${room.name} at ${selectedHotelForDetails.title} to trip!`);
+
+          }}
+
+          onBookingSuccess={(b) => {
+
+            showToast(`Stay reservation (${b.reference}) registered for ${selectedHotelForDetails.title}!`);
+
+            setMyBookings((prev) => [b, ...prev.filter((x) => x.id !== b.id && x.reference !== b.reference)]);
+
+            fetchMyBookings().then(setMyBookings).catch(() => {});
+
+            getTrips().then(setAllTrips).catch(() => {});
+
+          }}
+
+          onOpenAuth={onOpenAuth}
+
+          onNavigateBookings={() => onTabChange ? onTabChange('bookings') : null}
+
+        />
+
+      ) : (
+
+        <>
+
+          {/* Active Advisory Banner on non-home, non-trips, non-bookings tabs */}
+
+          {activeTab !== 'home' && activeTab !== 'trips' && activeTab !== 'bookings' && renderAdvisoryFrame(false)}
 
 
 
@@ -7766,7 +7966,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
               destinations={effectiveDestinations}
 
-              onOpenHotelDetails={(hotel) => setHotelModalListing(hotel)}
+              onOpenHotelDetails={(hotel) => handleOpenHotelDetails(hotel)}
 
               onOpenRestaurantModal={(restaurant) => setRestaurantModalListing(restaurant)}
 
@@ -8143,6 +8343,10 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     {[
 
                       { id: '', label: 'All Valleys', icon: '🌲' },
+
+                      { id: 'Mingora', label: 'Mingora', icon: '🏛️' },
+
+                      { id: 'Saidu Sharif', label: 'Saidu Sharif', icon: '👑' },
 
                       { id: 'Kalam', label: 'Kalam', icon: '🏔️' },
 
@@ -10242,19 +10446,38 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                         : l.type_code === homeExploreFilter;
 
+                    const selectedAreaObj = areas.find((a) => a.id === selectedAreaId);
+                    const isMingoraOrSaiduSearch =
+                      searchQuery.toLowerCase().includes('mingora') ||
+                      searchQuery.toLowerCase().includes('mingrora') ||
+                      searchQuery.toLowerCase().includes('saidu');
+
                     const matchesSearch =
-
                       !searchQuery ||
-
                       l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-
                       (l.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-
                       (l.area_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (l.address_text || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      l.price_items?.some((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                      (isMingoraOrSaiduSearch && (
+                        (l.area_name || '').toLowerCase().includes('mingora') ||
+                        (l.area_name || '').toLowerCase().includes('saidu') ||
+                        (l.address_text || '').toLowerCase().includes('mingora') ||
+                        (l.address_text || '').toLowerCase().includes('saidu')
+                      ));
 
-                      l.price_items?.some((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-                    const matchesArea = !selectedAreaId || l.area_id === selectedAreaId;
+                    const matchesArea =
+                      !selectedAreaId ||
+                      l.area_id === selectedAreaId ||
+                      (selectedAreaObj && (
+                        (l.area_name || '').toLowerCase().includes(selectedAreaObj.name.toLowerCase()) ||
+                        (l.address_text || '').toLowerCase().includes(selectedAreaObj.name.toLowerCase()) ||
+                        ((selectedAreaObj.name.toLowerCase().includes('mingora') || selectedAreaObj.name.toLowerCase().includes('saidu')) &&
+                         ((l.area_name || '').toLowerCase().includes('mingora') ||
+                          (l.area_name || '').toLowerCase().includes('saidu') ||
+                          (l.address_text || '').toLowerCase().includes('mingora') ||
+                          (l.address_text || '').toLowerCase().includes('saidu')))
+                      ));
 
                     return matchesCategory && matchesSearch && matchesArea;
 
@@ -10496,7 +10719,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                         }
 
-                        onViewHotelDetails={l.type_code === 'hotel' ? () => setHotelModalListing(l) : undefined}
+                        onViewHotelDetails={l.type_code === 'hotel' ? () => handleOpenHotelDetails(l) : undefined}
 
                         onViewMenu={l.type_code === 'restaurant' ? () => setRestaurantModalListing(l) : undefined}
 
@@ -11026,15 +11249,21 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                     queryTokens.length === 0 ||
 
-                    queryTokens.some((token) =>
+                    queryTokens.some((token) => {
+                      const isMingoraToken = token.includes('mingora') || token.includes('mingrora');
+                      const isDestMingora = d.name.toLowerCase().includes('mingora') || (d.area_name && d.area_name.toLowerCase().includes('mingora'));
+                      if (isMingoraToken && isDestMingora) return true;
 
-                      d.name.toLowerCase().includes(token) ||
+                      const isSaiduToken = token.includes('saidu');
+                      const isDestSaidu = d.name.toLowerCase().includes('saidu') || (d.area_name && d.area_name.toLowerCase().includes('saidu'));
+                      if (isSaiduToken && isDestSaidu) return true;
 
-                      d.description?.toLowerCase().includes(token) ||
-
-                      (d.area_name && d.area_name.toLowerCase().includes(token))
-
-                    );
+                      return (
+                        d.name.toLowerCase().includes(token) ||
+                        d.description?.toLowerCase().includes(token) ||
+                        (d.area_name && d.area_name.toLowerCase().includes(token))
+                      );
+                    });
 
                   const matchesCategory =
 
@@ -11229,6 +11458,30 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                     categoryLabel = 'Hill Retreat';
 
                     CategoryIcon = Mountain;
+
+                  } else if (n.includes('mingora')) {
+
+                    destImg = '/images/swat_serena.jpg';
+
+                    elevation = '984m / 3,228 ft';
+
+                    highlight = 'Commercial Hub, Emerald Bazaars & Swat Museum';
+
+                    categoryLabel = 'Valley Central';
+
+                    CategoryIcon = Mountain;
+
+                  } else if (n.includes('saidu')) {
+
+                    destImg = '/images/swat_serena.jpg';
+
+                    elevation = '970m / 3,180 ft';
+
+                    highlight = 'Royal Capital, Butkara Stupa & Serena Gardens';
+
+                    categoryLabel = 'Royal Heritage';
+
+                    CategoryIcon = Landmark;
 
                   }
 
@@ -12390,7 +12643,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                         const h = listings.find((item) => item.id === selectedHotelId);
 
-                        if (h) setHotelModalListing(h);
+                        if (h) handleOpenHotelDetails(h);
 
                       }}
 
@@ -12658,9 +12911,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                               ? () => {
 
-                                  setSelectedHotelId(l.id);
-
-                                  setHotelModalListing(l);
+                                  handleOpenHotelDetails(l);
 
                                 }
 
@@ -12772,9 +13023,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                             if (l.type_code === 'hotel') {
 
-                              setSelectedHotelId(l.id);
-
-                              setHotelModalListing(l);
+                              handleOpenHotelDetails(l);
 
                             } else {
 
@@ -13282,7 +13531,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
               onOpenMapModal={(item) => setMapModal({ open: true, ...item })}
 
-              onOpenHotelDetailsModal={(hotel) => setHotelModalListing(hotel)}
+              onOpenHotelDetailsModal={(hotel) => handleOpenHotelDetails(hotel)}
 
               onBackToTrips={() => setCurrentViewedTrip(null)}
 
@@ -15296,36 +15545,6 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
 
 
-      {/* Map Modal */}
-
-      <MapModal
-
-        isOpen={mapModal.open}
-
-        onClose={() => setMapModal((prev) => ({ ...prev, open: false }))}
-
-        title={mapModal.title}
-
-        latitude={mapModal.lat}
-
-        longitude={mapModal.lng}
-
-        areaName={mapModal.areaName}
-
-        categoryOrType={mapModal.categoryOrType}
-
-        originCity={mapModal.originCity}
-
-        destinationCity={mapModal.destinationCity}
-
-        distanceKm={mapModal.distanceKm}
-
-        durationText={mapModal.durationText}
-
-        viaHighway={mapModal.viaHighway}
-
-      />
-
 
 
       {/* Availability / Dates Modal */}
@@ -15961,6 +16180,42 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
         </div>
 
       )}
+
+        </>
+
+      )}
+
+
+
+      {/* Map Modal */}
+
+      <MapModal
+
+        isOpen={mapModal.open}
+
+        onClose={() => setMapModal((prev) => ({ ...prev, open: false }))}
+
+        title={mapModal.title}
+
+        latitude={mapModal.lat}
+
+        longitude={mapModal.lng}
+
+        areaName={mapModal.areaName}
+
+        categoryOrType={mapModal.categoryOrType}
+
+        originCity={mapModal.originCity}
+
+        destinationCity={mapModal.destinationCity}
+
+        distanceKm={mapModal.distanceKm}
+
+        durationText={mapModal.durationText}
+
+        viaHighway={mapModal.viaHighway}
+
+      />
 
 
 

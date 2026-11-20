@@ -20,6 +20,9 @@ class BookingCreateRequest(BaseModel):
     pickup_point: Optional[str] = None
     pickup_time: Optional[str] = None
     items: List[BookingItemCreateInput] = Field(..., min_length=1)
+    promo_code: Optional[str] = None
+    promotion_id: Optional[uuid.UUID] = None
+
 
 
 class BookingActionRequest(BaseModel):
@@ -142,6 +145,9 @@ class BookingOut(BaseModel):
     deposit_amount: Optional[float] = None
     deposit_track: Optional[str] = "stp_platform"
     property_collected_amount: Optional[float] = 0.00
+    discount_amount: Optional[float] = 0.00
+    promo_code: Optional[str] = None
+    promotion_id: Optional[uuid.UUID] = None
     direct_transfer_tid: Optional[str] = None
     direct_transfer_slip_url: Optional[str] = None
     direct_transfer_verified_at: Optional[datetime] = None

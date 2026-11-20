@@ -980,7 +980,15 @@ async def get_booking_receipt_html(
 @router.post("/clear-hotel-bookings")
 async def clear_hotel_bookings_endpoint():
     """Clear all bookings and booking requests data for all hotels."""
-    from scripts.clear_hotel_bookings import clear_hotel_bookings
+    try:
+        from scripts.clear_hotel_bookings import clear_hotel_bookings
+    except ImportError:
+        try:
+            from backend.scripts.clear_hotel_bookings import clear_hotel_bookings
+        except ImportError:
+            import sys, os
+            sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")))
+            from scripts.clear_hotel_bookings import clear_hotel_bookings
     clear_hotel_bookings()
     return {"message": "All hotel bookings and booking requests data successfully cleared."}
 

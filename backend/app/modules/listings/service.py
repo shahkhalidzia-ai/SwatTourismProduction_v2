@@ -137,8 +137,13 @@ class ListingsService:
 
         details_dict = listing.listing_detail.details if listing.listing_detail else {}
 
-        business_name = listing.business_profile.business_name if getattr(listing, "business_profile", None) else None
-        area_name = listing.area.name if getattr(listing, "area", None) else None
+        biz = getattr(listing, "business_profile", None)
+        business_name = biz.business_name if biz else None
+        area_name = listing.area.name if getattr(listing, "area", None) else (biz.area.name if biz and getattr(biz, "area", None) else None)
+        effective_area_id = listing.area_id or (biz.area_id if biz else None)
+        effective_address = listing.address_text or (biz.address_text if biz else None)
+        effective_phone = listing.phone or (biz.contact_phone if biz else None)
+        effective_whatsapp = listing.whatsapp_number or (biz.whatsapp_number if biz else None)
 
         return ListingOut(
             id=listing.id,
@@ -147,15 +152,15 @@ class ListingsService:
             type_id=listing.type_id,
             type_code=listing.listing_type.code,
             type_label=listing.listing_type.label,
-            area_id=listing.area_id,
+            area_id=effective_area_id,
             area_name=area_name,
             title=listing.title,
             description=listing.description,
-            address_text=listing.address_text,
+            address_text=effective_address,
             latitude=float(listing.latitude),
             longitude=float(listing.longitude),
-            phone=listing.phone,
-            whatsapp_number=listing.whatsapp_number,
+            phone=effective_phone,
+            whatsapp_number=effective_whatsapp,
             opening_time=listing.opening_time,
             closing_time=listing.closing_time,
             status=listing.status,
@@ -367,15 +372,19 @@ class ListingsService:
             stmt = stmt.join(ListingType, Listing.type_id == ListingType.id).where(ListingType.code == type_code)
         if area_id:
             stmt = stmt.where(Listing.area_id == area_id)
-        if search:
-            search_pat = f"%{search}%"
-            stmt = stmt.where(
-                or_(
-                    Listing.title.ilike(search_pat),
-                    Listing.description.ilike(search_pat),
-                    Listing.address_text.ilike(search_pat),
-                )
-            )
+        if search and search.strip():
+            terms = [t.strip() for t in search.strip().split() if t.strip()]
+            if terms:
+                for term in terms:
+                    term_pat = f"%{term}%"
+                    stmt = stmt.where(
+                        or_(
+                            Listing.title.ilike(term_pat),
+                            Listing.description.ilike(term_pat),
+                            Listing.address_text.ilike(term_pat),
+                            BusinessProfile.business_name.ilike(term_pat),
+                        )
+                    )
         if tag_id:
             stmt = stmt.join(ListingTag, Listing.id == ListingTag.listing_id).where(ListingTag.tag_id == tag_id)
 
@@ -1175,10 +1184,10 @@ class ListingsService:
         if listing_id:
             conditions.append(TransportVehicle.listing_id == listing_id)
 
-        stmt = select(TransportVehicle)
-        if conditions:
-            stmt = stmt.where(or_(*conditions))
-        stmt = stmt.order_by(TransportVehicle.created_at.asc())
+        if not conditions:
+            return []
+
+        stmt = select(TransportVehicle).where(and_(*conditions)).order_by(TransportVehicle.created_at.asc())
         res = await db.execute(stmt)
         vehicles = list(res.scalars().all())
 

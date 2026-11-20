@@ -7,6 +7,7 @@ from sqlalchemy import (
     Numeric,
     Date,
     DateTime,
+    Integer,
     ForeignKey,
     CheckConstraint,
     Uuid,
@@ -162,4 +163,61 @@ class HostApplication(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     reviewer: Mapped[Optional["app.modules.accounts.models.User"]] = relationship(
         "User", foreign_keys=[reviewed_by]
+    )
+
+
+class CommunityServiceBooking(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """
+    Tourist bookings and inquiries for verified community services (Guides, Homestays, Transport, Activities).
+    """
+    __tablename__ = "community_service_bookings"
+
+    reference: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
+    host_user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    host_application_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("host_applications.id", ondelete="SET NULL"), nullable=True
+    )
+    tourist_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    offer_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    service_title: Mapped[str] = mapped_column(String(200), nullable=False)
+    tourist_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    tourist_phone: Mapped[str] = mapped_column(String(50), nullable=False)
+    tourist_email: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    travellers: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    pickup_location: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    destination_valley: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    pickup_time: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    special_requests: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    total_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0.00, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="requested", nullable=False)
+    decline_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    host_notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "offer_type IN ('homestay', 'guide', 'transport', 'activity', 'craft', 'meal', 'other')",
+            name="check_comm_booking_offer_type",
+        ),
+        CheckConstraint(
+            "status IN ('requested', 'accepted', 'declined', 'completed', 'cancelled')",
+            name="check_comm_booking_status",
+        ),
+        Index("idx_comm_booking_host_status", "host_user_id", "status"),
+    )
+
+    host: Mapped["app.modules.accounts.models.User"] = relationship(
+        "User", foreign_keys=[host_user_id]
+    )
+    tourist: Mapped[Optional["app.modules.accounts.models.User"]] = relationship(
+        "User", foreign_keys=[tourist_user_id]
+    )
+    host_application: Mapped[Optional["HostApplication"]] = relationship(
+        "HostApplication"
     )

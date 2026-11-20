@@ -793,7 +793,34 @@ export function clearAllHotelBookingsData(): void {
     localStorage.removeItem('swat_hotel_cleaning_statuses');
     localStorage.removeItem('swat_hotel_room_cleaning_status');
     localStorage.removeItem('swat_hotel_collected_balance');
+    localStorage.removeItem('swat_bookings');
     localStorage.setItem('swat_hotel_bookings_cleared', 'true');
+    localStorage.setItem('swat_hotel_bookings_cleared_time', String(Date.now()));
+
+    // Clean hotel entries from swat_local_bookings
+    const rawLocal = localStorage.getItem('swat_local_bookings');
+    if (rawLocal) {
+      try {
+        const list = JSON.parse(rawLocal);
+        if (Array.isArray(list)) {
+          const nonHotel = list.filter((b: any) => {
+            if (!b) return false;
+            const ref = (b.reference || b.booking_reference || b.id || '').toUpperCase();
+            const isHotel =
+              b.listing?.type_code === 'hotel' ||
+              b.type_code === 'hotel' ||
+              ref.startsWith('SWT-HTL-') ||
+              ref.startsWith('SWAT-HTL-') ||
+              (b.listing?.title && b.listing.title.toLowerCase().includes('hotel')) ||
+              (b.item && (b.item.toLowerCase().includes('room') || b.item.toLowerCase().includes('suite')));
+            return !isHotel;
+          });
+          localStorage.setItem('swat_local_bookings', JSON.stringify(nonHotel));
+        }
+      } catch (err) {
+        console.warn('Error purging local hotel bookings:', err);
+      }
+    }
 
     // Reset physical rooms for all hotels to clean & available
     const all = getAllPhysicalRooms();
@@ -801,6 +828,8 @@ export function clearAllHotelBookingsData(): void {
       all[key] = (all[key] || []).map((r) => ({
         ...r,
         status: 'available' as const,
+        stay_state: 'vacant',
+        cleaning_status: 'ready',
         current_guest_name: undefined,
         current_booking_id: undefined,
         stay_dates: undefined,

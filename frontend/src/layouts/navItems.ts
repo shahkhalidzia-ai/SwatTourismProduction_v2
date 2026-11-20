@@ -18,7 +18,9 @@ import {
   Users,
   Receipt,
   Landmark,
+  Tag,
 } from 'lucide-react';
+
 
 export type UserRole = 'tourist' | 'business' | 'community' | 'authority' | 'admin';
 
@@ -37,6 +39,7 @@ export const getBusinessNavItems = (primaryType?: string): NavItemConfig[] => {
         homeItem,
         { id: 'today', label: 'Ride Orders', icon: React.createElement(Car, { size: 20 }) },
         { id: 'listings', label: 'Fleet & Vehicles', icon: React.createElement(Car, { size: 20 }) },
+        { id: 'deals', label: 'Offers & Deals', icon: React.createElement(Tag, { size: 20 }) },
         { id: 'reviews', label: 'Passenger Reviews', icon: React.createElement(Star, { size: 20 }) },
         { id: 'profile', label: 'Fleet Profile', icon: React.createElement(User, { size: 20 }) },
       ];
@@ -44,6 +47,7 @@ export const getBusinessNavItems = (primaryType?: string): NavItemConfig[] => {
       return [
         homeItem,
         { id: 'listings', label: 'Menu & Dishes', icon: React.createElement(UtensilsCrossed, { size: 20 }) },
+        { id: 'deals', label: 'Offers & Deals', icon: React.createElement(Tag, { size: 20 }) },
         { id: 'reviews', label: 'Diner Reviews', icon: React.createElement(Star, { size: 20 }) },
         { id: 'profile', label: 'Kitchen Profile', icon: React.createElement(User, { size: 20 }) },
       ];
@@ -53,6 +57,7 @@ export const getBusinessNavItems = (primaryType?: string): NavItemConfig[] => {
         { id: 'today', label: 'Events & Bookings', icon: React.createElement(Compass, { size: 20 }) },
         { id: 'listings', label: 'Activities & Passes', icon: React.createElement(Compass, { size: 20 }) },
         { id: 'availability', label: 'Season Calendar', icon: React.createElement(Calendar, { size: 20 }) },
+        { id: 'deals', label: 'Offers & Deals', icon: React.createElement(Tag, { size: 20 }) },
         { id: 'reviews', label: 'Reviews', icon: React.createElement(Star, { size: 20 }) },
         { id: 'profile', label: 'Organizer Profile', icon: React.createElement(User, { size: 20 }) },
       ];
@@ -62,6 +67,7 @@ export const getBusinessNavItems = (primaryType?: string): NavItemConfig[] => {
         { id: 'today', label: 'Today', icon: React.createElement(CalendarDays, { size: 20 }) },
         { id: 'listings', label: 'Listings', icon: React.createElement(Store, { size: 20 }) },
         { id: 'availability', label: 'Availability', icon: React.createElement(Calendar, { size: 20 }) },
+        { id: 'deals', label: 'Offers & Deals', icon: React.createElement(Tag, { size: 20 }) },
         { id: 'invoices', label: 'Invoices & Commission', icon: React.createElement(Receipt, { size: 20 }) },
         { id: 'reviews', label: 'Reviews', icon: React.createElement(Star, { size: 20 }) },
         { id: 'profile', label: 'Profile', icon: React.createElement(User, { size: 20 }) },
@@ -81,11 +87,14 @@ export const ROLE_NAV_ITEMS: Record<UserRole, NavItemConfig[]> = {
     { id: 'today', label: 'Today', icon: React.createElement(CalendarDays, { size: 20 }) },
     { id: 'listings', label: 'Listings', icon: React.createElement(Store, { size: 20 }) },
     { id: 'availability', label: 'Availability', icon: React.createElement(Calendar, { size: 20 }) },
+    { id: 'deals', label: 'Offers & Deals', icon: React.createElement(Tag, { size: 20 }) },
     { id: 'invoices', label: 'Invoices & Commission', icon: React.createElement(Receipt, { size: 20 }) },
     { id: 'reviews', label: 'Reviews', icon: React.createElement(Star, { size: 20 }) },
     { id: 'profile', label: 'Profile', icon: React.createElement(User, { size: 20 }) },
   ],
+
   community: [
+    { id: 'requests', label: 'Tourist Requests', icon: React.createElement(CalendarDays, { size: 20 }) },
     { id: 'stories', label: 'Stories', icon: React.createElement(BookOpen, { size: 20 }) },
     { id: 'report', label: 'Report', icon: React.createElement(FileWarning, { size: 20 }) },
     { id: 'hosts', label: 'Services', icon: React.createElement(Briefcase, { size: 20 }) },

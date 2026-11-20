@@ -144,7 +144,8 @@ const MainAppContent: React.FC = () => {
       if (targetRole !== role) {
         setRole(targetRole);
         const isHotel = targetRole === 'business' && (!user?.business_profile?.primary_type || user?.business_profile?.primary_type === 'hotel');
-        setActiveTab(isHotel ? 'today' : 'home');
+        const defaultTab = targetRole === 'community' ? 'requests' : isHotel ? 'today' : 'home';
+        setActiveTab(defaultTab);
       }
     }
   }, [user, isTourOpen]);
@@ -179,7 +180,8 @@ const MainAppContent: React.FC = () => {
     const targetRole = (authUser.role === 'authority' ? 'admin' : authUser.role) as UserRole;
     setRole(targetRole);
     const isHotel = targetRole === 'business' && (!authUser?.business_profile?.primary_type || authUser?.business_profile?.primary_type === 'hotel');
-    setActiveTab(isHotel ? 'today' : 'home');
+    const defaultTab = targetRole === 'community' ? 'requests' : isHotel ? 'today' : 'home';
+    setActiveTab(defaultTab);
   };
 
   const handleLogout = () => {

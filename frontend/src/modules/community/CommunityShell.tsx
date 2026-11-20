@@ -46,6 +46,7 @@ import {
 } from '../../api/community';
 import { getAreas, type Area } from '../../api/trips';
 import { useAuth } from '../../context/AuthContext';
+import { CommunityRequestsView } from './CommunityRequestsView';
 
 interface CommunityShellProps {
   activeTab: string;
@@ -559,6 +560,19 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({ activeTab }) => 
           <CheckCircle2 size={16} />
           {toastMessage}
         </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* TAB 0: TOURIST REQUESTS & BOOKINGS */}
+      {/* ===================================================================== */}
+      {(
+        !['stories', 'report', 'reports', 'hosts', 'host', 'services', 'service', 'profile'].includes(activeTab) ||
+        activeTab === 'requests' ||
+        activeTab === 'bookings' ||
+        activeTab === 'inquiries' ||
+        activeTab?.toLowerCase().includes('request')
+      ) && (
+        <CommunityRequestsView />
       )}
 
       {/* ===================================================================== */}

@@ -1,12 +1,13 @@
 import uuid
+import secrets
 from datetime import datetime, timezone
 from typing import List, Optional
-from sqlalchemy import select, update, desc
+from sqlalchemy import select, update, desc, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from fastapi import HTTPException, status
 
-from app.modules.community.models import CommunityPost, IssueReport, HostApplication
+from app.modules.community.models import CommunityPost, IssueReport, HostApplication, CommunityServiceBooking
 from app.modules.community.schemas import (
     CommunityPostCreate,
     CommunityPostUpdate,
@@ -17,6 +18,9 @@ from app.modules.community.schemas import (
     HostApplicationCreate,
     HostApplicationReviewRequest,
     HostApplicationOut,
+    CommunityServiceBookingCreate,
+    CommunityServiceBookingAction,
+    CommunityServiceBookingOut,
 )
 from app.modules.accounts.models import User, CommunityProfile
 from app.modules.places.models import Area
@@ -583,3 +587,220 @@ class CommunityService:
         await db.delete(app)
         await db.commit()
         return True
+
+    # -------------------------------------------------------------------------
+    # Community Service Bookings (Tourist Requests)
+    # -------------------------------------------------------------------------
+    @staticmethod
+    async def create_community_booking(
+        db: AsyncSession,
+        tourist_id: Optional[uuid.UUID],
+        data: CommunityServiceBookingCreate,
+    ) -> CommunityServiceBookingOut:
+        host_user_id = data.host_user_id
+        if not host_user_id and data.host_application_id:
+            ha_res = await db.execute(
+                select(HostApplication).where(HostApplication.id == data.host_application_id)
+            )
+            ha = ha_res.scalar_one_or_none()
+            if ha:
+                host_user_id = ha.user_id
+
+        if not host_user_id:
+            # Fall back to default community persona (Gul Zaman) if not resolved
+            res_user = await db.execute(select(User).where(User.email == "community@swattourism.pk"))
+            gz = res_user.scalar_one_or_none()
+            host_user_id = gz.id if gz else uuid.uuid4()
+
+        # Resolve tourist info if logged in
+        t_name = data.tourist_name or "Guest Tourist"
+        t_phone = data.tourist_phone or "+923001234567"
+        t_email = data.tourist_email
+
+        if tourist_id:
+            t_res = await db.execute(select(User).where(User.id == tourist_id))
+            t_user = t_res.scalar_one_or_none()
+            if t_user:
+                t_name = data.tourist_name or t_user.full_name or t_name
+                t_phone = data.tourist_phone or t_user.phone or t_phone
+                t_email = data.tourist_email or t_user.email
+
+        # Generate unique reference code
+        ot = (data.offer_type or "guide").lower()
+        prefix = "GD" if "guide" in ot else "HS" if "home" in ot else "TR" if "trans" in ot else "AC" if "act" in ot else "CM"
+        ref_code = f"SWAT-{prefix}-{secrets.randbelow(900000) + 100000}"
+
+        booking = CommunityServiceBooking(
+            reference=ref_code,
+            host_user_id=host_user_id,
+            host_application_id=data.host_application_id,
+            tourist_user_id=tourist_id,
+            offer_type=data.offer_type,
+            service_title=data.service_title,
+            tourist_name=t_name,
+            tourist_phone=t_phone,
+            tourist_email=t_email,
+            start_date=data.start_date,
+            end_date=data.end_date,
+            travellers=data.travellers,
+            pickup_location=data.pickup_location or "Kalam Valley",
+            destination_valley=data.destination_valley,
+            pickup_time=data.pickup_time or "08:00 AM",
+            special_requests=data.special_requests,
+            total_amount=data.total_amount,
+            status="requested",
+        )
+        db.add(booking)
+        await db.commit()
+        await db.refresh(booking)
+
+        # Notify host
+        try:
+            await NotificationService.create_notification(
+                db=db,
+                user_id=host_user_id,
+                type="booking",
+                title=f"New {data.offer_type.title()} Request ({ref_code})",
+                body=f"Tourist {t_name} requested {data.service_title} for {data.start_date}. Check your requests portal to review.",
+                channel="in_app",
+                related_type="community_booking",
+                related_id=booking.id,
+            )
+        except Exception:
+            pass
+
+        return await CommunityService._booking_to_out(db, booking)
+
+    @staticmethod
+    async def get_my_community_bookings(
+        db: AsyncSession,
+        host_user_id: uuid.UUID,
+        status_filter: Optional[str] = None,
+    ) -> List[CommunityServiceBookingOut]:
+        query = (
+            select(CommunityServiceBooking)
+            .options(joinedload(CommunityServiceBooking.host), joinedload(CommunityServiceBooking.tourist))
+            .where(CommunityServiceBooking.host_user_id == host_user_id)
+            .order_by(desc(CommunityServiceBooking.created_at))
+        )
+        if status_filter and status_filter != "all":
+            query = query.where(CommunityServiceBooking.status == status_filter)
+
+        res = await db.execute(query)
+        bookings = res.scalars().all()
+        return [CommunityService._booking_entity_to_out(b) for b in bookings]
+
+    @staticmethod
+    async def update_community_booking_status(
+        db: AsyncSession,
+        booking_id: uuid.UUID,
+        host_user_id: uuid.UUID,
+        action: str,
+        decline_reason: Optional[str] = None,
+        host_notes: Optional[str] = None,
+    ) -> CommunityServiceBookingOut:
+        stmt = (
+            select(CommunityServiceBooking)
+            .options(joinedload(CommunityServiceBooking.host), joinedload(CommunityServiceBooking.tourist))
+            .where(CommunityServiceBooking.id == booking_id)
+        )
+        res = await db.execute(stmt)
+        booking = res.scalar_one_or_none()
+        if not booking:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking request not found")
+
+        if booking.host_user_id != host_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You do not own this service booking")
+
+        if action == "accept":
+            booking.status = "accepted"
+        elif action == "decline":
+            booking.status = "declined"
+            if decline_reason:
+                booking.decline_reason = decline_reason
+        elif action == "complete":
+            booking.status = "completed"
+            booking.completed_at = datetime.now(timezone.utc)
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid action: {action}")
+
+        if host_notes:
+            booking.host_notes = host_notes
+
+        await db.commit()
+        await db.refresh(booking)
+
+        # Notify tourist if registered
+        if booking.tourist_user_id:
+            try:
+                await NotificationService.create_notification(
+                    db=db,
+                    user_id=booking.tourist_user_id,
+                    type="booking",
+                    title=f"Service Request {booking.status.title()}",
+                    body=f"Your request for {booking.service_title} (#{booking.reference}) was {booking.status}.",
+                    channel="in_app",
+                    related_type="community_booking",
+                    related_id=booking.id,
+                )
+            except Exception:
+                pass
+
+        return CommunityService._booking_entity_to_out(booking)
+
+    @staticmethod
+    def _booking_entity_to_out(b: CommunityServiceBooking) -> CommunityServiceBookingOut:
+        return CommunityServiceBookingOut(
+            id=b.id,
+            reference=b.reference,
+            host_user_id=b.host_user_id,
+            host_name=b.host.full_name if b.host else "Local Host",
+            host_phone=b.host.phone if b.host else None,
+            host_application_id=b.host_application_id,
+            tourist_user_id=b.tourist_user_id,
+            offer_type=b.offer_type,
+            service_title=b.service_title,
+            tourist_name=b.tourist_name,
+            tourist_phone=b.tourist_phone,
+            tourist_email=b.tourist_email,
+            start_date=b.start_date,
+            end_date=b.end_date,
+            travellers=b.travellers,
+            pickup_location=b.pickup_location,
+            destination_valley=b.destination_valley,
+            pickup_time=b.pickup_time,
+            special_requests=b.special_requests,
+            total_amount=float(b.total_amount),
+            status=b.status,
+            decline_reason=b.decline_reason,
+            host_notes=b.host_notes,
+            completed_at=b.completed_at,
+            created_at=b.created_at,
+            updated_at=b.updated_at,
+        )
+
+    @staticmethod
+    async def _booking_to_out(db: AsyncSession, b: CommunityServiceBooking) -> CommunityServiceBookingOut:
+        # Load host relationship
+        stmt = (
+            select(CommunityServiceBooking)
+            .options(joinedload(CommunityServiceBooking.host), joinedload(CommunityServiceBooking.tourist))
+            .where(CommunityServiceBooking.id == b.id)
+        )
+        res = await db.execute(stmt)
+        loaded = res.scalar_one_or_none() or b
+        return CommunityService._booking_entity_to_out(loaded)
+
+    @staticmethod
+    async def clear_community_bookings(
+        db: AsyncSession, host_user_id: uuid.UUID, clear_all: bool = False
+    ) -> dict:
+        """Demo helper: delete community booking requests from SQLite database."""
+        if clear_all:
+            stmt = delete(CommunityServiceBooking)
+        else:
+            stmt = delete(CommunityServiceBooking).where(CommunityServiceBooking.host_user_id == host_user_id)
+
+        result = await db.execute(stmt)
+        await db.commit()
+        return {"status": "ok", "deleted_count": result.rowcount}

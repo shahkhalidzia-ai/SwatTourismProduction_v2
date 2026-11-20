@@ -126,3 +126,61 @@ class HostApplicationOut(BaseModel):
     reviewed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+
+
+# --- Community Service Bookings ---
+CommunityBookingStatus = Literal["requested", "accepted", "declined", "completed", "cancelled"]
+
+
+class CommunityServiceBookingCreate(BaseModel):
+    host_application_id: Optional[uuid.UUID] = None
+    host_user_id: Optional[uuid.UUID] = None
+    offer_type: str = "guide"
+    service_title: str = Field(..., min_length=3, max_length=200)
+    tourist_name: Optional[str] = None
+    tourist_phone: Optional[str] = None
+    tourist_email: Optional[str] = None
+    start_date: date
+    end_date: Optional[date] = None
+    travellers: int = Field(default=1, ge=1, le=50)
+    pickup_location: Optional[str] = None
+    destination_valley: Optional[str] = None
+    pickup_time: Optional[str] = None
+    special_requests: Optional[str] = None
+    total_amount: float = Field(default=0.0, ge=0)
+
+
+class CommunityServiceBookingAction(BaseModel):
+    decline_reason: Optional[str] = None
+    host_notes: Optional[str] = None
+
+
+class CommunityServiceBookingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    reference: str
+    host_user_id: uuid.UUID
+    host_name: Optional[str] = None
+    host_phone: Optional[str] = None
+    host_application_id: Optional[uuid.UUID] = None
+    tourist_user_id: Optional[uuid.UUID] = None
+    offer_type: str
+    service_title: str
+    tourist_name: str
+    tourist_phone: str
+    tourist_email: Optional[str] = None
+    start_date: date
+    end_date: Optional[date] = None
+    travellers: int
+    pickup_location: Optional[str] = None
+    destination_valley: Optional[str] = None
+    pickup_time: Optional[str] = None
+    special_requests: Optional[str] = None
+    total_amount: float
+    status: str
+    decline_reason: Optional[str] = None
+    host_notes: Optional[str] = None
+    completed_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+  }
+  body {
+    background-color: #070C18;
+    color: #F8FAFC;
+    padding: 35px;
+    width: 2500px;
+    height: auto;
+    overflow: hidden;
+  }
+  
+  /* Top Banner */
+  .tech-banner {
+    background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    padding: 26px 36px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  }
+  .tech-title h1 {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, #FFFFFF, #93C5FD);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .tech-title p {
+    font-size: 14px;
+    color: #94A3B8;
+    margin-top: 5px;
+  }
+  .meta-pills {
+    display: flex;
+    gap: 12px;
+  }
+  .pill {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pill-react { background: rgba(6, 182, 212, 0.15); color: #22D3EE; border: 1px solid rgba(6, 182, 212, 0.35); }
+  .pill-python { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.35); }
+  .pill-sql { background: rgba(245, 158, 11, 0.15); color: #FBBF24; border: 1px solid rgba(245, 158, 11, 0.35); }
+
+  /* 3 Core Horizontal Blocks Layout */
+  .stack-grid-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* Pillar Card */
+  .pillar-card {
+    background: #0B1222;
+    border: 1px solid #1E2D4A;
+    border-radius: 16px;
+    padding: 22px 26px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    position: relative;
+  }
+  .pillar-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18px;
+    bottom: 18px;
+    width: 5px;
+    border-radius: 0 4px 4px 0;
+  }
+  
+  .pillar-frontend::before { background: #06B6D4; }
+  .pillar-backend::before { background: #10B981; }
+  .pillar-database::before { background: #F59E0B; }
+  .pillar-integrations::before { background: #8B5CF6; }
+
+  .pillar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1E293B;
+  }
+  .pillar-badge {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .pillar-frontend .pillar-badge { background: rgba(6, 182, 212, 0.2); color: #22D3EE; }
+  .pillar-backend .pillar-badge { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+  .pillar-database .pillar-badge { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+  .pillar-integrations .pillar-badge { background: rgba(139, 92, 246, 0.2); color: #C084FC; }
+
+  .pillar-title {
+    font-size: 19px;
+    font-weight: 800;
+    color: #F8FAFC;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pillar-subtitle {
+    font-size: 12.5px;
+    color: #64748B;
+  }
+
+  /* Grid of Technology Cards */
+  .tech-cols-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  .tech-cols-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .tech-cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+
+  /* Individual Technology Box */
+  .tech-box {
+    background: #111A2E;
+    border: 1px solid #1E2B45;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .tech-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .tech-name {
+    font-size: 14.5px;
+    font-weight: 800;
+    color: #FFFFFF;
+  }
+  .tech-version {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #1E293B;
+    color: #38BDF8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  .tech-role {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94A3B8;
+  }
+  .tech-detail {
+    font-size: 11px;
+    color: #64748B;
+    line-height: 1.45;
+  }
+  .tech-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .tech-tag {
+    font-size: 9.5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #CBD5E1;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+
+  /* Data Flow & Bridge Bar */
+  .bridge-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin: -8px 0;
+  }
+  .bridge-line {
+    height: 1px;
+    flex-grow: 1;
+    background: linear-gradient(90deg, transparent, #223454, transparent);
+  }
+  .bridge-badge {
+    background: #0D1627;
+    border: 1px solid #1E2D4A;
+    color: #94A3B8;
+    padding: 4px 14px;
+    border-radius: 100px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+
+  /* Bottom Details */
+  .footer-row {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #475569;
+    padding-top: 12px;
+    border-top: 1px solid #1E293B;
+  }
+</style>
+</head>
+<body>
+
+  <!-- BANNER -->
+  <div class="tech-banner">
+    <div class="tech-title">
+      <h1>Swat Tourism Platform — Complete Technology Stack</h1>
+      <p>Official Full-Stack Architecture Matrix • Frontend UI, Backend Application Server, Database & Cloud Integrations</p>
+    </div>
+    <div class="meta-pills">
+      <div class="pill pill-react">⚛️ React 19.2 + TypeScript 6</div>
+      <div class="pill pill-python">🐍 FastAPI 0.115 + Python 3.12</div>
+      <div class="pill pill-sql">🗄️ SQLAlchemy 2.0 Async + SQLite/Postgres</div>
+    </div>
+  </div>
+
+  <div class="stack-grid-container">
+
+    <!-- 1. FRONTEND UI TECHNOLOGY STACK -->
+    <div class="pillar-card pillar-frontend">
+      <div class="pillar-header">
+        <div class="pillar-title">
+          <span>🖥️</span> 1. Frontend UI & Client Technology Stack
+        </div>
+        <div class="pillar-badge">Client Layer</div>
+      </div>
+      <div class="tech-cols-6">
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">React</span>
+              <span class="tech-version">v19.2.8</span>
+            </div>
+            <div class="tech-role">Core UI Library</div>
+          </div>
+          <div class="tech-detail">Component-driven reactive UI with concurrent rendering, Action hooks, and clean state isolation.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Hooks</span>
+            <span class="tech-tag">Concurrent Mode</span>
+            <span class="tech-tag">Virtual DOM</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">TypeScript</span>
+              <span class="tech-version">v6.0.2</span>
+            </div>
+            <div class="tech-role">Static Type System</div>
+          </div>
+          <div class="tech-detail">Strict end-to-end typing for API contracts, models, domain props, and zero runtime crashes.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Strict Mode</span>
+            <span class="tech-tag">Generics</span>
+            <span class="tech-tag">Interfaces</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Vite</span>
+              <span class="tech-version">v8.3.0</span>
+            </div>
+            <div class="tech-role">Build Tool & Bundler</div>
+          </div>
+          <div class="tech-detail">Next-generation frontend tooling powered by ESBuild for instant HMR and Rollup for production bundle.</div>
+          <div class="tech-features">
+            <span class="tech-tag">ESBuild</span>
+            <span class="tech-tag">HMR &lt;100ms</span>
+            <span class="tech-tag">Tree-Shaking</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">TanStack Query</span>
+              <span class="tech-version">v5.104.0</span>
+            </div>
+            <div class="tech-role">Server State & Cache</div>
+          </div>
+          <div class="tech-detail">Manages asynchronous server data synchronization, background cache invalidation, and retry logic.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Auto-Refetch</span>
+            <span class="tech-tag">Deduplication</span>
+            <span class="tech-tag">Window Focus</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Leaflet & Maps</span>
+              <span class="tech-version">v1.9.4</span>
+            </div>
+            <div class="tech-role">Interactive Geospatial</div>
+          </div>
+          <div class="tech-detail">Interactive mobile-friendly map rendering for destinations, hotels, trekking trails, and SOS pins.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Tile Layers</span>
+            <span class="tech-tag">GPS Markers</span>
+            <span class="tech-tag">GeoJSON</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Vite PWA Plugin</span>
+              <span class="tech-version">v1.3.0</span>
+            </div>
+            <div class="tech-role">Workbox Offline PWA</div>
+          </div>
+          <div class="tech-detail">Turns the platform into a downloadable Progressive Web App with Service Worker runtime precaching.</div>
+          <div class="tech-features">
+            <span class="tech-tag">ServiceWorker</span>
+            <span class="tech-tag">Offline Manifest</span>
+            <span class="tech-tag">Installable</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROTOCOL BRIDGE -->
+    <div class="bridge-bar">
+      <div class="bridge-line"></div>
+      <div class="bridge-badge">HTTP/2 • REST API • JSON Data Exchange • JWT Bearer Auth • Multi-Part Binary Uploads</div>
+      <div class="bridge-line"></div>
+    </div>
+
+    <!-- 2. BACKEND API & APPLICATION SERVER STACK -->
+    <div class="pillar-card pillar-backend">
+      <div class="pillar-header">
+        <div class="pillar-title">
+          <span>⚙️</span> 2. Backend Application Server & Framework Stack
+        </div>
+        <div class="pillar-badge">Application Layer</div>
+      </div>
+      <div class="tech-cols-6">
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Python</span>
+              <span class="tech-version">v3.12.7</span>
+            </div>
+            <div class="tech-role">Server Runtime</div>
+          </div>
+          <div class="tech-detail">Modern 64-bit asynchronous Python runtime with native asyncio event loop and high-performance typing.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Async / Await</span>
+            <span class="tech-tag">Type Hints</span>
+            <span class="tech-tag">GIL Optimization</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">FastAPI</span>
+              <span class="tech-version">v0.115.0</span>
+            </div>
+            <div class="tech-role">Web API Framework</div>
+          </div>
+          <div class="tech-detail">Async web framework with automatic OpenAPI 3.1 docs, dependency injection, and high throughput.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Dependency Injection</span>
+            <span class="tech-tag">Auto Swagger UI</span>
+            <span class="tech-tag">CORS Middleware</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Uvicorn</span>
+              <span class="tech-version">v0.30.6</span>
+            </div>
+            <div class="tech-role">ASGI Web Server</div>
+          </div>
+          <div class="tech-detail">Lightning-fast ASGI web server implementation powered by uvloop and httptools C-libraries.</div>
+          <div class="tech-features">
+            <span class="tech-tag">ASGI Protocol</span>
+            <span class="tech-tag">uvloop</span>
+            <span class="tech-tag">httptools C-Parser</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Pydantic</span>
+              <span class="tech-version">v2.9.2</span>
+            </div>
+            <div class="tech-role">Data Validation Core</div>
+          </div>
+          <div class="tech-detail">Rust-backed serialization and schema validation ensuring strict payload integrity and error handling.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Rust Core</span>
+            <span class="tech-tag">Zero Overhead</span>
+            <span class="tech-tag">Field Constraints</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Python-Jose</span>
+              <span class="tech-version">v3.3.0</span>
+            </div>
+            <div class="tech-role">JWT & Cryptography</div>
+          </div>
+          <div class="tech-detail">Cryptographic JSON Web Token encoding and signature verification supporting HS256 and RBAC claims.</div>
+          <div class="tech-features">
+            <span class="tech-tag">HS256 Signs</span>
+            <span class="tech-tag">Token Expiry</span>
+            <span class="tech-tag">Role Claims</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">HTTPX</span>
+              <span class="tech-version">v0.27.2</span>
+            </div>
+            <div class="tech-role">Async HTTP Client</div>
+          </div>
+          <div class="tech-detail">Full-featured async HTTP client querying upstream satellite weather and civic alerts non-blockingly.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Async Client</span>
+            <span class="tech-tag">Connection Pooling</span>
+            <span class="tech-tag">HTTP/2 Ready</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROTOCOL BRIDGE -->
+    <div class="bridge-bar">
+      <div class="bridge-line"></div>
+      <div class="bridge-badge">SQLAlchemy 2.0 Async Session • aiosqlite Driver • ACID Transactions • Migration Scripts</div>
+      <div class="bridge-line"></div>
+    </div>
+
+    <!-- 3. DATABASE & STORAGE STACK -->
+    <div class="pillar-card pillar-database">
+      <div class="pillar-header">
+        <div class="pillar-title">
+          <span>🗄️</span> 3. Database, ORM & Storage Architecture
+        </div>
+        <div class="pillar-badge">Storage Layer</div>
+      </div>
+      <div class="tech-cols-5">
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">SQLAlchemy</span>
+              <span class="tech-version">v2.0.35</span>
+            </div>
+            <div class="tech-role">Async Python ORM</div>
+          </div>
+          <div class="tech-detail">Modern 2.0 type-annotated declarative ORM using Mapped[T] and mapped_column for relational models.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Declarative 2.0</span>
+            <span class="tech-tag">AsyncSession</span>
+            <span class="tech-tag">Relationship Lazy/Eager</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">aiosqlite</span>
+              <span class="tech-version">v0.20.0</span>
+            </div>
+            <div class="tech-role">Async DB Driver</div>
+          </div>
+          <div class="tech-detail">Asynchronous I/O bridge for SQLite allowing concurrent multi-threaded non-blocking database queries.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Async Thread Pool</span>
+            <span class="tech-tag">Zero I/O Block</span>
+            <span class="tech-tag">SQLite Driver</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">SQLite 3 / Postgres</span>
+              <span class="tech-version">Embedded / Ready</span>
+            </div>
+            <div class="tech-role">Relational SQL Engine</div>
+          </div>
+          <div class="tech-detail">ACID relational database engine with strict foreign key constraints, UUID mixins, and check constraints.</div>
+          <div class="tech-features">
+            <span class="tech-tag">ACID Compliant</span>
+            <span class="tech-tag">swat_tourism_prod.db</span>
+            <span class="tech-tag">PostgreSQL Path</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Alembic</span>
+              <span class="tech-version">v1.13.3</span>
+            </div>
+            <div class="tech-role">Schema Migrations</div>
+          </div>
+          <div class="tech-detail">Automated database schema migration engine tracking revision history and seamless zero-downtime upgrades.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Version Control</span>
+            <span class="tech-tag">Autogenerate Diff</span>
+            <span class="tech-tag">Deterministic DDL</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">File Blob & Cache</span>
+              <span class="tech-version">Hybrid Tier</span>
+            </div>
+            <div class="tech-role">Local Mount & TTL</div>
+          </div>
+          <div class="tech-detail">Static file mount (/uploads) for payment slips/photos + 3600s in-memory TTL telemetry cache.</div>
+          <div class="tech-features">
+            <span class="tech-tag">/uploads Mount</span>
+            <span class="tech-tag">1h TTL Cache</span>
+            <span class="tech-tag">localStorage</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. EXTERNAL INTEGRATIONS & TESTING STACK -->
+    <div class="pillar-card pillar-integrations">
+      <div class="pillar-header">
+        <div class="pillar-title">
+          <span>🌐</span> 4. External Services & Quality Assurance Tooling
+        </div>
+        <div class="pillar-badge">Integrations & QA</div>
+      </div>
+      <div class="tech-cols-4">
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Open-Meteo API</span>
+              <span class="tech-version">Satellite Feed</span>
+            </div>
+            <div class="tech-role">Meteorological Service</div>
+          </div>
+          <div class="tech-detail">Live satellite weather API querying Swat GPS coordinates for 7-day forecasts and WMO codes without keys.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Live Satellite</span>
+            <span class="tech-tag">WMO Weather Codes</span>
+            <span class="tech-tag">Precipitation %</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Civic & Police Feeds</span>
+              <span class="tech-version">Government CAD</span>
+            </div>
+            <div class="tech-role">Safety & Dispatch</div>
+          </div>
+          <div class="tech-detail">KP Traffic Police Swat Control Room notices, M-16 Expressway & N-95 status, Rescue 1122 dispatch.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Traffic Police CAD</span>
+            <span class="tech-tag">Rescue 1122 Line</span>
+            <span class="tech-tag">PDMA Warnings</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">FinTech Gateways</span>
+              <span class="tech-version">Payment APIs</span>
+            </div>
+            <div class="tech-role">Payment Processing</div>
+          </div>
+          <div class="tech-detail">Unified checkout connecting to Easypaisa, JazzCash, 1Link switch, and bank direct transfer slips.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Easypaisa Open API</span>
+            <span class="tech-tag">JazzCash Wallet</span>
+            <span class="tech-tag">1Link Visa/Master</span>
+          </div>
+        </div>
+
+        <div class="tech-box">
+          <div>
+            <div class="tech-box-header">
+              <span class="tech-name">Vitest & Pytest</span>
+              <span class="tech-version">QA & CI/CD</span>
+            </div>
+            <div class="tech-role">Automated Testing</div>
+          </div>
+          <div class="tech-detail">205+ frontend Vitest unit & integration tests, React Testing Library, and async Pytest suite.</div>
+          <div class="tech-features">
+            <span class="tech-tag">Vitest 5.0</span>
+            <span class="tech-tag">Pytest-Asyncio</span>
+            <span class="tech-tag">Oxlint 1.81</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-row">
+    <span>Platform: SwatTourismProduction_v2 • Technology Stack Architecture Specification</span>
+    <span>Generated: November 2026 • Verified Full-Stack Production Environment</span>
+  </div>
+
+</body>
+</html>

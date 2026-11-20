@@ -58,6 +58,9 @@ export interface UpdateVehiclePayload {
   notes?: string;
 }
 
+const isValidUuid = (val?: string | null): boolean =>
+  Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+
 /**
  * Fetch transport fleet vehicles from database
  */
@@ -67,8 +70,8 @@ export async function fetchTransportFleet(
 ): Promise<TransportVehicleRecord[]> {
   try {
     const params = new URLSearchParams();
-    if (listingId) params.append('listing_id', listingId);
-    if (businessId) params.append('business_id', businessId);
+    if (isValidUuid(listingId)) params.append('listing_id', listingId!);
+    if (isValidUuid(businessId)) params.append('business_id', businessId!);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return await apiRequest<TransportVehicleRecord[]>(`/listings/transport/fleet${qs}`);
   } catch (err) {

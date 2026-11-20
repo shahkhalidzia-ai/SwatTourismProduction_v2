@@ -1321,7 +1321,13 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
                       }}
                     >
                       <Star size={13} fill="var(--acc)" />
-                      <span>★ Rate Stay / Write Review</span>
+                      <span>
+                        {b.listing?.type_code === 'transport'
+                          ? '★ Rate Ride / Write Review'
+                          : b.listing?.type_code === 'restaurant'
+                          ? '★ Rate Meal / Write Review'
+                          : '★ Rate Stay / Write Review'}
+                      </span>
                     </Button>
                   )}
 
@@ -1350,7 +1356,13 @@ export const MyBookingsView: React.FC<MyBookingsViewProps> = ({
                       }}
                     >
                       <CheckCircle2 size={13} />
-                      <span>Conclude Stay &amp; Rate</span>
+                      <span>
+                        {b.listing?.type_code === 'transport'
+                          ? 'Complete Ride & Rate'
+                          : b.listing?.type_code === 'restaurant'
+                          ? 'Complete Order & Rate'
+                          : 'Conclude Stay & Rate'}
+                      </span>
                     </Button>
                   )}
 

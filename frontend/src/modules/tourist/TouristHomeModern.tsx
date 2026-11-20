@@ -16,15 +16,24 @@ import {
   Sun,
   CloudSun,
   CloudRain,
+  CloudSnow,
   ShieldCheck,
   HeartPulse,
   ArrowRight,
 } from 'lucide-react';
-import { fetchRoadStatuses, type RoadStatus } from '../../api/safety';
+import {
+  fetchRoadStatuses,
+  fetchContentWeather,
+  fetchLiveValleyWeather,
+  type RoadStatus,
+  type WeatherDailyItem,
+} from '../../api/safety';
+import { promotionsApi, type Promotion } from '../../api/promotions';
 
 export interface TouristHomeModernProps {
   listings: Listing[];
   destinations: Destination[];
+  activePromotions?: Promotion[];
   onOpenHotelDetails: (hotel: Listing) => void;
   onOpenRestaurantModal?: (restaurant: Listing) => void;
   onOpenServiceModal?: (listing: Listing) => void;
@@ -43,6 +52,7 @@ export interface TouristHomeModernProps {
 export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
   listings,
   destinations: _destinations,
+  activePromotions,
   onOpenHotelDetails,
   onOpenRestaurantModal,
   onOpenServiceModal,
@@ -55,6 +65,65 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
   roadStatuses,
 }) => {
   const [internalRoads, setInternalRoads] = useState<RoadStatus[]>(roadStatuses || []);
+  const [internalPromos, setInternalPromos] = useState<Promotion[]>([]);
+
+  useEffect(() => {
+    if (!activePromotions || activePromotions.length === 0) {
+      promotionsApi.getActivePromotions(50).then((res) => {
+        if (Array.isArray(res)) setInternalPromos(res);
+      }).catch(() => {});
+    }
+  }, [activePromotions]);
+
+  const effectivePromos = (activePromotions && activePromotions.length > 0) ? activePromotions : internalPromos;
+
+  const getPromoForListing = (item: any) => {
+    if (!effectivePromos || effectivePromos.length === 0 || !item) return undefined;
+    const lTitle = (item.title || '').trim().toLowerCase();
+    const lId = (item.id || '').replace(/-/g, '').toLowerCase();
+    const lBizId = (item.business_id || '').replace(/-/g, '').toLowerCase();
+
+    return effectivePromos.find((p) => {
+      if (p.listing_id && p.listing_id.replace(/-/g, '').toLowerCase() === lId) return true;
+      if (p.business_id && lBizId && p.business_id.replace(/-/g, '').toLowerCase() === lBizId) return true;
+      if (p.listing_title && (lTitle.includes(p.listing_title.toLowerCase()) || p.listing_title.toLowerCase().includes(lTitle))) return true;
+      if (p.business_name && (lTitle.includes(p.business_name.toLowerCase()) || p.business_name.toLowerCase().includes(lTitle))) return true;
+      return false;
+    });
+  };
+  const [liveForecast, setLiveForecast] = useState<WeatherDailyItem[]>([]);
+  const [valleyTemps, setValleyTemps] = useState<{ kalam: string; malamJabba: string; bahrain: string }>({
+    kalam: '12°C',
+    malamJabba: '7°C',
+    bahrain: '16°C',
+  });
+  const [isWeatherLive, setIsWeatherLive] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetchContentWeather('mingora')
+      .then((data) => {
+        if (data && data.daily && data.daily.length > 0) {
+          setLiveForecast(data.daily.slice(0, 7));
+          setIsWeatherLive(true);
+        }
+      })
+      .catch(() => {});
+
+    fetchLiveValleyWeather()
+      .then((reports) => {
+        if (reports && reports.length > 0) {
+          const k = reports.find((r) => r.location_code === 'kalam');
+          const m = reports.find((r) => r.location_code === 'malam_jabba');
+          const b = reports.find((r) => r.location_code === 'bahrain');
+          setValleyTemps({
+            kalam: k ? `${Math.round(k.temperature_c)}°C` : '12°C',
+            malamJabba: m ? `${Math.round(m.temperature_c)}°C` : '7°C',
+            bahrain: b ? `${Math.round(b.temperature_c)}°C` : '16°C',
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (roadStatuses && roadStatuses.length > 0) {
@@ -96,7 +165,7 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
   }, []);
 
   // Booking Bar State
-  const [selectedValley, setSelectedValley] = useState<string>('kalam');
+  const [selectedValley, setSelectedValley] = useState<string>('all');
   const [adultsCount, setAdultsCount] = useState<number>(2);
   const [roomsCount, setRoomsCount] = useState<number>(1);
   const [showGuestPicker, setShowGuestPicker] = useState<boolean>(false);
@@ -104,6 +173,9 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
 
   // Quick Valleys matching proof-of-concept image exactly
   const quickValleys = [
+    { id: 'all', label: 'All Swat' },
+    { id: 'mingora', label: 'Mingora' },
+    { id: 'saidu', label: 'Saidu Sharif' },
     { id: 'kalam', label: 'Kalam' },
     { id: 'malam jabba', label: 'Malam Jabba' },
     { id: 'mahodand', label: 'Mahodand Lake' },
@@ -116,6 +188,7 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
     id: 'hotel-swat-serena',
     title: 'Swat Serena Hotel',
     area_name: 'Mingora',
+    address_text: 'Amanabad, Mingora, Swat',
     type_code: 'hotel',
     status: 'published',
     is_verified: true,
@@ -140,13 +213,24 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
   const filteredListings = listings.filter((l) => {
     // Valley match
     if (selectedValley && selectedValley !== 'all') {
-      const matchValley =
-        l.area_name?.toLowerCase().includes(selectedValley.toLowerCase()) ||
-        l.address_text?.toLowerCase().includes(selectedValley.toLowerCase()) ||
-        l.title?.toLowerCase().includes(selectedValley.toLowerCase());
+      const targetValley = selectedValley.toLowerCase();
+      const isMingoraOrSaidu = targetValley.includes('mingora') || targetValley.includes('saidu');
+      const matchValley = isMingoraOrSaidu
+        ? ((l.area_name || '').toLowerCase().includes('mingora') ||
+           (l.area_name || '').toLowerCase().includes('saidu') ||
+           (l.address_text || '').toLowerCase().includes('mingora') ||
+           (l.address_text || '').toLowerCase().includes('saidu') ||
+           (l.title || '').toLowerCase().includes('serena') ||
+           (l.title || '').toLowerCase().includes('mingora'))
+        : ((l.area_name || '').toLowerCase().includes(targetValley) ||
+           (l.address_text || '').toLowerCase().includes(targetValley) ||
+           (l.title || '').toLowerCase().includes(targetValley));
       if (!matchValley) return false;
     }
     // Category match
+    if (activeCategoryFilter === 'deals') {
+      return Boolean(getPromoForListing(l));
+    }
     if (activeCategoryFilter === 'stays') {
       return l.type_code === 'hotel' || (l.type_code as string) === 'guesthouse';
     }
@@ -476,9 +560,12 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                     padding: 0,
                   }}
                 >
+                  <option value="all">All Valleys &amp; Areas</option>
+                  <option value="mingora">Mingora</option>
+                  <option value="saidu">Saidu Sharif</option>
+                  <option value="saidu">Mingora &amp; Saidu Sharif</option>
                   <option value="kalam">Kalam Valley</option>
                   <option value="malam jabba">Malam Jabba</option>
-                  <option value="saidu">Mingora &amp; Saidu Sharif</option>
                   <option value="bahrain">Bahrain</option>
                   <option value="mahodand">Mahodand Lake</option>
                   <option value="marghuzar">White Palace</option>
@@ -1216,6 +1303,7 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                 <div style={{ display: 'inline-flex', gap: '6px', backgroundColor: '#F1F5F9', padding: '3px', borderRadius: '8px' }}>
                   {[
                     { id: 'all', label: 'All Offerings' },
+                    { id: 'deals', label: '🔥 Deals & Offers' },
                     { id: 'stays', label: 'Boutique Stays' },
                     { id: 'transport', label: '4x4 Jeeps' },
                     { id: 'dining', label: 'Trout Dining' },
@@ -1255,6 +1343,14 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                   const lowestPrice = item.price_items?.[0]?.price || 1500;
                   const priceUnit = item.price_items?.[0]?.unit === 'per_night' ? '/ night' : item.type_code === 'restaurant' ? '/ item' : '/ trip';
                   const bgImage = item.media?.[0]?.url || (item.type_code === 'restaurant' ? '/images/trout_restaurant.jpg' : item.type_code === 'transport' ? '/images/kalam_valley.jpg' : '/images/swat_serena_dusk.jpg');
+                  const itemPromo = getPromoForListing(item);
+                  let discountedPrice = lowestPrice;
+                  if (itemPromo) {
+                    const disc = itemPromo.discount_type === 'percentage'
+                      ? Math.round(lowestPrice * (itemPromo.discount_value / 100))
+                      : itemPromo.discount_value;
+                    discountedPrice = Math.max(0, lowestPrice - disc);
+                  }
 
                   return (
                     <div
@@ -1262,9 +1358,9 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                       style={{
                         backgroundColor: '#FFFFFF',
                         borderRadius: '12px',
-                        border: '1px solid #E2E8F0',
+                        border: itemPromo ? '1.5px solid #FECDD3' : '1px solid #E2E8F0',
                         overflow: 'hidden',
-                        boxShadow: '0 2px 8px rgba(15, 23, 42, 0.05)',
+                        boxShadow: itemPromo ? '0 4px 14px rgba(225, 29, 72, 0.12)' : '0 2px 8px rgba(15, 23, 42, 0.05)',
                         display: 'flex',
                         flexDirection: 'column',
                         transition: 'box-shadow 0.15s ease',
@@ -1295,6 +1391,24 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                         >
                           Verified
                         </div>
+                        {itemPromo && (
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '38px',
+                              left: '10px',
+                              backgroundColor: '#E11D48',
+                              color: '#FFFFFF',
+                              padding: '2px 7px',
+                              borderRadius: '4px',
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              boxShadow: '0 2px 6px rgba(225, 29, 72, 0.45)',
+                            }}
+                          >
+                            🔥 {itemPromo.badge_label || (itemPromo.discount_type === 'percentage' ? `${itemPromo.discount_value}% OFF` : 'DEAL')}
+                          </div>
+                        )}
                         <div
                           style={{
                             position: 'absolute',
@@ -1319,10 +1433,32 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                           <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#0F172A', margin: '0 0 3px 0' }}>
                             {item.title}
                           </h3>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748B', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#64748B', marginBottom: '6px' }}>
                             <MapPin size={12} color="#94A3B8" />
                             <span>{item.address_text || item.area_name || 'Swat'}</span>
                           </div>
+
+                          {/* Promo Ribbon */}
+                          {itemPromo && (
+                            <div
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                backgroundColor: '#FFF1F2',
+                                border: '1px solid #FECDD3',
+                                color: '#BE123C',
+                                padding: '1.5px 6px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: 700,
+                                marginBottom: '6px',
+                              }}
+                            >
+                              <span>🔥 {itemPromo.title}</span>
+                              <span>({itemPromo.discount_type === 'percentage' ? `${itemPromo.discount_value}% OFF` : `Save PKR ${itemPromo.discount_value.toLocaleString()}`})</span>
+                            </div>
+                          )}
 
                           {/* Feature Tags */}
                           {item.tags && item.tags.length > 0 && (
@@ -1349,16 +1485,32 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                         {/* Price & CTA */}
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
                           <div>
-                            <div style={{ fontSize: '10px', color: '#64748B' }}>Starting rate</div>
-                            <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#0F172A' }}>
-                              PKR {lowestPrice.toLocaleString()} <span style={{ fontSize: '10px', fontWeight: 500, color: '#64748B' }}>{priceUnit}</span>
+                            <div style={{ fontSize: '10px', color: '#64748B' }}>
+                              {itemPromo ? 'Special Deal Rate' : 'Starting rate'}
                             </div>
+                            {itemPromo ? (
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                                <span style={{ fontSize: '11px', color: '#94A3B8', textDecoration: 'line-through', fontWeight: 600 }}>
+                                  PKR {lowestPrice.toLocaleString()}
+                                </span>
+                                <span style={{ fontSize: '15px', fontWeight: 900, color: '#E11D48' }}>
+                                  PKR {discountedPrice.toLocaleString()}
+                                </span>
+                                <span style={{ fontSize: '10px', fontWeight: 500, color: '#64748B' }}>{priceUnit}</span>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '14.5px', fontWeight: 800, color: '#0F172A' }}>
+                                PKR {lowestPrice.toLocaleString()} <span style={{ fontSize: '10px', fontWeight: 500, color: '#64748B' }}>{priceUnit}</span>
+                              </div>
+                            )}
                           </div>
 
                           <button
                             type="button"
                             onClick={() => {
-                              if (item.type_code === 'hotel' || (item.type_code as string) === 'guesthouse') {
+                              if (item.details?.is_community_service && onOpenServiceModal) {
+                                onOpenServiceModal(item);
+                              } else if (item.type_code === 'hotel' || (item.type_code as string) === 'guesthouse') {
                                 if (onOpenAvailModal && item.price_items) {
                                   onOpenAvailModal(item.id, item.title, item.price_items);
                                 } else {
@@ -1582,7 +1734,21 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                 <h3 style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', margin: 0 }}>
                   Upcoming Weekend Forecasts
                 </h3>
-                <span style={{ fontSize: '10.5px', fontWeight: 700, color: '#007A55', backgroundColor: '#ECFDF5', padding: '2px 7px', borderRadius: '4px' }}>
+                <span
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    color: isWeatherLive ? '#007A55' : '#028AC8',
+                    backgroundColor: isWeatherLive ? '#ECFDF5' : '#EFF6FF',
+                    padding: '2px 7px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                  title={isWeatherLive ? 'Live Open-Meteo Satellite Feeds' : 'Seasonal Telemetry'}
+                >
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isWeatherLive ? '#10B981' : '#028AC8' }} />
                   Live Feeds
                 </span>
               </div>
@@ -1597,17 +1763,46 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                   paddingTop: '4px',
                 }}
               >
-                {[
-                  { day: 'Mon', temp: '18°C', icon: <Sun size={15} color="#F59E0B" /> },
-                  { day: 'Tue', temp: '15°C', icon: <CloudSun size={15} color="#028AC8" /> },
-                  { day: 'Wed', temp: '14°C', icon: <CloudSun size={15} color="#028AC8" /> },
-                  { day: 'Thu', temp: '12°C', icon: <CloudSun size={15} color="#028AC8" /> },
-                  { day: 'Fri', temp: '10°C', icon: <CloudRain size={15} color="#64748B" /> },
-                  { day: 'Sat', temp: '7°C', icon: <CloudRain size={15} color="#64748B" /> },
-                  { day: 'Sun', temp: '3°C', icon: <CloudRain size={15} color="#64748B" /> },
-                ].map((w, idx) => (
+                {(liveForecast && liveForecast.length > 0
+                  ? liveForecast.slice(0, 7).map((item, idx) => {
+                      let dayName = 'Day';
+                      try {
+                        const d = new Date(item.date + (item.date.includes('T') ? '' : 'T12:00:00'));
+                        if (!isNaN(d.getTime())) {
+                          dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+                        }
+                      } catch {
+                        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        dayName = days[idx % 7];
+                      }
+
+                      let iconNode = <Sun size={15} color="#F59E0B" />;
+                      if (item.weather_code === 0) iconNode = <Sun size={15} color="#F59E0B" />;
+                      else if (item.weather_code === 1 || item.weather_code === 2) iconNode = <CloudSun size={15} color="#028AC8" />;
+                      else if (item.weather_code === 3) iconNode = <CloudSun size={15} color="#64748B" />;
+                      else if (item.weather_code >= 71 && item.weather_code <= 86) iconNode = <CloudSnow size={15} color="#028AC8" />;
+                      else if (item.weather_code >= 51) iconNode = <CloudRain size={15} color="#64748B" />;
+
+                      return {
+                        day: dayName,
+                        temp: `${Math.round(item.temperature_max)}°C`,
+                        icon: iconNode,
+                        tooltip: `${item.condition} (Low: ${Math.round(item.temperature_min)}°C, Rain: ${item.precipitation_probability}%)`,
+                      };
+                    })
+                  : [
+                      { day: 'Mon', temp: '18°C', icon: <Sun size={15} color="#F59E0B" />, tooltip: 'Clear' },
+                      { day: 'Tue', temp: '15°C', icon: <CloudSun size={15} color="#028AC8" />, tooltip: 'Partly Cloudy' },
+                      { day: 'Wed', temp: '14°C', icon: <CloudSun size={15} color="#028AC8" />, tooltip: 'Partly Cloudy' },
+                      { day: 'Thu', temp: '12°C', icon: <CloudSun size={15} color="#028AC8" />, tooltip: 'Partly Cloudy' },
+                      { day: 'Fri', temp: '10°C', icon: <CloudRain size={15} color="#64748B" />, tooltip: 'Rain' },
+                      { day: 'Sat', temp: '7°C', icon: <CloudRain size={15} color="#64748B" />, tooltip: 'Rain' },
+                      { day: 'Sun', temp: '3°C', icon: <CloudRain size={15} color="#64748B" />, tooltip: 'Cold Rain' },
+                    ]
+                ).map((w, idx) => (
                   <div
                     key={idx}
+                    title={w.tooltip}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
@@ -1616,6 +1811,12 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
                       padding: '5px 1px',
                       borderRadius: '6px',
                       backgroundColor: '#F8FAFD',
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => {
+                      if (_onOpenWeatherModal) {
+                        _onOpenWeatherModal({ name: 'Mingora', area_name: 'Mingora', latitude: 34.7717, longitude: 72.3602 });
+                      }
                     }}
                   >
                     <span style={{ fontSize: '10.5px', fontWeight: 650, color: '#64748B' }}>
@@ -1631,9 +1832,9 @@ export const TouristHomeModern: React.FC<TouristHomeModernProps> = ({
 
               {/* Quick valley highlights */}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748B', paddingTop: '6px', borderTop: '1px solid #F1F5F9' }}>
-                <span>Kalam: <strong>12°C</strong></span>
-                <span>Malam Jabba: <strong>7°C</strong></span>
-                <span>Bahrain: <strong>16°C</strong></span>
+                <span>Kalam: <strong>{valleyTemps.kalam}</strong></span>
+                <span>Malam Jabba: <strong>{valleyTemps.malamJabba}</strong></span>
+                <span>Bahrain: <strong>{valleyTemps.bahrain}</strong></span>
               </div>
             </div>
           </div>

@@ -91,6 +91,12 @@ export function loadHotelLocalBookings(listingId?: string, businessName?: string
 
   try {
 
+    if (typeof window !== 'undefined' && localStorage.getItem('swat_hotel_bookings_cleared') === 'true') {
+
+      return [];
+
+    }
+
     const raw = typeof window !== 'undefined' ? localStorage.getItem('swat_local_bookings') : null;
 
     if (!raw) return [];
@@ -113,13 +119,7 @@ export function loadHotelLocalBookings(listingId?: string, businessName?: string
 
       const ref = (b.reference || b.booking_reference || b.id || '').toUpperCase();
 
-      const touristName = (b.tourist?.full_name || b.passenger_name || '').toLowerCase();
-
-      if (ref.includes('129165') || touristName.includes('shah khalid') || ref.startsWith('SWT-HTL-') || ref.startsWith('SWAT-HTL-')) {
-
-        continue;
-
-      }
+      if (!ref) continue;
 
       const isHotel =
 
@@ -303,6 +303,8 @@ interface HotelTodayScreenProps {
 
   onBookingProofVerified?: (updated: any) => void;
 
+  onClearAllBookings?: () => void;
+
   isMobile?: boolean;
 
   isDemoUser?: boolean;
@@ -350,6 +352,8 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
   onCollectBalance,
 
   onBookingProofVerified,
+
+  onClearAllBookings,
 
   isMobile = false,
 
@@ -457,15 +461,22 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
 
+  const [isLocallyCleared, setIsLocallyCleared] = useState<boolean>(false);
+
 
 
   const safeBusinessName = _businessName || 'Swat Serena Hotel';
 
   const isCleanSlate = typeof window !== 'undefined' && localStorage.getItem('swat_clean_slate') === 'true';
 
+  const isHotelBookingsCleared =
+    typeof window !== 'undefined' && localStorage.getItem('swat_hotel_bookings_cleared') === 'true';
+
   const isDemoSerena =
 
     !isCleanSlate &&
+
+    !isHotelBookingsCleared &&
 
     Boolean(isDemoUser) &&
 
@@ -1478,6 +1489,9 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
 
   const rawList = useMemo(() => {
+    if (isLocallyCleared) {
+      return [];
+    }
     const listMap = new Map<string, BookingRow>();
 
     // 1. Base prop bookings - protect against cross-hotel leakage while honoring passed bookings
@@ -1501,16 +1515,26 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
       }
     }
 
-    // 2. Local hotel bookings from swat_local_bookings (and merge cancellation requested status!)
-    for (const lb of localHotelBookings) {
-      const ref = (lb.reference || lb.id || '').toUpperCase();
-      if (ref && !listMap.has(ref)) {
-        listMap.set(ref, lb);
+    // 2. Local hotel bookings from swat_local_bookings (only if not cleared)
+    if (!isHotelBookingsCleared) {
+      for (const lb of localHotelBookings) {
+        const ref = (lb.reference || lb.id || '').toUpperCase();
+        if (ref && !listMap.has(ref)) {
+          listMap.set(ref, lb);
+        }
       }
     }
 
     return Array.from(listMap.values());
-  }, [bookings, localHotelBookings, safeBusinessName]);
+  }, [bookings, localHotelBookings, safeBusinessName, isHotelBookingsCleared]);
+
+  useEffect(() => {
+    if (bookings && bookings.length > 0) {
+      try {
+        localStorage.removeItem('swat_hotel_bookings_cleared');
+      } catch {}
+    }
+  }, [bookings]);
 
 
 
@@ -4371,18 +4395,40 @@ export const HotelTodayScreen: React.FC<HotelTodayScreenProps> = ({
 
               onClick={async () => {
 
-                if (window.confirm('Clear all bookings and booking requests data for all hotels? This resets room rack and balance ledger.')) {
+                // 1. Purge physical rooms, stay states, collected balances, and local bookings from storage
+                clearAllHotelBookingsData();
 
-                  clearAllHotelBookingsData();
+                // 2. Immediately clear in-memory component state
+                setIsLocallyCleared(true);
+                setLocalHotelBookings([]);
+                setLocalStatusMap({});
+                setSelectedBookingRef(null);
+                setPhysicalRooms((prev) =>
+                  prev.map((r) => ({
+                    ...r,
+                    status: 'available',
+                    stay_state: 'vacant',
+                    cleaning_status: 'ready',
+                    current_booking_id: undefined,
+                    current_guest_name: undefined,
+                    stay_dates: undefined,
+                  }))
+                );
 
-                  try {
+                // 3. Notify parent BusinessShell to reset bookings and stats
+                if (onClearAllBookings) {
+                  onClearAllBookings();
+                }
 
-                    await apiRequest('/bookings/clear-hotel-bookings', { method: 'POST' });
+                // 4. Dispatch sync events
+                window.dispatchEvent(new Event('swat_bookings_updated'));
+                window.dispatchEvent(new Event('swat_physical_rooms_updated'));
 
-                  } catch { }
-
-                  window.location.reload();
-
+                // 5. Clear backend database
+                try {
+                  await apiRequest('/bookings/clear-hotel-bookings', { method: 'POST' });
+                } catch (err) {
+                  console.warn('Backend clear endpoint call:', err);
                 }
 
               }}

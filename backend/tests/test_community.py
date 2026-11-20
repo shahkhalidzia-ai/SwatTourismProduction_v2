@@ -248,3 +248,62 @@ async def test_host_applications_workflow(async_client: AsyncClient):
     assert rej_resp.status_code == 200
     me2_resp = await async_client.get("/api/v1/auth/me", headers=comm2_headers)
     assert me2_resp.json()["community_profile"]["is_host_approved"] is False
+
+
+@pytest.mark.asyncio
+async def test_gul_zaman_services_approved_and_discoverable(async_client: AsyncClient):
+    """
+    Verify Gul Zaman's tourist guide and homestay offerings are properly approved,
+    loaded in his account, and accessible to tourists via public endpoints.
+    """
+    # 1. Login as Gul Zaman via demo login
+    demo_login_resp = await async_client.post("/api/v1/auth/demo-login/community")
+    assert demo_login_resp.status_code == 200
+    demo_data = demo_login_resp.json()
+    token = demo_data["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    user = demo_data["user"]
+    assert user["full_name"] == "Gul Zaman"
+    assert user["role"] == "community"
+
+    # 2. Check My Host Applications as Gul Zaman
+    my_apps_resp = await async_client.get("/api/v1/community/hosts/my", headers=headers)
+    assert my_apps_resp.status_code == 200
+    my_apps = my_apps_resp.json()
+    types_offered = {a["offer_type"] for a in my_apps if a["status"] == "approved"}
+    assert "guide" in types_offered, f"Expected approved guide application, found: {types_offered}"
+    assert "homestay" in types_offered, f"Expected approved homestay application, found: {types_offered}"
+
+    # 3. Check Public Approved Host Services (Tourist Explore & Book query)
+    public_resp = await async_client.get("/api/v1/community/hosts/approved")
+    assert public_resp.status_code == 200
+    approved_services = public_resp.json()
+    assert len(approved_services) >= 2
+
+    guide_offerings = [
+        s for s in approved_services
+        if s["offer_type"] == "guide" and "Gul Zaman" in (s.get("applicant_name") or "")
+    ]
+    assert len(guide_offerings) >= 1
+    assert "PKR 3,500" in guide_offerings[0]["description"] or "3500" in guide_offerings[0]["description"]
+
+    homestay_offerings = [
+        s for s in approved_services
+        if s["offer_type"] == "homestay" and "Gul Zaman" in (s.get("applicant_name") or "")
+    ]
+    assert len(homestay_offerings) >= 1
+    assert "PKR 4,500" in homestay_offerings[0]["description"] or "4500" in homestay_offerings[0]["description"]
+
+    # 4. Check Type-Filtered Public Queries
+    guide_filter_resp = await async_client.get("/api/v1/community/hosts/approved?type=guide")
+    assert guide_filter_resp.status_code == 200
+    filtered_guides = guide_filter_resp.json()
+    assert all(g["offer_type"] == "guide" for g in filtered_guides)
+    assert any("Gul Zaman" in (g.get("applicant_name") or "") for g in filtered_guides)
+
+    homestay_filter_resp = await async_client.get("/api/v1/community/hosts/approved?type=homestay")
+    assert homestay_filter_resp.status_code == 200
+    filtered_homestays = homestay_filter_resp.json()
+    assert all(h["offer_type"] == "homestay" for h in filtered_homestays)
+    assert any("Gul Zaman" in (h.get("applicant_name") or "") for h in filtered_homestays)
+

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.core.database import get_db
-from app.core.deps import get_current_token_payload, require_roles
+from app.core.deps import get_current_token_payload, get_optional_token_payload, require_roles
 from app.modules.accounts.models import BusinessProfile
 from app.modules.listings.schemas import (
     ListingCreate,
@@ -26,8 +26,15 @@ from app.modules.listings.schemas import (
     TransportVehicleCreate,
     TransportVehicleUpdate,
     TransportVehicleOut,
+    PromotionCreate,
+    PromotionUpdate,
+    PromotionOut,
+    PromoCodeValidateRequest,
+    PromoCodeValidateResponse,
 )
 from app.modules.listings.service import ListingsService
+from app.modules.listings.promotions_service import PromotionsService
+
 
 router = APIRouter(prefix="/listings", tags=["listings"])
 
@@ -126,6 +133,20 @@ async def get_my_listings(
     return listings
 
 
+@router.get("/", response_model=List[ListingOut])
+async def list_listings(
+    type_code: Optional[str] = Query(None, alias="type"),
+    area_id: Optional[uuid.UUID] = Query(None),
+    search: Optional[str] = Query(None),
+    tag_id: Optional[uuid.UUID] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Alias for /explore to allow standard GET /listings/ queries."""
+    return await ListingsService.get_explore_listings(
+        db, type_code=type_code, area_id=area_id, search=search, tag_id=tag_id
+    )
+
+
 @router.post("/", response_model=ListingOut, status_code=status.HTTP_201_CREATED)
 async def create_listing(
     data: ListingCreate,
@@ -136,7 +157,83 @@ async def create_listing(
     return await ListingsService.create_listing(db, profile.id, data)
 
 
+# ==========================================
+# OFFERS, DEALS & DISCOUNTS (PROMOTIONS)
+# Declared BEFORE parameterized dynamic routes
+# ==========================================
+
+@router.post("/promotions", response_model=PromotionOut, status_code=status.HTTP_201_CREATED)
+async def create_promotion_endpoint(
+    data: PromotionCreate,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Publish a new offer, flash deal, or discount campaign for a hotel, transport, guide, or restaurant."""
+    return await PromotionsService.create_promotion(db, profile.id, data)
+
+
+@router.get("/promotions/my", response_model=List[PromotionOut])
+async def get_my_promotions_endpoint(
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all offers and campaigns published by the authenticated business provider."""
+    return await PromotionsService.get_business_promotions(db, profile.id)
+
+
+@router.get("/promotions/active", response_model=List[PromotionOut])
+async def get_active_promotions_endpoint(
+    limit: int = Query(30, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """Public list of active deals and seasonal offers across all sectors."""
+    return await PromotionsService.get_active_public_promotions(db, limit)
+
+
+@router.post("/promotions/validate", response_model=PromoCodeValidateResponse)
+async def validate_promo_code_endpoint(
+    data: PromoCodeValidateRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Validate a coupon code and calculate the net payable amount before booking."""
+    return await PromotionsService.validate_promo_code(db, data)
+
+
+@router.get("/promotions/{promo_id}", response_model=PromotionOut)
+async def get_promotion_by_id_endpoint(
+    promo_id: uuid.UUID,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Retrieve details of a specific promotion owned by the provider."""
+    promo = await PromotionsService.get_promotion_by_id(db, promo_id, business_id=profile.id)
+    return PromotionsService.serialize_promotion(promo)
+
+
+@router.patch("/promotions/{promo_id}", response_model=PromotionOut)
+async def update_promotion_endpoint(
+    promo_id: uuid.UUID,
+    data: PromotionUpdate,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update details, pause/resume, or modify dates for an existing promotion."""
+    return await PromotionsService.update_promotion(db, promo_id, profile.id, data)
+
+
+@router.delete("/promotions/{promo_id}")
+async def delete_promotion_endpoint(
+    promo_id: uuid.UUID,
+    profile: BusinessProfile = Depends(get_current_business_profile),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a promotional campaign."""
+    await PromotionsService.delete_promotion(db, promo_id, profile.id)
+    return {"status": "success", "message": "Promotion deleted successfully."}
+
+
 @router.get("/{listing_id}", response_model=ListingOut)
+
 async def get_listing(listing_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     """Retrieve full details of a listing."""
     listing = await ListingsService.get_listing_by_id(db, listing_id)
@@ -337,14 +434,28 @@ async def release_hotel_room_endpoint(
 async def list_fleet_vehicles_endpoint(
     listing_id: Optional[uuid.UUID] = None,
     business_id: Optional[uuid.UUID] = None,
+    token_payload: Optional[dict] = Depends(get_optional_token_payload),
     db: AsyncSession = Depends(get_db),
 ):
-    """Retrieve transport fleet vehicles for a business or listing."""
+    """Retrieve transport fleet vehicles strictly scoped to the business profile."""
+    scoped_biz_id = business_id
+    if not scoped_biz_id and token_payload and token_payload.get("sub"):
+        try:
+            user_id = uuid.UUID(token_payload.get("sub"))
+            bp_q = select(BusinessProfile.id).where(BusinessProfile.owner_id == user_id)
+            bp_res = await db.execute(bp_q)
+            scoped_biz_id = bp_res.scalar_one_or_none()
+        except Exception:
+            pass
+
+    if not scoped_biz_id and not listing_id:
+        return []
+
     return await ListingsService.get_fleet_vehicles(
         db,
-        business_id=business_id,
+        business_id=scoped_biz_id,
         listing_id=listing_id,
-        auto_seed=True if business_id else False,
+        auto_seed=False,
     )
 
 
@@ -388,5 +499,16 @@ async def seed_fleet_vehicles_endpoint(
 ):
     """Initialize or reset default fleet vehicles for the business profile."""
     return await ListingsService.seed_default_fleet(db, profile.id, listing_id)
+
+
+@router.get("/{listing_id}/promotions", response_model=List[PromotionOut])
+async def get_listing_promotions_endpoint(
+    listing_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Public endpoint to fetch active offers specifically tied to a listing."""
+    return await PromotionsService.get_listing_promotions(db, listing_id)
+
+
 
 

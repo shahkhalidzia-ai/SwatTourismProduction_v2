@@ -65,7 +65,11 @@ export interface Booking {
   end_date?: string;
   travellers: number;
   total_amount: number;
+  discount_amount?: number;
+  promo_code?: string;
+  promotion_id?: string;
   deposit_amount?: number;
+
   deposit_track?: 'stp_platform' | 'property_direct';
   property_collected_amount?: number;
   direct_transfer_tid?: string;
@@ -132,7 +136,10 @@ export interface CreateBookingPayload {
   end_date?: string;
   travellers?: number;
   special_requests?: string;
+  promo_code?: string;
+  promotion_id?: string;
   items: {
+
     price_item_id: string;
     quantity: number;
     service_date?: string;

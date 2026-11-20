@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
   Car,
@@ -12,12 +12,15 @@ import {
   AlertCircle,
   BookmarkCheck,
   ArrowRight,
+  MessageCircle,
 } from 'lucide-react';
 import { Tag } from '../../design/Tag';
 import { Button } from '../../design/Button';
 import type { ListingItem, PriceItem } from '../../api/listings';
 import { createBookingRequest, type Booking } from '../../api/bookings';
+import { createCommunityBookingRequest, buildWhatsAppLink } from '../../api/community';
 import { useAuth } from '../../context/AuthContext';
+import { promotionsApi, type Promotion, type PromoCodeValidateResponse } from '../../api/promotions';
 
 export interface InstantServiceReservationModalProps {
   listing: ListingItem | null;
@@ -85,11 +88,122 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
     }
   }, [startDate, endDate, isMultiDay]);
 
-  // Total amount calculation
-  const totalAmount = useMemo(() => {
+  // Subtotal amount calculation
+  const subtotalAmount = useMemo(() => {
     const unitPrice = selectedPriceItem?.price || 0;
     return unitPrice * daysCount;
   }, [selectedPriceItem, daysCount]);
+
+  // Promotions & Discounts State
+  const [listingPromos, setListingPromos] = useState<Promotion[]>([]);
+  const [promoCodeInput, setPromoCodeInput] = useState<string>('');
+  const [appliedPromo, setAppliedPromo] = useState<PromoCodeValidateResponse | null>(null);
+  const [promoLoading, setPromoLoading] = useState<boolean>(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+
+  // Load promotions for listing or business
+  useEffect(() => {
+    if (!listing?.id) return;
+    let isMounted = true;
+    promotionsApi.getListingPromotions(listing.id)
+      .then((promos) => {
+        if (!isMounted) return;
+        if (Array.isArray(promos) && promos.length > 0) {
+          setListingPromos(promos);
+          const autoPromo = promos.find((p) => !p.promo_code && p.is_active);
+          if (autoPromo && subtotalAmount > 0) {
+            let disc = autoPromo.discount_type === 'percentage'
+              ? Math.round(subtotalAmount * (autoPromo.discount_value / 100))
+              : autoPromo.discount_value;
+            if (autoPromo.max_discount_cap && disc > autoPromo.max_discount_cap) {
+              disc = autoPromo.max_discount_cap;
+            }
+            setAppliedPromo({
+              is_valid: true,
+              message: `${autoPromo.title} automatically applied!`,
+              promotion_id: autoPromo.id,
+              discount_type: autoPromo.discount_type,
+              discount_value: autoPromo.discount_value,
+              discount_amount: disc,
+              final_subtotal: Math.max(0, subtotalAmount - disc),
+              badge_label: autoPromo.badge_label || 'Special Deal',
+            });
+          }
+        } else {
+          // Check active promotions fallback
+          promotionsApi.getActivePromotions(30).then((allActive) => {
+            if (!isMounted) return;
+            const lTitle = (listing.title || '').trim().toLowerCase();
+            const matched = allActive.find((p) => {
+              if (p.listing_title && (lTitle.includes(p.listing_title.toLowerCase()) || p.listing_title.toLowerCase().includes(lTitle))) return true;
+              if (p.business_name && (lTitle.includes(p.business_name.toLowerCase()) || p.business_name.toLowerCase().includes(lTitle))) return true;
+              return false;
+            });
+            if (matched) {
+              setListingPromos([matched]);
+              if (!matched.promo_code && subtotalAmount > 0) {
+                let disc = matched.discount_type === 'percentage'
+                  ? Math.round(subtotalAmount * (matched.discount_value / 100))
+                  : matched.discount_value;
+                if (matched.max_discount_cap && disc > matched.max_discount_cap) {
+                  disc = matched.max_discount_cap;
+                }
+                setAppliedPromo({
+                  is_valid: true,
+                  message: `${matched.title} automatically applied!`,
+                  promotion_id: matched.id,
+                  discount_type: matched.discount_type,
+                  discount_value: matched.discount_value,
+                  discount_amount: disc,
+                  final_subtotal: Math.max(0, subtotalAmount - disc),
+                  badge_label: matched.badge_label || 'Special Deal',
+                });
+              }
+            }
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, [listing?.id, subtotalAmount]);
+
+  const discountAmount = appliedPromo?.is_valid ? appliedPromo.discount_amount : 0;
+  const totalAmount = Math.max(0, subtotalAmount - discountAmount);
+
+  const handleApplyPromo = async () => {
+    if (!promoCodeInput.trim() || !listing) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    try {
+      const res = await promotionsApi.validateCode({
+        promo_code: promoCodeInput.trim(),
+        listing_id: listing.id,
+        price_item_id: selectedPriceItem?.id,
+        subtotal: subtotalAmount,
+        stay_days: daysCount,
+        stay_start: startDate,
+        stay_end: isMultiDay ? endDate : startDate,
+      });
+      if (res.is_valid) {
+        setAppliedPromo(res);
+        setPromoError(null);
+      } else {
+        setAppliedPromo(null);
+        setPromoError(res.message || 'Invalid promo code');
+      }
+    } catch (err: any) {
+      setAppliedPromo(null);
+      setPromoError(err?.message || 'Failed to validate promo code');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+    setPromoError(null);
+  };
 
   // Submission state
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -149,27 +263,32 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
 
     try {
       let newBooking: Booking;
-      try {
-        newBooking = await createBookingRequest({
-          listing_id: listing.id,
-          start_date: startDate,
+      if (isCommunity) {
+        const hostAppId = listing.id.startsWith('comm-') ? listing.id.replace('comm-', '') : undefined;
+        const commRes = await createCommunityBookingRequest({
+          host_user_id: listing.business_id,
+          host_application_id: hostAppId,
+          service_type: (listing.details?.offer_type as string) || listing.type_code || 'guide',
+          service_title: listing.title,
+          tourist_name: user?.full_name || (user as any)?.name || 'Sara Ahmad',
+          tourist_phone: (user as any)?.phone || '+92 300 1234567',
+          tourist_email: user?.email || 'sara@swat.pk',
+          pickup_location: pickupLocation,
+          destination_trail: destinationValley,
+          service_date: startDate,
           end_date: isMultiDay ? endDate : startDate,
-          travellers,
-          special_requests: fullSpecialRequests,
-          items: [
-            {
-              price_item_id: selectedPriceItem?.id || '',
-              quantity: 1,
-            },
-          ],
+          pickup_time: pickupTime,
+          duration_days: daysCount,
+          group_size: travellers,
+          total_price: totalAmount,
+          notes: fullSpecialRequests,
+          host_name: listing.business_name || listing.details?.applicant_name || 'Gul Zaman',
+          host_phone: listing.phone || listing.whatsapp_number || '+92 344 9876543',
         });
-      } catch {
-        // Fallback robust local booking record for offline or demo flows
-        const refCode = `SWAT-${isTransport ? 'TR' : isGuide ? 'GD' : 'CM'}-${Math.floor(100000 + Math.random() * 900000)}`;
         newBooking = {
-          id: `book-${Date.now()}`,
-          booking_reference: refCode,
-          reference: refCode,
+          id: commRes.id,
+          booking_reference: commRes.booking_reference,
+          reference: commRes.booking_reference,
           listing_id: listing.id,
           tourist_id: user?.id || 'tourist-active',
           status: 'requested',
@@ -178,14 +297,58 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
           end_date: isMultiDay ? endDate : startDate,
           travellers,
           special_requests: fullSpecialRequests,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          created_at: commRes.created_at,
+          updated_at: commRes.updated_at,
           listing: {
             title: listing.title,
             type_code: listing.type_code,
             area_name: listing.area_name,
           },
         } as unknown as Booking;
+      } else {
+        try {
+          newBooking = await createBookingRequest({
+            listing_id: listing.id,
+            start_date: startDate,
+            end_date: isMultiDay ? endDate : startDate,
+            travellers,
+            special_requests: fullSpecialRequests,
+            promo_code: appliedPromo?.is_valid ? promoCodeInput.trim().toUpperCase() : undefined,
+            promotion_id: appliedPromo?.is_valid ? appliedPromo.promotion_id : undefined,
+            items: [
+              {
+                price_item_id: selectedPriceItem?.id || '',
+                quantity: 1,
+              },
+            ],
+          });
+        } catch {
+          // Fallback robust local booking record for offline or demo flows
+          const refCode = `SWAT-${isTransport ? 'TR' : isGuide ? 'GD' : 'CM'}-${Math.floor(100000 + Math.random() * 900000)}`;
+          newBooking = {
+            id: `book-${Date.now()}`,
+            booking_reference: refCode,
+            reference: refCode,
+            listing_id: listing.id,
+            tourist_id: user?.id || 'tourist-active',
+            status: 'requested',
+            total_price: totalAmount,
+            discount_amount: discountAmount,
+            promo_code: appliedPromo?.is_valid ? promoCodeInput.trim().toUpperCase() : undefined,
+            promotion_id: appliedPromo?.is_valid ? appliedPromo.promotion_id : undefined,
+            start_date: startDate,
+            end_date: isMultiDay ? endDate : startDate,
+            travellers,
+            special_requests: fullSpecialRequests,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            listing: {
+              title: listing.title,
+              type_code: listing.type_code,
+              area_name: listing.area_name,
+            },
+          } as unknown as Booking;
+        }
       }
 
       // Persist to local bookings cache
@@ -488,6 +651,32 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
                 <a
+                  href={buildWhatsAppLink(
+                    listing.whatsapp_number || listing.phone || '+923449876543',
+                    `Hello ${listing.business_name || 'Host'}, I have submitted an instant booking request for "${listing.title}" (Ref: ${bookingSuccess.reference || 'SWAT-BOOKING'}) scheduled for ${startDate}. Looking forward to connecting!`
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    backgroundColor: '#25D366',
+                    color: '#fff',
+                    textDecoration: 'none',
+                    fontSize: '12.5px',
+                    fontWeight: 700,
+                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.25)',
+                  }}
+                  data-testid="btn-whatsapp-host-modal"
+                >
+                  <MessageCircle size={15} />
+                  <span>WhatsApp Host</span>
+                </a>
+
+                <a
                   href={`tel:${listing.phone || '+923457721001'}`}
                   style={{
                     display: 'inline-flex',
@@ -521,6 +710,63 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
           ) : (
             /* Reservation Form */
             <form onSubmit={handleSubmitReservation} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {listingPromos.length > 0 && (
+                <div
+                  style={{
+                    backgroundColor: '#FFF1F2',
+                    border: '1px solid #FECDD3',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '8px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '15px' }}>🔥</span>
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#9F1239' }}>
+                        {listingPromos[0].title} — Save {listingPromos[0].discount_type === 'percentage' ? `${listingPromos[0].discount_value}%` : `PKR ${listingPromos[0].discount_value.toLocaleString()}`}
+                      </div>
+                      <div style={{ fontSize: '10.5px', color: '#BE123C' }}>
+                        {listingPromos[0].badge_label || 'Special Promotion'} • {listingPromos[0].promo_code ? `Use coupon: ${listingPromos[0].promo_code}` : 'Auto-applied on this reservation'}
+                      </div>
+                    </div>
+                  </div>
+                  {listingPromos[0].promo_code && !appliedPromo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPromoCodeInput(listingPromos[0].promo_code || '');
+                        promotionsApi.validateCode({
+                          promo_code: listingPromos[0].promo_code || '',
+                          listing_id: listing.id,
+                          price_item_id: selectedPriceItem?.id,
+                          subtotal: subtotalAmount,
+                          stay_days: daysCount,
+                          stay_start: startDate,
+                          stay_end: isMultiDay ? endDate : startDate,
+                        }).then((r) => { if (r.is_valid) setAppliedPromo(r); });
+                      }}
+                      style={{
+                        backgroundColor: '#E11D48',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '5px',
+                        padding: '3px 8px',
+                        fontSize: '10.5px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Apply Deal
+                    </button>
+                  )}
+                </div>
+              )}
+
               {submitError && (
                 <div
                   style={{
@@ -812,6 +1058,93 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
                 />
               </div>
 
+              {/* Promo Code & Discount Section */}
+              <div
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#334155' }}>
+                    Have a Promo Code or Special Deal?
+                  </label>
+                  {appliedPromo?.is_valid && (
+                    <span style={{ fontSize: '10.5px', fontWeight: 750, color: '#007A55' }}>
+                      ✓ {appliedPromo.badge_label || 'Deal'} Applied (-PKR {discountAmount.toLocaleString()})
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="text"
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                    placeholder="Enter coupon code (e.g. WINTER20)"
+                    disabled={appliedPromo?.is_valid || promoLoading}
+                    style={{
+                      flex: 1,
+                      padding: '6px 10px',
+                      borderRadius: '6px',
+                      border: '1px solid #CBD5E1',
+                      fontSize: '11.5px',
+                      textTransform: 'uppercase',
+                      fontFamily: 'monospace',
+                      fontWeight: 700,
+                    }}
+                  />
+                  {appliedPromo?.is_valid ? (
+                    <button
+                      type="button"
+                      onClick={handleRemovePromo}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#F1F5F9',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: '#64748B',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Remove
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleApplyPromo}
+                      disabled={promoLoading || !promoCodeInput.trim()}
+                      style={{
+                        padding: '6px 14px',
+                        backgroundColor: '#007A55',
+                        border: 'none',
+                        borderRadius: '6px',
+                        color: '#fff',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {promoLoading ? 'Checking...' : 'Apply'}
+                    </button>
+                  )}
+                </div>
+
+                {promoError && (
+                  <div style={{ fontSize: '10.5px', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <AlertCircle size={11} />
+                    {promoError}
+                  </div>
+                )}
+              </div>
+
               {/* Transparent Price Summary Card */}
               <div
                 style={{
@@ -828,9 +1161,23 @@ export const InstantServiceReservationModal: React.FC<InstantServiceReservationM
                 <div>
                   <div style={{ fontSize: '11px', color: 'var(--mute)' }}>
                     {isMultiDay ? `${daysCount} Days Reservation` : '1-Day Service'} • Driver &amp; Fuel / Guide fees incl.
+                    {discountAmount > 0 && ` • Discount: -PKR ${discountAmount.toLocaleString()}`}
                   </div>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--pri)' }}>
-                    PKR {totalAmount.toLocaleString()}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                    {discountAmount > 0 ? (
+                      <>
+                        <span style={{ fontSize: '11.5px', color: '#94A3B8', textDecoration: 'line-through', fontWeight: 600 }}>
+                          PKR {subtotalAmount.toLocaleString()}
+                        </span>
+                        <span style={{ fontSize: '17px', fontWeight: 900, color: '#E11D48' }}>
+                          PKR {totalAmount.toLocaleString()}
+                        </span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--pri)' }}>
+                        PKR {totalAmount.toLocaleString()}
+                      </span>
+                    )}
                     <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--mute)' }}> Total estimated fare</span>
                   </div>
                 </div>

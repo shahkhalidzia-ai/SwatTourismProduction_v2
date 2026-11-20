@@ -185,3 +185,55 @@ export async function actOnSOS(id: string, status: SOSStatus, resolution_note?: 
     body: JSON.stringify({ status, resolution_note }),
   });
 }
+
+// Weather API
+export interface WeatherDailyItem {
+  date: string;
+  weather_code: number;
+  condition: string;
+  temperature_max: number;
+  temperature_min: number;
+  precipitation_probability: number;
+}
+
+export interface ContentWeatherResponse {
+  area: string;
+  latitude: number;
+  longitude: number;
+  current_temperature: number;
+  weather_code: number;
+  condition: string;
+  wind_speed: number;
+  humidity: number;
+  disclaimer: string;
+  daily: WeatherDailyItem[];
+  cached?: boolean;
+}
+
+export interface ValleyWeatherReport {
+  location_code: string;
+  location_name: string;
+  latitude: number;
+  longitude: number;
+  altitude_meters: number;
+  temperature_c: number;
+  feels_like_c: number;
+  humidity_percent: number;
+  condition: string;
+  icon: string;
+  wind_speed_kmh: number;
+  visibility_km: number;
+  road_hazard_score: number;
+  road_status: string;
+  travel_advisory: string;
+  source: string;
+}
+
+export async function fetchContentWeather(area: string = 'mingora'): Promise<ContentWeatherResponse> {
+  return apiRequest<ContentWeatherResponse>(`/content/weather?area=${encodeURIComponent(area)}`);
+}
+
+export async function fetchLiveValleyWeather(): Promise<ValleyWeatherReport[]> {
+  return apiRequest<ValleyWeatherReport[]>('/safety/weather/live');
+}
+

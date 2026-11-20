@@ -227,8 +227,8 @@ describe('Step 4 Tourist Explore and Trips UI', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Kalam River Inn')).toBeDefined();
-      expect(screen.getByText('Check dates')).toBeDefined();
-      expect(screen.getByText('Add to trip')).toBeDefined();
+      expect(screen.getAllByText('Check dates').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Add to trip').length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -295,6 +295,137 @@ describe('Step 4 Tourist Explore and Trips UI', () => {
     expect(screen.getByTestId('input-home-local-transport-search')).toBeDefined();
     expect(screen.getByTestId('grid-local-transport-home')).toBeDefined();
     expect(screen.queryByText(/Select Your Origin Departure City:/i)).toBeNull();
+  });
+
+  it('renders Mingora and Saidu Sharif in Quick Valleys and destination search', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation((url: any) => {
+      if (url.toString().includes('/api/v1/places/destinations')) {
+        return Promise.resolve(new Response(JSON.stringify([
+          {
+            id: 'dest-9',
+            name: 'Mingora',
+            area_name: 'Mingora',
+            category: 'valley',
+            description: 'Vibrant commercial heart of Swat Valley famous for bustling bazaars and emerald gemstones.',
+            best_season: 'Year-round',
+            latitude: 34.7717,
+            longitude: 72.3602,
+            is_approved: true,
+            is_featured: true,
+            created_at: new Date().toISOString(),
+          },
+          {
+            id: 'dest-10',
+            name: 'Saidu Sharif',
+            area_name: 'Saidu Sharif',
+            category: 'heritage',
+            description: 'Historic royal and administrative capital of Swat, home to the Swat Museum and stupas.',
+            best_season: 'Year-round',
+            latitude: 34.7465,
+            longitude: 72.3557,
+            is_approved: true,
+            is_featured: true,
+            created_at: new Date().toISOString(),
+          },
+        ]), { status: 200 }));
+      }
+      return Promise.resolve(new Response('[]', { status: 200 }));
+    });
+
+    render(<TouristShell activeTab="home" />);
+
+    // Switch to Valleys search tab to show destination search input & quick valleys
+    const valleysTab = screen.queryByTestId('tab-home-valleys');
+    if (valleysTab) fireEvent.click(valleysTab);
+
+    // 1. Verify Quick Valleys has Mingora and Saidu Sharif buttons
+    expect(screen.getByText('Quick Valleys:')).toBeDefined();
+    const mingoraQuickBtn = screen.getByRole('button', { name: /Mingora/i });
+    const saiduQuickBtn = screen.getByRole('button', { name: /Saidu Sharif/i });
+    expect(mingoraQuickBtn).toBeDefined();
+    expect(saiduQuickBtn).toBeDefined();
+
+    // 2. Click Mingora quick valley button -> sets search input to Mingora
+    fireEvent.click(mingoraQuickBtn);
+    const searchInput = screen.getByPlaceholderText(/Search Kalam, Mahodand, Malam Jabba/i) as HTMLInputElement;
+    expect(searchInput.value).toBe('Mingora');
+
+    // 3. Verify Mingora destination card is visible
+    expect((await screen.findAllByText('Mingora')).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/Vibrant commercial heart of Swat/i)).toBeDefined();
+
+    // 4. Search 'Mingrora' (spelling variant) -> also matches Mingora
+    fireEvent.change(searchInput, { target: { value: 'Mingrora' } });
+    expect(screen.getByText(/Vibrant commercial heart of Swat/i)).toBeDefined();
+
+    // 5. Click Saidu Sharif quick valley button
+    fireEvent.click(saiduQuickBtn);
+    expect(searchInput.value).toBe('Saidu Sharif');
+    expect((await screen.findAllByText('Saidu Sharif')).length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/Historic royal and administrative capital/i)).toBeDefined();
+
+    fetchSpy.mockRestore();
+  });
+
+  it('loads Swat Serena Hotel with address "Amanabad, Mingora, Swat" when searching Mingora, Mingrora, or Amanabad', async () => {
+    vi.spyOn(tripsApi, 'getExploreListings').mockResolvedValue([
+      {
+        id: 'listing-serena',
+        business_id: 'biz-serena',
+        business_name: 'Swat Serena Hotel',
+        type_id: 'type-hotel',
+        type_code: 'hotel',
+        type_label: 'Hotels & Stays',
+        area_id: 'area-mingora',
+        area_name: 'Mingora',
+        title: 'Swat Serena Hotel, Mingora',
+        description: 'Heritage luxury hotel in Mingora with landscaped rose gardens',
+        address_text: 'Amanabad, Mingora, Swat',
+        latitude: 34.77,
+        longitude: 72.36,
+        is_verified: true,
+        status: 'published',
+        tags: [],
+        price_items: [
+          {
+            id: 'pi-s-1',
+            name: 'Executive Deluxe',
+            price: 18500,
+            unit: 'per_night',
+            is_bookable: true,
+            default_units: 8,
+          },
+        ],
+        media: [],
+        details: {},
+        rating_count: 5,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+    ]);
+
+    render(<TouristShell activeTab="home" />);
+
+    // Switch to Explore tab in Home Frame
+    const exploreTab = screen.queryByTestId('tab-home-explore');
+    if (exploreTab) fireEvent.click(exploreTab);
+
+    const searchInput = screen.getByTestId('input-home-explore-search') as HTMLInputElement;
+
+    // 1. Search 'Mingora'
+    fireEvent.change(searchInput, { target: { value: 'Mingora' } });
+    expect(await screen.findByText('Swat Serena Hotel, Mingora')).toBeDefined();
+    expect((await screen.findAllByText(/Amanabad/i)).length).toBeGreaterThanOrEqual(1);
+
+    // 2. Search 'Amanabad' (physical location match)
+    fireEvent.change(searchInput, { target: { value: 'Amanabad' } });
+    expect(await screen.findByText('Swat Serena Hotel, Mingora')).toBeDefined();
+    expect((await screen.findAllByText(/Amanabad/i)).length).toBeGreaterThanOrEqual(1);
+
+    // 3. Search 'Mingrora' (spelling variant)
+    fireEvent.change(searchInput, { target: { value: 'Mingrora' } });
+    expect(await screen.findByText('Swat Serena Hotel, Mingora')).toBeDefined();
+    expect((await screen.findAllByText(/Amanabad/i)).length).toBeGreaterThanOrEqual(1);
   });
 });
 

@@ -34,6 +34,8 @@ import { Button } from '../../design/Button';
 import type { ListingItem, PriceItem, AvailabilityRecord } from '../../api/listings';
 import { fetchAvailability } from '../../api/listings';
 import { createBookingRequest, getBookingVoucherUrl, type Booking } from '../../api/bookings';
+import { promotionsApi, type PromoCodeValidateResponse, type Promotion } from '../../api/promotions';
+
 import { useAuth } from '../../context/AuthContext';
 import { BookingVoucherModal } from '../../components/BookingVoucherModal';
 import { UnifiedCheckoutModal } from '../../components/UnifiedCheckoutModal';
@@ -334,9 +336,120 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
 
   // Currently selected room object
   const currentSelectedRoom = rooms.find((r) => r.id === selectedRoomId) || rooms[0];
-  const totalAmount = currentSelectedRoom
+  const subtotalAmount = currentSelectedRoom
     ? currentSelectedRoom.price * nightsCount * roomsCount
     : 0;
+
+  // Promotions & Discounts State
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<PromoCodeValidateResponse | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [listingPromotions, setListingPromotions] = useState<Promotion[]>([]);
+
+  // Load promotions for hotel
+  useEffect(() => {
+    if (!hotel?.id) return;
+    let isMounted = true;
+    promotionsApi.getListingPromotions(hotel.id)
+      .then((promos) => {
+        if (!isMounted) return;
+        if (Array.isArray(promos) && promos.length > 0) {
+          setListingPromotions(promos);
+          const autoPromo = promos.find((p) => !p.promo_code && p.is_active);
+          if (autoPromo && subtotalAmount > 0) {
+            let disc = autoPromo.discount_type === 'percentage'
+              ? Math.round(subtotalAmount * (autoPromo.discount_value / 100))
+              : autoPromo.discount_value;
+            if (autoPromo.max_discount_cap && disc > autoPromo.max_discount_cap) {
+              disc = autoPromo.max_discount_cap;
+            }
+            setAppliedPromo({
+              is_valid: true,
+              message: `${autoPromo.title} automatically applied!`,
+              promotion_id: autoPromo.id,
+              discount_type: autoPromo.discount_type,
+              discount_value: autoPromo.discount_value,
+              discount_amount: disc,
+              final_subtotal: Math.max(0, subtotalAmount - disc),
+              badge_label: autoPromo.badge_label || 'Special Deal',
+            });
+          }
+        } else {
+          // Check active promotions fallback
+          promotionsApi.getActivePromotions(30).then((allActive) => {
+            if (!isMounted) return;
+            const hTitle = (hotel.title || '').trim().toLowerCase();
+            const matched = allActive.find((p) => {
+              if (p.listing_title && (hTitle.includes(p.listing_title.toLowerCase()) || p.listing_title.toLowerCase().includes(hTitle))) return true;
+              if (p.business_name && (hTitle.includes(p.business_name.toLowerCase()) || p.business_name.toLowerCase().includes(hTitle))) return true;
+              return false;
+            });
+            if (matched) {
+              setListingPromotions([matched]);
+              if (!matched.promo_code && subtotalAmount > 0) {
+                let disc = matched.discount_type === 'percentage'
+                  ? Math.round(subtotalAmount * (matched.discount_value / 100))
+                  : matched.discount_value;
+                if (matched.max_discount_cap && disc > matched.max_discount_cap) {
+                  disc = matched.max_discount_cap;
+                }
+                setAppliedPromo({
+                  is_valid: true,
+                  message: `${matched.title} automatically applied!`,
+                  promotion_id: matched.id,
+                  discount_type: matched.discount_type,
+                  discount_value: matched.discount_value,
+                  discount_amount: disc,
+                  final_subtotal: Math.max(0, subtotalAmount - disc),
+                  badge_label: matched.badge_label || 'Special Deal',
+                });
+              }
+            }
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, [hotel?.id, subtotalAmount]);
+
+  const discountAmount = appliedPromo?.is_valid ? appliedPromo.discount_amount : 0;
+  const totalAmount = Math.max(0, subtotalAmount - discountAmount);
+
+  const handleApplyPromoCode = async () => {
+    if (!promoCodeInput.trim()) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    try {
+      const res = await promotionsApi.validateCode({
+        promo_code: promoCodeInput.trim(),
+        listing_id: hotel.id,
+        price_item_id: currentSelectedRoom?.id,
+        subtotal: subtotalAmount,
+        stay_days: nightsCount,
+        stay_start: checkInDate,
+        stay_end: checkOutDate,
+      });
+      if (res.is_valid) {
+        setAppliedPromo(res);
+        setPromoError(null);
+      } else {
+        setAppliedPromo(null);
+        setPromoError(res.message || 'Invalid coupon code');
+      }
+    } catch (err: any) {
+      setAppliedPromo(null);
+      setPromoError(err?.message || 'Failed to validate coupon');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromoCode = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+    setPromoError(null);
+  };
 
   // When user successfully signs in, return from guest checkout to room view with active authenticated session
   useEffect(() => {
@@ -355,7 +468,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
       return;
     }
 
-    // Existing Logged-in user flow (100% untouched and preserved):
+    // Existing Logged-in user flow:
     setIsBooking(true);
     setBookingError(null);
     try {
@@ -365,6 +478,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
         end_date: checkOutDate,
         travellers,
         special_requests: specialRequests.trim() || undefined,
+        promo_code: appliedPromo?.is_valid ? promoCodeInput.trim().toUpperCase() : undefined,
         items: [
           {
             price_item_id: currentSelectedRoom.id || '',
@@ -380,6 +494,7 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
       setIsBooking(false);
     }
   };
+
 
   // Guest booking submission handler (for unauthenticated guests)
   const handleGuestSubmit = async (e?: React.FormEvent) => {
@@ -622,6 +737,65 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                     </span>
                   )}
                 </div>
+
+                {/* Active Hotel Promotion Banner */}
+                {listingPromotions.length > 0 && (
+                  <div
+                    style={{
+                      margin: '10px 0 0 0',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: '#FFF1F2',
+                      border: '1px solid #FECDD3',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '15px' }}>🔥</span>
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#9F1239' }}>
+                          {listingPromotions[0].title} — Save {listingPromotions[0].discount_type === 'percentage' ? `${listingPromotions[0].discount_value}%` : `PKR ${listingPromotions[0].discount_value.toLocaleString()}`}
+                        </div>
+                        <div style={{ fontSize: '10.5px', color: '#BE123C' }}>
+                          {listingPromotions[0].badge_label || 'Special Promotion'} • {listingPromotions[0].promo_code ? `Use coupon code: ${listingPromotions[0].promo_code}` : 'Instant discount auto-applied on rooms'}
+                        </div>
+                      </div>
+                    </div>
+                    {listingPromotions[0].promo_code && !appliedPromo && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPromoCodeInput(listingPromotions[0].promo_code || '');
+                          promotionsApi.validateCode({
+                            promo_code: listingPromotions[0].promo_code || '',
+                            listing_id: hotel.id,
+                            price_item_id: currentSelectedRoom?.id,
+                            subtotal: subtotalAmount,
+                            stay_days: nightsCount,
+                            stay_start: checkInDate,
+                            stay_end: checkOutDate,
+                          }).then(res => { if (res.is_valid) setAppliedPromo(res); });
+                        }}
+                        style={{
+                          backgroundColor: '#E11D48',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '5px',
+                          padding: '3px 8px',
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Apply Code ({listingPromotions[0].promo_code})
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Top Right: Hotel Image & Close Button */}
@@ -2295,11 +2469,79 @@ export const HotelDetailsModal: React.FC<HotelDetailsModalProps> = ({
                 Selected: <strong style={{ color: 'var(--ink)' }}>{currentSelectedRoom.name}</strong> •{' '}
                 {nightsCount} Night{nightsCount > 1 ? 's' : ''} ({roomsCount} Room{roomsCount > 1 ? 's' : ''})
               </div>
-              <div style={{ fontSize: 'var(--font-lg)', fontWeight: 700, color: 'var(--pri)' }}>
-                PKR {totalAmount.toLocaleString()}
+              <div style={{ fontSize: 'var(--font-lg)', fontWeight: 700, color: 'var(--pri)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {discountAmount > 0 ? (
+                  <>
+                    <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '15px' }}>
+                      PKR {subtotalAmount.toLocaleString()}
+                    </span>
+                    <span>PKR {totalAmount.toLocaleString()}</span>
+                    <span style={{ fontSize: '11px', backgroundColor: '#ecfdf5', color: '#005A36', padding: '2px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                      {appliedPromo?.badge_label || 'Deal'} (-PKR {discountAmount.toLocaleString()})
+                    </span>
+                  </>
+                ) : (
+                  <span>PKR {totalAmount.toLocaleString()}</span>
+                )}
                 <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--mute)' }}> Total (taxes incl.)</span>
               </div>
+
+              {/* Promo Code Input & Status */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                {appliedPromo?.is_valid ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#005A36' }}>
+                    <CheckCircle2 size={14} color="#16a34a" />
+                    <span>Coupon <strong>{promoCodeInput.toUpperCase()}</strong> applied!</span>
+                    <button
+                      type="button"
+                      onClick={handleRemovePromoCode}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '11px', textDecoration: 'underline' }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="text"
+                      placeholder="Promo Code (e.g. WINTER20)"
+                      value={promoCodeInput}
+                      onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '12px',
+                        borderRadius: '4px',
+                        border: promoError ? '1px solid #ef4444' : '1px solid var(--line)',
+                        width: '170px',
+                      }}
+                      data-testid="input-hotel-promo-code"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyPromoCode}
+                      disabled={promoLoading || !promoCodeInput.trim()}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        backgroundColor: '#005A36',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                      }}
+                      data-testid="btn-hotel-apply-promo"
+                    >
+                      {promoLoading ? '...' : 'Apply'}
+                    </button>
+                  </div>
+                )}
+                {promoError && (
+                  <span style={{ fontSize: '11px', color: '#ef4444' }}>{promoError}</span>
+                )}
+              </div>
             </div>
+
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Button

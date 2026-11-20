@@ -98,6 +98,10 @@ ehthumbs.db
 uploads/
 backend/uploads/
 
+# Logs
+*.log
+backend/*.log
+
 # Temporary Office Lock Files
 ~$*.docx
 ~$*.xlsx

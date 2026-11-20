@@ -1129,3 +1129,48 @@ textarea:focus-visible {
     height: 160px !important;
   }
 }
+
+
+/* Hotel Booking Details 2-Column Responsive Layout */
+.hotel-property-split-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.hotel-property-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  width: 100%;
+}
+
+.hotel-property-right-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .hotel-property-split-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 300px !important;
+    gap: 20px !important;
+    align-items: start !important;
+  }
+  .hotel-property-right-rail {
+    position: sticky !important;
+    top: 76px !important;
+    width: 300px !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .hotel-property-dates-grid {
+    grid-template-columns: 1fr 1fr 0.95fr 0.95fr !important;
+  }
+}
