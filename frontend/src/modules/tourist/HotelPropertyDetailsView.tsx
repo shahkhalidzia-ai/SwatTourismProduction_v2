@@ -38,6 +38,7 @@ import { createBookingRequest, type Booking } from '../../api/bookings';
 import { promotionsApi, type PromoCodeValidateResponse } from '../../api/promotions';
 import { useAuth } from '../../context/AuthContext';
 import { BookingVoucherModal } from '../../components/BookingVoucherModal';
+import { UnifiedCheckoutModal } from '../../components/UnifiedCheckoutModal';
 
 export interface HotelPropertyDetailsViewProps {
   hotel: ListingItem;
@@ -413,6 +414,7 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
 
   // Guest booking flow modal state
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [showUnifiedCheckout, setShowUnifiedCheckout] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'pay_at_hotel' | 'pay_online'>('pay_at_hotel');
 
   // Pre-fill user profile details if logged in
@@ -494,6 +496,9 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
         });
         setShowGuestModal(false);
         setBookingSuccess(newBooking);
+        if (paymentMethod === 'pay_online') {
+          setShowUnifiedCheckout(true);
+        }
         if (onBookingSuccess) onBookingSuccess(newBooking);
       } catch (err: any) {
         alert(err.message || 'Failed to submit room reservation. Please try again.');
@@ -557,6 +562,9 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
       setIsBooking(false);
       setShowGuestModal(false);
       setBookingSuccess(guestBooking);
+      if (paymentMethod === 'pay_online') {
+        setShowUnifiedCheckout(true);
+      }
       if (onBookingSuccess) onBookingSuccess(guestBooking);
     }, 450);
   };
@@ -2880,6 +2888,25 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
               >
                 Return to Explore
               </button>
+              {paymentMethod === 'pay_online' && bookingSuccess.payment_status !== 'paid' && (
+                <button
+                  type="button"
+                  onClick={() => setShowUnifiedCheckout(true)}
+                  style={{
+                    flex: 1,
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    backgroundColor: '#0284C7',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '13px',
+                    fontWeight: 750,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Pay Online Now
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -2902,6 +2929,40 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
             </div>
           </div>
         </div>
+      )}
+
+      {/* 14.5. UNIFIED ONLINE CHECKOUT MODAL */}
+      {showUnifiedCheckout && bookingSuccess && (
+        <UnifiedCheckoutModal
+          isOpen={showUnifiedCheckout}
+          onClose={() => setShowUnifiedCheckout(false)}
+          booking={{
+            id: bookingSuccess.id,
+            reference_number: bookingSuccess.reference,
+            total_amount: totalAmount,
+            property_name: hotel.title,
+            check_in: checkInDate,
+            check_out: checkOutDate,
+            nights: nightsCount,
+            guest_name: user?.full_name || guestName || 'Swat Visitor',
+            guest_phone: user?.phone || guestPhone || '03001234567',
+            guest_email: user?.email || guestEmail || 'tourist@swattourism.pk',
+          }}
+          onSuccess={(res) => {
+            setShowUnifiedCheckout(false);
+            setBookingSuccess((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    status: 'confirmed',
+                    payment_status: (res.payment_status as any) || 'paid',
+                    deposit_amount: res.deposit_amount,
+                  }
+                : null
+            );
+            setShowVoucherModal(true);
+          }}
+        />
       )}
 
       {/* 15. BOOKING VOUCHER MODAL */}
