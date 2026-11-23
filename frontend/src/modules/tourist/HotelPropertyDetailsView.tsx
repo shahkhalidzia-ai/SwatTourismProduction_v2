@@ -413,13 +413,16 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
 
   // Guest booking flow modal state
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'pay_at_hotel' | 'pay_online'>('pay_at_hotel');
 
-  // Auto-dismiss guest modal if user logs in via onOpenAuth
+  // Pre-fill user profile details if logged in
   useEffect(() => {
-    if (user && showGuestModal) {
-      setShowGuestModal(false);
+    if (user) {
+      if (!guestName && user.full_name) setGuestName(user.full_name);
+      if (!guestEmail && user.email) setGuestEmail(user.email);
+      if (!guestPhone && (user as any).phone) setGuestPhone((user as any).phone);
     }
-  }, [user, showGuestModal]);
+  }, [user]);
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
@@ -441,43 +444,15 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
     ];
   }, []);
 
-  // Instant Reserve Action
-  const handleInstantReserve = async (overrideRoom?: PriceItem) => {
+  // Instant Reserve Action - opens confirmation modal for user or guest
+  const handleInstantReserve = (overrideRoom?: PriceItem) => {
     const targetRoom = overrideRoom || currentSelectedRoom;
     if (!targetRoom) return;
     if (overrideRoom) setSelectedRoomId(overrideRoom.id || '');
-
-    if (!user) {
-      setShowGuestModal(true);
-      return;
-    }
-
-    setIsBooking(true);
-    try {
-      const newBooking = await createBookingRequest({
-        listing_id: hotel.id,
-        start_date: checkInDate,
-        end_date: checkOutDate,
-        travellers,
-        special_requests: specialRequests.trim() || undefined,
-        promo_code: appliedPromo?.is_valid ? promoCodeInput.trim().toUpperCase() : undefined,
-        items: [
-          {
-            price_item_id: targetRoom.id || '',
-            quantity: roomsCount,
-          },
-        ],
-      });
-      setBookingSuccess(newBooking);
-      if (onBookingSuccess) onBookingSuccess(newBooking);
-    } catch (err: any) {
-      alert(err.message || 'Failed to submit room reservation. Please try again.');
-    } finally {
-      setIsBooking(false);
-    }
+    setShowGuestModal(true);
   };
 
-  // Guest booking submit
+  // Reservation submit (handles both logged-in tourist and unauthenticated guest)
   const handleGuestSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!currentSelectedRoom) return;
@@ -494,6 +469,40 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
     setGuestValidationErr(null);
     setIsBooking(true);
 
+    const paymentGuaranteeLabel =
+      paymentMethod === 'pay_at_hotel'
+        ? 'Pay at Hotel on Arrival (No advance required)'
+        : 'Pay Now Online (Digital)';
+
+    if (user) {
+      try {
+        const newBooking = await createBookingRequest({
+          listing_id: hotel.id,
+          start_date: checkInDate,
+          end_date: checkOutDate,
+          travellers,
+          special_requests: `Guest: ${guestName.trim()} | WhatsApp: ${guestPhone.trim()} | Guarantee: ${paymentGuaranteeLabel}${
+            specialRequests.trim() ? ' | Note: ' + specialRequests.trim() : ''
+          }`,
+          promo_code: appliedPromo?.is_valid ? promoCodeInput.trim().toUpperCase() : undefined,
+          items: [
+            {
+              price_item_id: currentSelectedRoom.id || '',
+              quantity: roomsCount,
+            },
+          ],
+        });
+        setShowGuestModal(false);
+        setBookingSuccess(newBooking);
+        if (onBookingSuccess) onBookingSuccess(newBooking);
+      } catch (err: any) {
+        alert(err.message || 'Failed to submit room reservation. Please try again.');
+      } finally {
+        setIsBooking(false);
+      }
+      return;
+    }
+
     const refCode = `SWT-HTL-${Math.floor(100000 + Math.random() * 900000)}`;
     const guestBooking: Booking = {
       id: `book-guest-${Date.now()}`,
@@ -508,7 +517,7 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
       end_date: checkOutDate,
       travellers,
       history: [],
-      special_requests: `Guest: ${guestName.trim()} | WhatsApp: ${guestPhone.trim()} | Guarantee: Pay at Hotel on Arrival${
+      special_requests: `Guest: ${guestName.trim()} | WhatsApp: ${guestPhone.trim()} | Guarantee: ${paymentGuaranteeLabel}${
         specialRequests.trim() ? ' | Note: ' + specialRequests.trim() : ''
       }`,
       created_at: new Date().toISOString(),
@@ -2351,6 +2360,23 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
               <div style={{ fontSize: '20px', fontWeight: 800, color: '#007A55' }}>
                 PKR {totalAmount.toLocaleString()}
               </div>
+              <div
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 750,
+                  color: paymentMethod === 'pay_at_hotel' ? '#166534' : '#0369A1',
+                  backgroundColor: paymentMethod === 'pay_at_hotel' ? '#DCFCE7' : '#E0F2FE',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  border: paymentMethod === 'pay_at_hotel' ? '1px solid #BBF7D0' : '1px solid #BAE6FD',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  marginTop: '2px',
+                }}
+              >
+                <span>{paymentMethod === 'pay_at_hotel' ? '💵 Pay at Property (PKR 0 upfront)' : '💳 Pay Now Online'}</span>
+              </div>
             </div>
 
             <button
@@ -2611,6 +2637,80 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
                 </div>
               </div>
 
+              {/* Choose How to Pay Section */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                  Choose How to Pay *
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {/* Option 1: Pay at Property */}
+                  <div
+                    onClick={() => setPaymentMethod('pay_at_hotel')}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: paymentMethod === 'pay_at_hotel' ? '2px solid #007A55' : '1.5px solid #E2E8F0',
+                      backgroundColor: paymentMethod === 'pay_at_hotel' ? '#F0FDF4' : '#FFFFFF',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    data-testid="option-pay-at-property"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <input
+                        type="radio"
+                        name="property_payment_choice"
+                        checked={paymentMethod === 'pay_at_hotel'}
+                        onChange={() => setPaymentMethod('pay_at_hotel')}
+                        style={{ accentColor: '#007A55', cursor: 'pointer' }}
+                      />
+                      <strong style={{ fontSize: '12.5px', color: '#0F172A' }}>💵 Pay at Property</strong>
+                    </div>
+                    <p style={{ margin: '3px 0 0 22px', fontSize: '11px', color: '#64748B', lineHeight: 1.35 }}>
+                      <strong>PKR 0 today.</strong> Pay at front desk with Cash, Card, or JazzCash upon check-in.
+                    </p>
+                    <div style={{ marginTop: '6px', marginLeft: '22px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 750, color: '#166534', backgroundColor: '#DCFCE7', padding: '2px 6px', borderRadius: '4px' }}>
+                        ✓ Zero Advance
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Option 2: Pay Now Online */}
+                  <div
+                    onClick={() => setPaymentMethod('pay_online')}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '10px',
+                      border: paymentMethod === 'pay_online' ? '2px solid #0284C7' : '1.5px solid #E2E8F0',
+                      backgroundColor: paymentMethod === 'pay_online' ? '#F0F9FF' : '#FFFFFF',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    data-testid="option-pay-online"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <input
+                        type="radio"
+                        name="property_payment_choice"
+                        checked={paymentMethod === 'pay_online'}
+                        onChange={() => setPaymentMethod('pay_online')}
+                        style={{ accentColor: '#0284C7', cursor: 'pointer' }}
+                      />
+                      <strong style={{ fontSize: '12.5px', color: '#0F172A' }}>💳 Pay Now Online</strong>
+                    </div>
+                    <p style={{ margin: '3px 0 0 22px', fontSize: '11px', color: '#64748B', lineHeight: 1.35 }}>
+                      Instant guarantee via Visa/MasterCard, SwatPay, JazzCash or Easypaisa.
+                    </p>
+                    <div style={{ marginTop: '6px', marginLeft: '22px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 750, color: '#0369A1', backgroundColor: '#E0F2FE', padding: '2px 6px', borderRadius: '4px' }}>
+                        ⚡ Guaranteed Lock
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Price Summary */}
               <div
                 style={{
@@ -2627,8 +2727,10 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
                     PKR {totalAmount.toLocaleString()}
                   </span>
                 </div>
-                <div style={{ fontSize: '11px', color: '#166534', marginTop: '4px' }}>
-                  ✓ Guarantee: Pay at Hotel on Arrival (No advance required)
+                <div style={{ fontSize: '11px', color: paymentMethod === 'pay_at_hotel' ? '#166534' : '#0369A1', marginTop: '4px' }}>
+                  {paymentMethod === 'pay_at_hotel'
+                    ? '✓ Guarantee: Pay at Hotel on Arrival (No advance required)'
+                    : '⚡ Guarantee: 100% Pre-paid Instant Reservation'}
                 </div>
               </div>
 
@@ -2657,7 +2759,7 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
                     flex: 2,
                     padding: '10px',
                     borderRadius: '8px',
-                    backgroundColor: '#007A55',
+                    backgroundColor: paymentMethod === 'pay_at_hotel' ? '#007A55' : '#0284C7',
                     color: '#FFFFFF',
                     border: 'none',
                     fontSize: '13px',
@@ -2665,7 +2767,11 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
                     cursor: 'pointer',
                   }}
                 >
-                  {isBooking ? 'Confirming...' : 'Confirm Reservation'}
+                  {isBooking
+                    ? 'Confirming...'
+                    : paymentMethod === 'pay_at_hotel'
+                    ? 'Confirm & Pay at Property'
+                    : 'Confirm & Pay Online'}
                 </button>
               </div>
             </form>

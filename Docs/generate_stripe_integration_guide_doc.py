@@ -478,3 +478,4 @@ def build_stripe_guide_docx():
 
 if __name__ == "__main__":
     build_stripe_guide_docx()
+

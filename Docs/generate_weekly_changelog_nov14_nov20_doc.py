@@ -479,3 +479,4 @@ def build_weekly_summary_docx():
 
 if __name__ == "__main__":
     build_weekly_summary_docx()
+

@@ -482,3 +482,4 @@ def build_payment_commission_docx():
 
 if __name__ == "__main__":
     build_payment_commission_docx()
+
