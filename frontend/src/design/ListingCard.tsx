@@ -299,6 +299,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({
 
       {/* Content Column (Right 62%) - Reduced Height Layout */}
       <div
+        className="listing-card-content"
         style={{
           flex: 1,
           minWidth: 0,

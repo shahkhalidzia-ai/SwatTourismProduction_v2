@@ -332,21 +332,30 @@ textarea:focus-visible {
 }
 
 /* Horizontal Split Listing Card (Classic View Match to Concept Reference) */
-.listing-card-horizontal {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: stretch !important;
-  min-height: 175px;
+@media (min-width: 769px) {
+  .listing-card-horizontal {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    min-height: 175px;
+  }
 }
 
-@media (max-width: 440px) {
+@media (max-width: 768px) {
   .listing-card-horizontal {
+    display: flex !important;
     flex-direction: column !important;
+    min-height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   .listing-card-horizontal .listing-card-cover {
     width: 100% !important;
-    min-height: 140px !important;
+    min-height: 160px !important;
+    max-height: 180px !important;
     max-width: 100% !important;
+    flex: none !important;
   }
 }
 
@@ -413,8 +422,6 @@ textarea:focus-visible {
 
 #mobile-phone-frame .dest-section-container,
 .phone-layout .dest-section-container,
-#mobile-phone-frame .dest-scenery-card,
-.phone-layout .dest-scenery-card,
 #mobile-phone-frame .destinations-scenery-grid > div,
 .phone-layout .destinations-scenery-grid > div,
 #mobile-phone-frame .listing-card-frame,
@@ -427,12 +434,134 @@ textarea:focus-visible {
   box-sizing: border-box !important;
 }
 
+/* Ensure Destination Cards are Single-Column in Phone View */
+#mobile-phone-frame .dest-scenery-card,
+.phone-layout .dest-scenery-card,
+#mobile-phone-frame .booking-dest-card,
+.phone-layout .booking-dest-card {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  padding: 10px !important;
+  gap: 10px !important;
+  box-sizing: border-box !important;
+}
+
+#mobile-phone-frame .booking-card-media,
+.phone-layout .booking-card-media,
+#mobile-phone-frame .dest-card-photo,
+.phone-layout .dest-card-photo {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 165px !important;
+  min-height: 165px !important;
+  flex: none !important;
+  border-radius: 8px !important;
+}
+
+#mobile-phone-frame .dest-card-content,
+.phone-layout .dest-card-content {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  gap: 8px !important;
+}
+
+#mobile-phone-frame .dest-card-header-row,
+.phone-layout .dest-card-header-row {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+#mobile-phone-frame .dest-card-footer-row,
+.phone-layout .dest-card-footer-row {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+#mobile-phone-frame .btn-dest-explore-stays,
+.phone-layout .btn-dest-explore-stays {
+  width: 100% !important;
+  justify-content: center !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+}
+
+/* Ensure Horizontal Listing Cards Switch to Vertical Column on Phone */
+#mobile-phone-frame .listing-card-horizontal,
+.phone-layout .listing-card-horizontal {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#mobile-phone-frame .listing-card-horizontal .listing-card-cover,
+.phone-layout .listing-card-horizontal .listing-card-cover,
 #mobile-phone-frame .listing-card-cover,
 .phone-layout .listing-card-cover {
-  height: auto !important;
-  min-height: 140px !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  height: 160px !important;
+  min-height: 160px !important;
+  flex: none !important;
   align-self: stretch !important;
   padding: 10px !important;
+}
+
+#mobile-phone-frame .listing-card-content,
+.phone-layout .listing-card-content {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  padding: 10px 12px !important;
+}
+
+#mobile-phone-frame .btn-smart-hotel-details,
+.phone-layout .btn-smart-hotel-details,
+#mobile-phone-frame .btn-card-instant-reserve,
+.phone-layout .btn-card-instant-reserve {
+  white-space: normal !important;
+  font-size: 11.5px !important;
+  padding: 7px 10px !important;
+  min-height: 36px !important;
+  text-align: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#mobile-phone-frame .explore-active-trip-banner,
+.phone-layout .explore-active-trip-banner {
+  padding: 8px 12px !important;
+  gap: 8px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#mobile-phone-frame .explore-sub-filter-row,
+.phone-layout .explore-sub-filter-row {
+  flex-direction: column !important;
+  gap: 8px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#mobile-phone-frame .explore-sub-area-select,
+.phone-layout .explore-sub-area-select,
+#mobile-phone-frame .explore-sub-search-box,
+.phone-layout .explore-sub-search-box {
+  width: 100% !important;
+  min-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 #mobile-phone-frame .listing-card-action-row,
@@ -683,7 +812,7 @@ textarea:focus-visible {
   gap: 8px !important;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .hero-search-hub-frame {
     padding: 10px 12px !important;
     border-radius: 14px !important;
@@ -693,8 +822,48 @@ textarea:focus-visible {
     grid-template-columns: 1fr !important;
     width: 100% !important;
   }
-  .dest-card-photo {
-    height: 140px !important;
+  .dest-card-photo,
+  .booking-card-media {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: 165px !important;
+    min-height: 165px !important;
+    flex: none !important;
+    border-radius: 8px !important;
+  }
+  .booking-dest-card,
+  .dest-scenery-card {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 10px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .dest-card-content {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .dest-card-header-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .dest-card-footer-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .btn-dest-explore-stays {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
   }
   .dest-card-top-pill {
     padding: 3px 7px !important;
@@ -712,11 +881,42 @@ textarea:focus-visible {
   .listing-card-frame {
     width: 100% !important;
     max-width: 100% !important;
+    box-sizing: border-box !important;
   }
-  .listing-card-cover {
-    height: auto !important;
-    min-height: 140px !important;
+  .listing-card-horizontal {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .listing-card-cover,
+  .listing-card-horizontal .listing-card-cover {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: 160px !important;
+    min-height: 160px !important;
+    flex: none !important;
     align-self: stretch !important;
+    padding: 10px !important;
+  }
+  .listing-card-content {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 10px 12px !important;
+  }
+  .btn-smart-hotel-details,
+  .btn-card-instant-reserve {
+    white-space: normal !important;
+    font-size: 11.5px !important;
+    padding: 7px 10px !important;
+    min-height: 36px !important;
+    text-align: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .listing-card-action-row {
     grid-template-columns: 1fr 1fr !important;
@@ -735,6 +935,37 @@ textarea:focus-visible {
     width: 100% !important;
     flex: 1 1 100% !important;
     min-width: 0 !important;
+  }
+  .explore-active-trip-banner {
+    padding: 8px 12px !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .explore-sub-filter-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .explore-sub-area-select,
+  .explore-sub-search-box {
+    width: 100% !important;
+    min-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .split-layout-container {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 12px !important;
+  }
+  .split-layout-main {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .split-layout-side {
+    display: none !important;
   }
   .btn-header-list-property {
     display: none !important;
@@ -1113,20 +1344,43 @@ textarea:focus-visible {
 
 
 /* Booking.com Style Destination Cards */
-.booking-dest-card {
-  display: flex !important;
-  flex-direction: row !important;
-}
-@media (max-width: 680px) {
+@media (min-width: 769px) {
   .booking-dest-card {
+    display: flex !important;
+    flex-direction: row !important;
+  }
+}
+@media (max-width: 768px) {
+  .booking-dest-card,
+  .dest-scenery-card {
+    display: flex !important;
     flex-direction: column !important;
     padding: 10px !important;
     gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
   }
-  .booking-card-media {
+  .booking-card-media,
+  .dest-card-photo {
     width: 100% !important;
     min-width: 100% !important;
-    height: 160px !important;
+    max-width: 100% !important;
+    height: 165px !important;
+    flex: none !important;
+    border-radius: 8px !important;
+  }
+  .dest-card-footer-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .btn-dest-explore-stays {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
   }
 }
 

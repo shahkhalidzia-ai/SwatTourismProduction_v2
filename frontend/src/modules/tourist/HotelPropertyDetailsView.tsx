@@ -2067,7 +2067,7 @@ export const HotelPropertyDetailsView: React.FC<HotelPropertyDetailsViewProps> =
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, overflow: 'hidden' }}>
                         <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                          {React.cloneElement(fac.icon as React.ReactElement, { size: 12 })}
+                          {React.cloneElement(fac.icon as React.ReactElement<any>, { size: 12 })}
                         </span>
                         <span style={{ fontWeight: 650, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={fac.desc}>
                           {fac.title}

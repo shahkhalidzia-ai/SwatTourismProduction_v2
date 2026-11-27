@@ -11641,6 +11641,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                       <div
 
+                        className="dest-card-content"
+
                         style={{
 
                           display: 'flex',
@@ -11659,7 +11661,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                         {/* Top Line: Title + Booking.com Rating Score Block */}
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                        <div className="dest-card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
 
                           <div style={{ minWidth: 0 }}>
 
@@ -11983,6 +11985,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
                         <div
 
+                          className="dest-card-footer-row"
+
                           style={{
 
                             display: 'flex',
@@ -12018,6 +12022,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
                           <button
 
                             type="button"
+
+                            className="btn-dest-explore-stays"
 
                             onClick={() => {
 
@@ -12142,6 +12148,8 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
           {/* Active Trip Banner in Explore (Prompt 3: Explore shows "Adding to: <trip name>" with a Change trip button) */}
 
           <div
+
+            className="explore-active-trip-banner"
 
             style={{
 
@@ -12403,9 +12411,11 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
             {/* Sub-bar: Area Selector & Search */}
 
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <div className="explore-sub-filter-row" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
 
               <select
+
+                className="explore-sub-area-select"
 
                 value={selectedAreaId}
 
@@ -12447,7 +12457,7 @@ export const TouristShell: React.FC<TouristShellProps> = ({ activeTab, onTabChan
 
 
 
-              <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
+              <div className="explore-sub-search-box" style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
 
                 <input
 
